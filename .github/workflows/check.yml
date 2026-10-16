@@ -18,8 +18,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     env:
-      GRANKA_CONFIG: ${{ runner.temp }}/granka-missing-config.json
-      GRANKA_STATE_DIR: ${{ runner.temp }}/granka-test-state
       GRANKA_BROWSER_CHANNEL: chromium
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUTF8: "1"
@@ -38,6 +36,9 @@ jobs:
         if: runner.os == 'Windows'
         run: python -m playwright install chromium
       - name: Run tests
+        env:
+          GRANKA_CONFIG: ${{ runner.temp }}/granka-missing-config.json
+          GRANKA_STATE_DIR: ${{ runner.temp }}/granka-test-state
         run: python -B -m unittest discover -s tests -q
       - name: Check release documentation
         run: python -B tools/release.py --check
