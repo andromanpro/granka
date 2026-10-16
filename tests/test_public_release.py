@@ -50,7 +50,7 @@ class PublicReleaseTests(unittest.TestCase):
                   'print(json.dumps({"roots":{k:str(v) for k,v in roots().items()},"enabled":load()["site"]["enabled"],'
                   '"meter":measure("Own writing sample."),"site_repo":SitePublisher(lambda:"state").repo}))')
             out=json.loads(subprocess.check_output([sys.executable,'-B','-c',code],cwd=ROOT,env=env))
-            self.assertEqual(Path(out['roots']['articles']),Path(folder)/'articles')
+            self.assertEqual(Path(out['roots']['articles']),Path(folder).resolve()/'articles')
             self.assertFalse(out['enabled']);self.assertIsNone(out['site_repo'])
             self.assertIsNone(out['meter']['score']);self.assertEqual(out['meter']['status'],'uncalibrated')
 

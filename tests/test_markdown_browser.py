@@ -23,7 +23,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('granka_markdown_test',ROOT/'granka-server.py')
         cls.server=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.server)
         cls.temp=tempfile.TemporaryDirectory(prefix='granka-markdown-test-')
-        cls.directory=Path(cls.temp.name)
+        cls.directory=Path(cls.temp.name).resolve()
         cls.server.ROOTS={'articles':cls.directory}
         cls.server.GIT_ROOTS={'articles':cls.directory}
         cls.server.IMAGE_DIRS=[cls.directory]
@@ -206,6 +206,7 @@ class MarkdownBrowserTests(unittest.TestCase):
             self.page.click('[data-view='+view+']')
             self.assertTrue(self.page.locator('#planner-btn').is_visible(),view)
         self.page.click('#planner-btn')
+        self.page.locator('#plannerdialog[open]').wait_for()
         self.assertEqual(self.page.locator('#planner-btn').get_attribute('aria-expanded'),'true')
         self.page.click('#planner-add')
         self.page.fill('#planner-entry-title','Следующая статья')
