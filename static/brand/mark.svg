@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>Гранка — авторский текст и редакторская правка</title>
+  <rect x="1" y="1" width="62" height="62" rx="18" fill="#14242d"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="17.5" stroke="#b3ead8" stroke-opacity=".13"/>
+  <path d="M17 15h31v10H28v25H17V15Z" fill="#85d8bf"/>
+  <path d="m40 37 9-9 5 5-9 9-7 2 2-7Z" fill="#f49b83"/>
+  <path d="M34 49h17" stroke="#f1eade" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="granka-token" content="__GRANKA_TOKEN__" />
+    <meta name="application-version" content="__GRANKA_VERSION__" />
+    <meta name="theme-color" content="#14242d" />
+    <title>Гранка</title>
+    <link rel="icon" type="image/svg+xml" href="/static/brand/mark.svg" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/static/brand/favicon-32.png"
+    />
+    <link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/static/ui/workbench.css" />
+    <link rel="stylesheet" href="/static/ui/planner.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img
+          class="brand-mark"
+          src="/static/brand/mark.svg"
+          alt=""
+          width="40"
+          height="40"
+        />
+        <img class="brand-word" src="/static/brand/logo.svg" alt="Гранка" />
+        <span class="app-version" title="Версия Гранки"
+          >__GRANKA_VERSION__</span
+        >
+      </div>
+      <div class="document-switch">
+        <select id="docsel" aria-label="Статья"></select
+        ><button id="opensrc" class="icon-button" title="Открыть другую статью">
+          ＋
+        </button>
+      </div>
+      <div class="header-actions">
+        <button id="planner-btn" class="calendar-entry" title="Календарь и план публикаций" aria-haspopup="dialog" aria-controls="plannerdialog" aria-expanded="false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18m-13 4h2m4 0h2m-8 3h2"/></svg>
+          Календарь
+        </button>
+        <button id="analysisbtn">Проверить текст</button
+        ><button id="savebtn" class="primary" disabled>Сохранить</button
+        ><button
+          id="settingsbtn"
+          class="icon-button"
+          title="Настройки"
+          aria-label="Настройки"
+        >
+          ⚙</button
+        ><button
+          id="inspector-toggle"
+          class="mobile-only"
+          aria-label="Открыть инспектор"
+        >
+          Замечания
+        </button>
+      </div>
+    </header>
+    <div class="document-strip">
+      <span id="stage-dot" class="stage-dot"></span
+      ><span id="stage-label">Открой статью, чтобы начать</span>
+      <div class="strip-right">
+        <select id="versel" aria-label="Версия"></select
+        ><button id="mobile-meter" class="mobile-only quiet">ИИМетр</button>
+      </div>
+    </div>
+    <main class="workspace">
+      <section id="reader-shell" class="reader-shell">
+        <nav class="reader-nav">
+          <div class="segmented">
+            <button data-view="article" class="selected">Статья</button
+            ><button data-view="source">Исходник</button
+            ><button data-view="diff">Изменения</button>
+          </div>
+          <div class="reader-actions">
+            <button id="cancel-edit" class="quiet" hidden>
+              Отменить правку</button
+            ><button id="downloadbtn" class="quiet" title="Скачать Markdown">
+              Скачать .md
+            </button>
+          </div>
+        </nav>
+        <div id="formatbar" class="formatbar">
+          <button data-format="bold" title="Жирный · Ctrl+B"><b>Ж</b></button
+          ><button data-format="italic" title="Курсив · Ctrl+I"><i>К</i></button
+          ><button data-format="insertUnorderedList" title="Список">
+            • список</button
+          ><span class="toolbar-divider"></span
+          ><button id="image-btn">Картинка</button
+          ><button id="cover-btn">Обложка</button
+          ><button id="announcement-btn">Анонс</button
+          ><button id="site-btn">На сайт</button
+          ><button id="note-btn">Пометка</button
+          ><button id="restore-draft" class="quiet" hidden>
+            Восстановить черновик
+          </button>
+        </div>
+        <div id="job-banner" class="job-banner" hidden>
+          <span class="job-spinner"></span>
+          <div>
+            <strong id="job-title"></strong>
+            <p id="job-description"></p>
+          </div>
+        </div>
+        <div id="docwrap" class="document-canvas">
+          <div id="publication-banner" class="publication-banner" hidden><div><strong id="publication-state"></strong><p id="publication-description"></p></div><a id="publication-link" target="_blank" rel="noreferrer">Открыть на сайте</a><button id="publication-edit" class="quiet">Обновить на сайте</button></div>
+          <figure id="article-cover" class="article-cover" hidden>
+            <img id="cover-preview" alt="" />
+            <figcaption>
+              <span>Обложка статьи</span>
+              <div class="actions">
+                <a id="cover-download" download>Скачать</a>
+                <button id="cover-change" class="quiet">Заменить</button>
+                <button id="cover-remove" class="quiet">Убрать</button>
+              </div>
+            </figcaption>
+          </figure>
+          <div id="reader-hint" class="reader-hint"></div>
+          <article
+            id="doc"
+            role="textbox"
+            aria-label="Текст статьи"
+            aria-multiline="true"
+            spellcheck="true"
+          ></article>
+          <textarea
+            id="texteditor"
+            aria-label="Исходник Markdown"
+            spellcheck="false"
+            hidden
+          ></textarea>
+          <div id="diffwrap" class="diffwrap" hidden>
+            <section id="diffL" class="diffpane"></section>
+            <section id="diffR" class="diffpane"></section>
+          </div>
+        </div>
+        <footer class="reader-footer">
+          <span id="editor-status">Версии и решения сохраняются локально</span
+          ><button id="syncbtn" class="quiet">Синхронизировать</button>
+        </footer>
+      </section>
+      <aside id="inspector" class="inspector">
+        <button id="inspector-close" class="mobile-only inspector-close">
+          Закрыть
+        </button>
+        <section id="meterwidget" class="meter-widget" aria-label="ИИМетр">
+          <div id="meter-orbit" class="meter-orbit">
+            <div><strong id="meter-number">—</strong><small>из 100</small></div>
+          </div>
+          <div class="meter-caption">
+            <div class="meter-heading">
+              <strong>ИИМетр</strong
+              ><button
+                id="meterrefresh"
+                class="icon-button"
+                aria-label="Пересчитать ИИМетр"
+              >
+                ↻
+              </button>
+            </div>
+            <p>Отклонение от твоего голоса</p>
+            <small id="meter-status">Локальный замер</small>
+          </div>
+        </section>
+        <nav class="inspector-tabs">
+          <button data-pane="review" class="selected">
+            Замечания <span id="review-tab-count">0</span></button
+          ><button data-pane="meter">Разбор</button
+          ><button data-pane="history">История</button>
+        </nav>
+        <section data-panel="review" class="inspector-panel review-panel">
+          <div class="review-summary">
+            <span>Принято решений</span
+            ><strong id="review-count">0 из 0</strong>
+          </div>
+          <div class="progress-track"><i id="review-progress"></i></div>
+          <p id="review-locked" class="inline-notice" hidden>
+            Сохрани текст, чтобы продолжить работу с пометками.
+          </p>
+          <div id="review-result" class="review-result"></div>
+          <div class="review-tools">
+            <button id="preferences-btn" class="quiet">Мои правила</button>
+          </div>
+          <div id="batch-groups" class="batch-groups"></div>
+          <div id="cards" class="cards"></div>
+          <div class="review-bottom">
+            <button id="readybtn" class="primary full-width">
+              Применить решения</button
+            ><small>Соберём следующую версию и покажем изменения</small>
+          </div>
+          <details class="voice-composer">
+            <summary>Комментарий и голос</summary>
+            <textarea
+              id="fbtext"
+              placeholder="Что ещё учесть при анализе…"
+            ></textarea>
+            <div class="actions">
+              <button id="fbsend">Отправить</button
+              ><button id="recbtn">Записать голос</button
+              ><canvas id="reclevel" width="45" height="12" hidden></canvas>
+            </div>
+            <select id="micsel" aria-label="Микрофон"></select>
+            <p id="voice-status" class="muted"></p>
+            <div id="voice-review"></div>
+            <div id="voice-actions" class="actions" hidden>
+              <button id="voice-apply" class="primary">Сохранить пометки</button
+              ><button id="voice-cancel">Отмена</button>
+            </div>
+          </details>
+        </section>
+        <section data-panel="meter" class="inspector-panel" hidden>
+          <h2 class="panel-title">Из чего складывается оценка</h2>
+          <label class="field-label" for="meterprofile">Мой голос</label
+          ><select id="meterprofile">
+            <option value="blog">Статьи и блог</option>
+            <option value="talks">Доклады</option>
+          </select>
+          <div class="axis">
+            <label>Голос <strong id="axis-voice-number">—</strong></label
+            ><i><b id="axis-voice"></b></i>
+          </div>
+          <div class="axis">
+            <label
+              >Ритм и структура
+              <strong id="axis-structure-number">—</strong></label
+            ><i><b id="axis-structure"></b></i>
+          </div>
+          <div class="axis">
+            <label
+              >Известные обороты
+              <strong id="axis-markers-number">—</strong></label
+            ><i><b id="axis-markers"></b></i>
+          </div>
+          <div id="meterflags" class="meter-flags"></div>
+          <button id="meterhl" class="full-width">Подсветить обороты</button>
+          <p id="meterscale" class="fine-print"></p>
+        </section>
+        <section data-panel="history" class="inspector-panel" hidden>
+          <h2 class="panel-title">История этой статьи</h2>
+          <div id="history-list"></div>
+        </section>
+      </aside>
+    </main>
+    <div id="selpop" class="context-menu selection-menu" hidden>
+      <button id="addann">Пометка</button
+      ><button id="addimg">Вставить картинку</button
+      ><button id="delimg" hidden>Убрать картинку</button>
+    </div>
+    <div id="docmenu" class="context-menu" role="menu" hidden>
+      <button id="contextimage" role="menuitem">Вставить картинку</button>
+      <button id="contextdelimage" role="menuitem" hidden>
+        Удалить картинку
+      </button>
+    </div>
+    <dialog id="unsaved-dialog" class="dialog" aria-labelledby="unsaved-title">
+      <h2 id="unsaved-title">Есть несохранённые изменения</h2>
+      <p>Сохранить текущий текст перед переходом?</p>
+      <p class="fine-print">Если перейти без сохранения, правки с момента последнего сохранения будут отменены.</p>
+      <footer class="source-add-actions">
+        <button id="unsaved-cancel" type="button">Остаться</button>
+        <button id="unsaved-discard" type="button">Не сохранять и перейти</button>
+        <button id="unsaved-save" type="button" class="primary">Сохранить и перейти</button>
+      </footer>
+    </dialog>
+    <dialog id="source-dialog" class="dialog source-dialog">
+      <header>
+        <div>
+          <small>Библиотека</small>
+          <h2>Открыть статью</h2>
+        </div>
+        <button id="source-close" class="icon-button" aria-label="Закрыть">
+          ✕
+        </button>
+      </header>
+      <div class="source-add-actions">
+        <button id="source-file" class="primary">Открыть файл…</button>
+        <button id="source-folder">Добавить папку…</button>
+      </div>
+      <p id="source-location-status" class="fine-print" role="status"></p>
+      <details class="source-locations">
+        <summary>Подключённые источники и ручной путь</summary>
+        <div id="source-locations-list"></div>
+        <form id="source-path-form" class="source-path-form">
+          <select id="source-path-kind" aria-label="Что подключить">
+            <option value="folder">Папка</option>
+            <option value="file">Файл</option>
+          </select>
+          <input id="source-path" aria-label="Полный путь" placeholder="Полный путь к файлу или папке" required />
+          <button id="source-path-add" type="submit">Открыть</button>
+        </form>
+      </details>
+      <input
+        id="source-search"
+        placeholder="Название или папка…"
+        aria-label="Поиск статьи"
+      />
+      <div class="segmented source-filters"><button data-source-filter="draft" class="selected">Черновики <span></span></button><button data-source-filter="published">Опубликовано <span></span></button><button data-source-filter="all">Все <span></span></button></div>
+      <p id="source-summary" class="fine-print" role="status"></p>
+      <div id="source-list"></div>
+    </dialog>
+    <dialog
+      id="imagegallery"
+      class="dialog image-dialog"
+      aria-labelledby="image-title"
+    >
+      <header>
+        <div>
+          <small id="image-kicker">Иллюстрация для статьи</small>
+          <h2 id="image-title">Выбрать картинку</h2>
+        </div>
+        <button
+          id="imageclose"
+          class="icon-button"
+          aria-label="Закрыть выбор картинки"
+        >
+          ✕
+        </button>
+      </header>
+      <div class="segmented image-tabs">
+        <button data-image-tab="library" class="selected">Мои картинки</button
+        ><button data-image-tab="generate">Сгенерировать</button>
+      </div>
+      <div class="image-layout">
+        <section>
+          <div id="image-library">
+            <input
+              id="imagefilter"
+              placeholder="Поиск по имени…"
+              aria-label="Поиск картинок"
+            />
+            <div id="imagegrid"></div>
+          </div>
+          <div id="image-generation" hidden>
+            <label class="field-label" for="generation-prompt"
+              >Что нарисовать?</label
+            ><textarea
+              id="generation-prompt"
+              placeholder="Сюжет, стиль, важные детали и надписи…"
+            ></textarea>
+            <p id="generation-note" class="fine-print"></p>
+            <div class="actions">
+              <button id="generate-image" class="primary">Сгенерировать</button
+              ><button id="generation-settings" class="quiet">
+                Исполнитель
+              </button>
+            </div>
+            <p
+              id="generation-status"
+              class="generation-status"
+              role="status"
+            ></p>
+          </div>
+        </section>
+        <section class="image-preview">
+          <div class="preview-stage">
+            <img
+              id="imagepreview"
+              alt="Предпросмотр выбранной картинки"
+              hidden
+            /><span id="imageinfo">Выбери картинку слева</span>
+          </div>
+          <label class="field-label" for="imagealt">Описание</label
+          ><input id="imagealt" placeholder="Что изображено" />
+          <p id="imagewhere" class="fine-print"></p>
+          <button id="imageinsert" class="primary full-width" disabled>
+            Вставить в статью
+          </button>
+        </section>
+      </div>
+    </dialog>
+    <dialog
+      id="settingsdialog"
+      class="dialog settings-dialog"
+      aria-labelledby="settings-title"
+    >
+      <header>
+        <div>
+          <small>Настройки</small>
+          <h2 id="settings-title">Исполнители ИИ</h2>
+        </div>
+        <button
+          id="settingsclose"
+          class="icon-button"
+          aria-label="Закрыть настройки"
+        >
+          ✕
+        </button>
+      </header>
+      <p class="fine-print">
+        Для анализа и картинок можно выбрать разных исполнителей. По умолчанию —
+        Codex.
+      </p>
+      <div class="settings-grid">
+        <label
+          >Анализ статьи<select id="analysis-provider">
+            <option value="codex">Codex</option>
+            <option value="openrouter">OpenRouter</option>
+          </select></label
+        ><label
+          >Картинки<select id="image-provider">
+            <option value="codex">Codex</option>
+            <option value="openrouter">OpenRouter</option>
+          </select></label
+        >
+      </div>
+      <label class="setting-row"
+        >Модель Codex<input
+          id="codex-model"
+          placeholder="Текущая модель из настроек Codex"
+      /></label>
+      <details class="settings-extra">
+        <summary>Модели OpenRouter</summary>
+        <label class="setting-row"
+          >Для анализа<input
+            id="or-text-model"
+            list="or-text-models"
+            placeholder="Идентификатор модели" /><datalist
+            id="or-text-models"
+          ></datalist></label
+        ><label class="setting-row"
+          >Для картинок<input
+            id="or-image-model"
+            list="or-image-models"
+            placeholder="Идентификатор модели" /><datalist
+            id="or-image-models"
+          ></datalist></label
+        ><button id="load-models">Загрузить модели OpenRouter</button>
+      </details>
+      <label class="setting-row"
+        >Формат картинки<select id="image-aspect">
+          <option>16:9</option>
+          <option>1:1</option>
+          <option>9:16</option>
+          <option>4:3</option>
+          <option>3:2</option>
+        </select></label
+      >
+      <p id="settingsnote" class="fine-print"></p>
+      <footer>
+        <button id="settingssave" class="primary">Сохранить настройки</button>
+      </footer>
+    </dialog>
+    <dialog
+      id="telegramdialog"
+      class="dialog telegram-dialog"
+      aria-labelledby="telegram-title"
+    >
+      <header>
+        <div>
+          <small>После статьи</small>
+          <h2 id="telegram-title">Анонс в Telegram</h2>
+        </div>
+        <button
+          id="telegram-close"
+          class="icon-button"
+          aria-label="Закрыть Telegram"
+        >
+          ✕
+        </button>
+      </header>
+      <div class="segmented image-tabs">
+        <button data-tg-tab="compose" class="selected">Анонс</button
+        ><button data-tg-tab="bot">Бот и канал</button>
+      </div>
+      <section id="tg-compose-panel">
+        <div id="tg-compose" class="telegram-layout">
+          <section>
+            <label class="field-label" for="tg-direction"
+              >Что подчеркнуть?</label
+            ><input
+              id="tg-direction"
+              placeholder="Например: больше самоиронии, акцент на практику"
+              maxlength="2000"
+            />
+            <button id="tg-generate">Предложить три анонса</button>
+            <p id="tg-generation" class="fine-print" role="status"></p>
+            <div id="tg-variants" class="tg-variants"></div>
+            <label class="field-label" for="tg-text">Текст анонса</label
+            ><textarea
+              id="tg-text"
+              placeholder="Выбери вариант или напиши свой анонс…"
+              maxlength="4096"
+            ></textarea>
+            <label class="field-label" for="tg-url"
+              >Ссылка на опубликованную статью</label
+            ><input id="tg-url" type="url" placeholder="https://…" />
+            <label class="tg-checkbox"
+              ><input id="tg-cover" type="checkbox" /> С обложкой статьи</label
+            >
+            <p id="tg-count" class="fine-print"></p>
+          </section>
+          <section>
+            <p id="tg-channel" class="field-label">Предпросмотр</p>
+            <div class="telegram-preview">
+              <img id="tg-photo" alt="Обложка анонса" hidden />
+              <div id="tg-preview"></div>
+              <small>Telegram · предпросмотр</small>
+            </div>
+          </section>
+        </div>
+        <p id="tg-status" class="fine-print" role="status"></p>
+        <div class="actions telegram-actions">
+          <button id="tg-save">Сохранить черновик</button
+          ><button id="tg-copy">Копировать</button
+          ><button id="tg-prepare" class="primary">К публикации…</button
+          ><button id="tg-edit" hidden>Вернуться к правке</button
+          ><button id="tg-publish" class="primary" hidden>Опубликовать</button>
+        </div>
+        <details class="settings-extra">
+          <summary>История публикаций</summary>
+          <div id="tg-publications"></div>
+        </details>
+      </section>
+      <section id="tg-bot-panel" hidden>
+        <p class="fine-print">
+          Создай бота через
+          <a href="https://t.me/BotFather" target="_blank" rel="noreferrer"
+            >@BotFather</a
+          >
+          и добавь его администратором канала с правом публикации.
+        </p>
+        <label class="setting-row"
+          >Канал<input
+            id="tg-chat-id"
+            placeholder="@имя_канала или -100…"
+            autocomplete="off"
+        /></label>
+        <label class="setting-row"
+          >Токен бота<input
+            id="tg-token"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Оставь пустым, чтобы сохранить текущий"
+        /></label>
+        <label class="setting-row"
+          >Или файл с токеном<input
+            id="tg-token-file"
+            placeholder="Полный путь к текстовому файлу"
+        /></label>
+        <p class="fine-print">
+          Токен хранится локально, вне репозитория. Также поддерживается
+          переменная GRANKA_TELEGRAM_BOT_TOKEN.
+        </p>
+        <p id="tg-bot-status" class="fine-print" role="status"></p>
+        <div class="actions">
+          <button id="tg-settings-save" class="primary">
+            Сохранить настройки бота</button
+          ><button id="tg-check">Проверить доступ</button
+          ><button id="tg-token-clear" class="quiet">
+            Удалить сохранённый токен
+          </button>
+        </div>
+      </section>
+    </dialog>
+    <dialog
+      id="sitedialog"
+      class="dialog site-dialog"
+      aria-labelledby="site-title"
+    >
+      <header>
+        <div>
+          <small id="site-domain">WordPress</small>
+          <h2 id="site-title">Публикация статьи</h2>
+        </div>
+        <button
+          id="site-close"
+          class="icon-button"
+          aria-label="Закрыть публикацию"
+        >
+          ✕
+        </button>
+      </header>
+      <p class="fine-print">
+        Сохраняем исходник в Git и смотрим предпросмотр. Затем отдельно
+        проверяем стейдж и переносим тот же снимок на прод.
+      </p>
+      <div class="site-layout">
+        <section id="site-fields">
+          <label class="setting-row"
+            >Заголовок<input id="site-post-title" maxlength="300"
+          /></label>
+          <label class="setting-row"
+            >Адрес статьи (slug)<input
+              id="site-slug"
+              placeholder="nazvanie-stati"
+          /></label>
+          <div class="settings-grid">
+            <label>Дата<input id="site-date" type="date" /></label
+            ><label
+              >На проде<select id="site-status">
+                <option value="draft">Черновик</option>
+                <option value="publish">Опубликованная статья</option>
+              </select></label
+            >
+          </div>
+          <label class="setting-row"
+            >Категории через запятую<input
+              id="site-categories"
+              placeholder="дев-лог"
+          /></label>
+          <label class="setting-row"
+            >Теги через запятую<input id="site-tags" placeholder="1С, ИИ"
+          /></label>
+          <label class="setting-row"
+            >Короткое описание<textarea
+              id="site-excerpt"
+              maxlength="1000"
+            ></textarea>
+          </label>
+          <button id="site-prepare" class="primary">Подготовить снимок</button>
+        </section>
+        <section>
+          <p id="site-snapshot" class="fine-print">
+            Снимок ещё не подготовлен.
+          </p>
+          <div id="site-stages" class="site-stages"></div>
+          <section id="site-review" class="site-review" hidden>
+            <h3 id="site-review-title"></h3>
+            <p id="site-review-description"></p>
+            <a id="site-existing" target="_blank" rel="noreferrer" hidden
+              >Открыть текущую страницу перед обновлением</a
+            >
+            <label id="site-approval-row" class="tg-checkbox" hidden
+              ><input id="site-approval" type="checkbox" /> Я просмотрел
+              предыдущий контур, можно переносить этот снимок дальше</label
+            >
+            <button id="site-confirm" class="primary"></button>
+          </section>
+          <p id="site-operation" class="fine-print" role="status"></p>
+        </section>
+      </div>
+    </dialog>
+    <dialog
+      id="batchdialog"
+      class="dialog batch-dialog"
+      aria-labelledby="batch-title"
+    >
+      <header>
+        <div>
+          <small>Одно правило · несколько решений</small>
+          <h2 id="batch-title">Пакет решений</h2>
+        </div>
+        <button id="batch-close" class="icon-button" aria-label="Закрыть пакет">
+          ✕
+        </button>
+      </header>
+      <p class="fine-print">
+        Проверь каждый фрагмент и вариант. Сними отметку с того, что хочешь
+        разобрать отдельно. Текст изменится после «Применить решения».
+      </p>
+      <label id="batch-reason-row" class="setting-row" hidden
+        >Причина отказа<select id="batch-reason">
+          <option value="worse">Варианты хуже</option>
+          <option value="voice">Мой голос</option>
+          <option value="ok-here">Уместно здесь</option>
+          <option value="fp">Ложное срабатывание</option>
+        </select></label
+      >
+      <div id="batch-items" class="batch-items"></div>
+      <p id="batch-status" class="fine-print" role="status"></p>
+      <footer>
+        <button id="batch-save" class="primary">Сохранить решения</button>
+      </footer>
+    </dialog>
+    <dialog
+      id="preferencesdialog"
+      class="dialog preferences-dialog"
+      aria-labelledby="preferences-title"
+    >
+      <header>
+        <div>
+          <small>Личные данные · вне репозитория приложения</small>
+          <h2 id="preferences-title">Мои правила и проверка редактора</h2>
+        </div>
+        <button
+          id="preferences-close"
+          class="icon-button"
+          aria-label="Закрыть правила"
+        >
+          ✕
+        </button>
+      </header>
+      <p id="preferences-summary" class="fine-print"></p>
+      <div id="preferences-rules"></div>
+      <details class="settings-extra">
+        <summary>Отключённые и прежние правила</summary>
+        <div id="inactive-rules"></div>
+      </details>
+      <h3>Подстройка по моим решениям</h3>
+      <p class="fine-print">
+        Предложения основаны на прошлых решениях. Проверь примеры, уточни
+        формулировку и только затем включи правило.
+      </p>
+      <button id="rules-propose">Предложить уточнения</button>
+      <p id="rules-proposal-status" class="fine-print" role="status"></p>
+      <div id="rule-proposals"></div>
+      <h3>Проверочный набор из решений</h3>
+      <p class="fine-print">
+        Копии решений между версиями учитываются один раз. Модель получает
+        фрагменты без правильных ответов. Сравниваются решения сохранить или
+        изменить текст; смысл замен нужно проверить вручную.
+      </p>
+      <p id="benchmark-summary" class="fine-print"></p>
+      <div class="actions">
+        <button id="benchmark-build">Обновить набор</button
+        ><label
+          >Примеров
+          <select id="benchmark-limit">
+            <option>8</option>
+            <option>12</option>
+            <option>20</option>
+          </select></label
+        ><button id="benchmark-run" class="primary">Проверить модель</button>
+      </div>
+      <p id="benchmark-provider" class="fine-print"></p>
+      <p id="benchmark-status" class="fine-print" role="status"></p>
+      <div id="benchmark-results"></div>
+    </dialog>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <dialog id="plannerdialog" class="dialog planner-dialog" aria-labelledby="planner-title">
+      <header><div><small>Статьи и Telegram</small><h2 id="planner-title">План публикаций</h2></div><button id="planner-close" class="icon-button" aria-label="Закрыть план">✕</button></header>
+      <div class="planner-toolbar">
+        <div class="planner-month-nav"><button id="planner-prev" aria-label="Предыдущий месяц">‹</button><h3 id="planner-month"></h3><button id="planner-next" aria-label="Следующий месяц">›</button><button id="planner-today" class="quiet">Сегодня</button></div>
+        <div class="planner-actions"><button id="planner-library" class="quiet">Библиотека</button><select id="planner-channel" aria-label="Канал публикации"><option value="all">Все каналы</option><option value="article">Статьи</option><option value="telegram">Telegram</option></select><button id="planner-distribute">Распределить даты</button><button id="planner-add" class="primary">＋ Материал</button></div>
+      </div>
+      <p id="planner-summary" class="fine-print" role="status"></p>
+      <p class="fine-print">Черновики из рабочих папок появляются автоматически. Готовность показывает этапы подготовки; оценку можно уточнить в карточке.</p>
+      <section id="planner-schedule" class="planner-schedule" hidden>
+        <div class="planner-schedule-fields"><label>Начать с<input id="planner-start" type="date" /></label><label>Материалов в день<input id="planner-capacity" type="number" min="1" max="10" value="1" /></label><fieldset id="planner-weekdays"><legend>Дни выхода</legend></fieldset><label class="tg-checkbox"><input id="planner-ideas" type="checkbox" /> Включить идеи</label></div>
+        <p class="fine-print">Распределяем материалы без даты. Занятые дни учитываются; уже назначенные даты сохраняются. Это план, отправка запускается отдельно.</p>
+        <div class="planner-actions"><button id="planner-preview">Показать распределение</button><button id="planner-apply" class="primary" disabled>Применить даты</button><button id="planner-schedule-close" class="quiet">Скрыть</button></div>
+        <div id="planner-proposal" class="planner-proposal" aria-live="polite"></div>
+      </section>
+      <div class="planner-layout"><aside class="planner-backlog"><h3>Без даты <span id="planner-queue-count"></span></h3><p class="fine-print">Перетащи на день. Сюда же можно вернуть материал из календаря.</p><div id="planner-queue"></div><details id="planner-excluded-section"><summary>Исключены <span id="planner-excluded-count"></span></summary><div id="planner-excluded"></div></details></aside><div class="planner-calendar-scroll"><div id="planner-calendar" class="planner-calendar" aria-label="Календарь публикаций"></div></div></div>
+      <p id="planner-error" class="danger" role="alert"></p>
+    </dialog>
+    <dialog id="planner-entry-dialog" class="dialog planner-entry-dialog" aria-labelledby="planner-entry-heading">
+      <header><h2 id="planner-entry-heading">Материал</h2><button id="planner-entry-close" class="icon-button" aria-label="Закрыть карточку">✕</button></header>
+      <form id="planner-entry-form">
+        <label class="setting-row">Название<input id="planner-entry-title" required maxlength="300" /></label>
+        <div class="settings-grid"><label>Канал<select id="planner-entry-channel"><option value="article">Статья</option><option value="telegram">Telegram</option></select></label><label>Состояние<select id="planner-entry-status"><option value="idea">Идея</option><option value="draft">Черновик</option><option value="ready">Готово</option><option value="published">Опубликовано</option></select></label></div>
+        <section id="planner-entry-readiness" class="planner-readiness-detail"></section>
+        <label class="setting-row">Твоя оценка готовности, %<input id="planner-entry-progress" type="number" min="0" max="100" step="1" placeholder="Автоматически по этапам" /><small class="fine-print">Пустое поле — по этапам подготовки. «Готово» означает подтверждение автора и 100%.</small></label>
+        <div class="settings-grid"><label>Дата<input id="planner-entry-date" type="date" /></label><label class="tg-checkbox"><input id="planner-entry-pinned" type="checkbox" /> Закрепить дату</label></div>
+        <label class="setting-row">Ссылка<input id="planner-entry-url" type="url" placeholder="https://" /></label>
+        <label class="setting-row">Заметки<textarea id="planner-entry-notes" maxlength="4000"></textarea></label>
+        <p id="planner-entry-source" class="fine-print"></p>
+        <div class="planner-actions"><button id="planner-entry-link" type="button">Связать с текущей статьёй</button><button id="planner-entry-unlink" type="button" class="quiet">Убрать связь</button><button id="planner-entry-open" type="button">Открыть статью</button><a id="planner-entry-visit" target="_blank" rel="noreferrer">На сайте ↗</a></div>
+        <p id="planner-entry-error" class="danger" role="alert"></p>
+        <footer class="planner-entry-footer"><button id="planner-entry-save" class="primary" type="submit">Сохранить</button><button id="planner-entry-unschedule" type="button">Вернуть без даты</button><button id="planner-entry-exclude" type="button" class="quiet danger">Исключить из планирования</button><button id="planner-entry-delete" type="button" class="quiet danger">Удалить карточку</button></footer>
+      </form>
+    </dialog>
+    <script src="/static/vendor/markdown-parser.js"></script>
+    <script src="/static/markdown-view.js"></script>
+    <script type="module" src="/static/ui/main.js"></script>
+  </body>
+</html>

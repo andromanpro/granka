@@ -1,0 +1,17 @@
+_audit/
+__pycache__/
+*.py[cod]
+node_modules/
+granka-config.json
+library-locations.json
+excalidraw.log
+_dist/
+private/
+voice-corpus/
+voice-profile*.json
+.env
+.env.*
+!.env.example
+articles/
+blog-content/
+models/

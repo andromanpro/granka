@@ -1,0 +1,19 @@
+{
+  "server": { "port": 8901 },
+  "roots": { "articles": "./articles" },
+  "image_dirs": [],
+  "planning": { "source_dirs": {} },
+  "corrections_file": "./private/corrections.md",
+  "voice": { "corpus_dir": "./voice-corpus", "profile_file": "./voice-profile.json" },
+  "site": { "enabled": false, "repository": "", "remote": "", "environments": {} },
+  "codex_binary": "",
+  "openrouter_key_file": "",
+  "ai": {
+    "analysis_provider": "codex",
+    "image_provider": "codex",
+    "codex_model": "",
+    "openrouter_text_model": "",
+    "openrouter_image_model": "",
+    "image_aspect": "16:9"
+  }
+}

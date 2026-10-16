@@ -1,0 +1,47 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python 3.14 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      GRANKA_CONFIG: ${{ runner.temp }}/granka-missing-config.json
+      GRANKA_STATE_DIR: ${{ runner.temp }}/granka-test-state
+      GRANKA_BROWSER_CHANNEL: chromium
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Install browser and Linux libraries
+        if: runner.os == 'Linux'
+        run: python -m playwright install --with-deps chromium
+      - name: Install browser on Windows
+        if: runner.os == 'Windows'
+        run: python -m playwright install chromium
+      - name: Run tests
+        run: python -B -m unittest discover -s tests -q
+      - name: Check release documentation
+        run: python -B tools/release.py --check
+      - name: Audit public files
+        run: python -B tools/public_audit.py
+      - name: Check whitespace
+        run: git diff --check
