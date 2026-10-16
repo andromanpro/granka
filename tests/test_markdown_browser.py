@@ -12,7 +12,7 @@ import urllib.request
 import urllib.error
 from unittest.mock import patch
 from tools.jobs import Jobs
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -207,7 +207,7 @@ class MarkdownBrowserTests(unittest.TestCase):
             self.assertTrue(self.page.locator('#planner-btn').is_visible(),view)
         self.page.click('#planner-btn')
         self.page.locator('#plannerdialog[open]').wait_for()
-        self.assertEqual(self.page.locator('#planner-btn').get_attribute('aria-expanded'),'true')
+        expect(self.page.locator('#planner-btn')).to_have_attribute('aria-expanded','true')
         self.page.click('#planner-add')
         self.page.fill('#planner-entry-title','Следующая статья')
         self.page.select_option('#planner-entry-status','ready')
@@ -236,13 +236,14 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.page.screenshot(path=str(ROOT/'_audit/calendar-mobile.png'))
         self.assertEqual(json.loads(self.file.read_text(encoding='utf-8'))['versions'],self.data['versions'])
         self.page.click('#planner-close')
+        self.page.wait_for_function('location.hash !== "#calendar"')
         self.assertFalse(self.page.url.endswith('#calendar'))
         self.page.goto(self.base+'/#calendar')
         self.page.locator('#plannerdialog[open]').wait_for()
-        self.assertEqual(self.page.locator('#planner-btn').get_attribute('aria-expanded'),'true')
+        expect(self.page.locator('#planner-btn')).to_have_attribute('aria-expanded','true')
         self.page.keyboard.press('Escape')
         self.page.wait_for_function('!document.querySelector("#plannerdialog").open')
-        self.assertEqual(self.page.locator('#planner-btn').get_attribute('aria-expanded'),'false')
+        expect(self.page.locator('#planner-btn')).to_have_attribute('aria-expanded','false')
 
     def test_published_article_banner_opens_update_with_original_address(self):
         self.page.route('**/api/site?*',lambda route:route.fulfill(json={
