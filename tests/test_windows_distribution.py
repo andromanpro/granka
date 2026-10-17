@@ -24,7 +24,7 @@ class WindowsDistributionTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
 
     def fixture_app(self):
         app = self.root / 'app'
