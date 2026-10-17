@@ -810,8 +810,10 @@ mark.note {
   border-bottom: 1px solid #7a91bd;
 }
 mark.meter {
-  background: #594331;
   border-bottom: 1px dashed #d3a273;
+}
+mark.meter:not([data-id]) {
+  background: #594331;
 }
 mark.decided {
   opacity: 0.6;
@@ -1827,3 +1829,16 @@ mark.active {
     scroll-behavior: auto !important;
   }
 }
+.deep-review { border-block:1px solid var(--line); padding:16px 0; margin-bottom:16px; }
+.deep-hint { font-size:12px; line-height:1.45; margin:4px 0 14px; }
+.deep-review details { margin:12px 0; font-size:13px; line-height:1.5; }
+.deep-review summary { cursor:pointer; font-weight:600; }
+.deep-review p { overflow-wrap:anywhere; }
+.deep-review strong { display:block; margin-top:10px; }
+.deep-card { padding:14px; margin:14px 0; border:1px solid var(--line); border-radius:12px; }
+.deep-card h3 { font-size:16px; line-height:1.4; margin:8px 0; }
+.deep-card .deep-quote { display:block; width:100%; text-align:left; margin:8px 0; overflow-wrap:anywhere; }
+.deep-card textarea { width:100%; min-height:62px; margin-top:10px; }
+.deep-actions { flex-wrap:wrap; margin-top:10px; }
+.deep-map-block { padding:8px 0; border-bottom:1px solid var(--line); }
+#doc mark.deep-mark { box-shadow:inset 0 -3px #218c82; background-color:#218c821a; }

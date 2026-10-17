@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "target": "windows-x64",
+  "python": {
+    "version": "3.14.8",
+    "url": "https://www.python.org/ftp/python/3.14.8/python-3.14.8-amd64.zip",
+    "sha256": "4873947a8afc037846b180312b83c744a4146a851cfd316a75c3125a4d8299da"
+  },
+  "codex": {
+    "version": "0.163.0",
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.163.0/codex-x86_64-pc-windows-msvc.exe.zst",
+    "sha256": "57eef5fe2d3bbf49b27654863b4c3e61eab9616763cbae010957aaf26a6ba923"
+  },
+  "inno": {
+    "version": "6.7.3",
+    "url": "https://api.nuget.org/v3-flatcontainer/tools.innosetup/6.7.3/tools.innosetup.6.7.3.nupkg",
+    "sha256": "f780898e402ff80612cc8d9fcb8c6e02932bd1cb4c900ffdaa31f9341cfb49f4",
+    "upstream": "https://github.com/jrsoftware/issrc/releases/tag/is-6_7_3"
+  },
+  "wheels": [
+    {
+      "name": "python-frontmatter",
+      "version": "1.1.0",
+      "filename": "python_frontmatter-1.1.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/49/87/3c8da047b3ec5f99511d1b4d7a5bc72d4b98751c7e78492d14dc736319c5/python_frontmatter-1.1.0-py3-none-any.whl",
+      "sha256": "335465556358d9d0e6c98bbeb69b1c969f2a4a21360587b9873bfc3b213407c1"
+    },
+    {
+      "name": "Markdown",
+      "version": "3.10.2",
+      "filename": "markdown-3.10.2-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/de/1f/77fa3081e4f66ca3576c896ae5d31c3002ac6607f9747d2e3aa49227e464/markdown-3.10.2-py3-none-any.whl",
+      "sha256": "e91464b71ae3ee7afd3017d9f358ef0baf158fd9a298db92f1d4761133824c36"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.3",
+      "filename": "pyyaml-6.0.3-cp314-cp314-win_amd64.whl",
+      "url": "https://files.pythonhosted.org/packages/23/20/bb6982b26a40bb43951265ba29d4c246ef0ff59c9fdcdf0ed04e0687de4d/pyyaml-6.0.3-cp314-cp314-win_amd64.whl",
+      "sha256": "4a2e8cebe2ff6ab7d1050ecd59c25d4c8bd7e6f400f5f82b96557ac0abafd0ac"
+    }
+  ],
+  "licenses": [
+    {
+      "name": "CODEX-LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/LICENSE",
+      "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc"
+    },
+    {
+      "name": "CODEX-NOTICE.txt",
+      "url": "https://raw.githubusercontent.com/openai/codex/rust-v0.163.0/NOTICE",
+      "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915"
+    }
+  ],
+  "codex_helpers": [
+    {
+      "name": "codex-command-runner.exe",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.163.0/codex-command-runner-x86_64-pc-windows-msvc.exe.zst",
+      "sha256": "bda851f49f692d5324aa51a870e1fd2f35872eb74b2c236ca8373650e6c310fc",
+      "filename": "codex-command-runner-x86_64-pc-windows-msvc.exe.zst"
+    },
+    {
+      "name": "codex-windows-sandbox-setup.exe",
+      "url": "https://github.com/openai/codex/releases/download/rust-v0.163.0/codex-windows-sandbox-setup-x86_64-pc-windows-msvc.exe.zst",
+      "sha256": "633911b09f9254ef2b1b90790fdd3ffd9132fdb9708744ca679db8060ff30fcf",
+      "filename": "codex-windows-sandbox-setup-x86_64-pc-windows-msvc.exe.zst"
+    }
+  ]
+}

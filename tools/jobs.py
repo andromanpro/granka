@@ -28,13 +28,23 @@ class Jobs:
         if not re.fullmatch(r'[a-f0-9]{24}',job_id):raise LookupError('job not found')
         path=self.directory/job_id/'job.json'
         if not path.is_file():raise LookupError('job not found')
-        return json.loads(path.read_text(encoding='utf-8'))
+        data=json.loads(path.read_text(encoding='utf-8'))
+        if data.get('kind')=='deep-analysis' and data.get('status')=='running':
+            try:
+                stage=json.loads((path.parent/'progress.json').read_text(encoding='utf-8'))['stage']
+                messages={'map':'Разбор: 1/3 · составляю карту статьи',
+                          'diagnose':'Разбор: 2/3 · проверяю пять направлений',
+                          'verify':'Разбор: 3/3 · перепроверяю каждое замечание',
+                          'complete':'Разбор готов · сохраняю результат'}
+                if stage in messages:data['message']=messages[stage]
+            except (OSError,ValueError,KeyError,TypeError):pass
+        return data
 
     def list(self,root,rel):
         records=[]
         for path in self.directory.glob('*/job.json'):
             try:
-                data=json.loads(path.read_text(encoding='utf-8'))
+                data=self.get(path.parent.name)
                 if data['root']==root and data['rel']==rel:records.append(data)
             except (OSError,ValueError,KeyError):pass
         return sorted(records,key=lambda d:d['created'],reverse=True)[:20]
@@ -56,7 +66,7 @@ class Jobs:
             return job
 
     def _run(self,job,work,directory):
-        job={**job,'status':'running','message':{'apply':'Применяю решения','analysis':'Анализирую статью','image':'Генерирую картинку','editorial':'Выполняю редакторское поручение','announcement':'Готовлю анонс для Telegram','site':'Публикую статью на сайте','benchmark':'Проверяю модель на авторских решениях','rules':'Предлагаю уточнения личных правил'}[job['kind']]}
+        job={**job,'status':'running','message':{'apply':'Применяю решения','analysis':'Анализирую статью','deep-analysis':'Разбираю статью: карта, замечания и перепроверка','image':'Генерирую картинку','editorial':'Выполняю редакторское поручение','announcement':'Готовлю анонс для Telegram','site':'Публикую статью на сайте','benchmark':'Проверяю модель на авторских решениях','rules':'Предлагаю уточнения личных правил'}[job['kind']]}
         atomic_json(directory/'job.json',job)
         try:
             result=work(directory)

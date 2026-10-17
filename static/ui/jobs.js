@@ -81,18 +81,18 @@ export async function pollJobs() {
     if (done) {
       seen.add(done.id);
       if (!S.editor && !document.querySelector("dialog[open]")) {
-        if (["analysis", "editorial"].includes(done.kind)) S.view = "article";
+        if (["analysis", "editorial", "deep-analysis"].includes(done.kind)) S.view = "article";
         else if (!done.result?.unchanged) S.view = "diff";
         await loadDocument();
-        if (["analysis", "editorial"].includes(done.kind)) {
-          const analysis = S.document.analyses?.at(-1);
-          S.active =
-            done.result?.annotation_id ||
-            analysis?.added?.[0] ||
-            analysis?.updated?.[0] ||
-            S.active;
+        if (["analysis", "editorial", "deep-analysis"].includes(done.kind)) {
           emit("pane", { pane: "review" });
-          emit("selection", { scroll: true });
+          if (done.kind === "deep-analysis") {
+            emit("deep-result", { reportId: done.result.report_id });
+          } else {
+            const analysis = S.document.analyses?.at(-1);
+            S.active = done.result?.annotation_id || analysis?.added?.[0] || analysis?.updated?.[0] || S.active;
+            emit("selection", { scroll: true });
+          }
         }
       } else
         toast("Результат готов. Открой его после завершения текущей правки.");

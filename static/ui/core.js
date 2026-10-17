@@ -28,6 +28,7 @@ export const S = {
   file: null,
   version: null,
   active: null,
+  deepFocus: null,
   busy: false,
   view: "article",
   pane: "review",
@@ -56,6 +57,19 @@ export const annotations = () =>
     .sort((a, b) => a.start - b.start) || [];
 export const latest = () =>
   !!S.document && S.version === S.document.versions.at(-1).id;
+export function deepSelection() {
+  if (!Array.isArray(S.document?.deep_analyses) || S.contractErrors?.some((error) => error.startsWith("deep_analyses:"))) return [];
+  const report = S.document?.deep_analyses?.find(
+    (r) => r.id === S.deepFocus?.reportId && r.version === S.version,
+  );
+  if (!report) return [];
+  if (S.deepFocus.signalIndex != null) return report.local_signals?.clues[S.deepFocus.signalIndex]?.anchors || [];
+  if (S.deepFocus.outlineIndex != null) {
+    const block = report.map.outline[S.deepFocus.outlineIndex];
+    return block ? [block] : [];
+  }
+  return report.findings.find((f) => f.id === S.deepFocus.findingId)?.anchors || [];
+}
 export const query = () =>
   new URLSearchParams({ root: S.root, f: S.file }).toString();
 export const providerName = (p) =>
@@ -118,6 +132,7 @@ export async function loadDocument(
       file,
       document: result.data,
       editorialRequests: result.editorial_requests || {},
+      contractErrors: result.contract_errors || [],
       revision: result.revision,
       loadedAt: Date.now() / 1000,
       editor: null,
@@ -128,6 +143,7 @@ export async function loadDocument(
         : result.data.versions.at(-1).id;
     if (changed) {
       S.active = null;
+      S.deepFocus = null;
       S.jobs = [];
     }
     S.meter = null;

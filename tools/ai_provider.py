@@ -56,6 +56,9 @@ def codex_binary():
         binary=environment.path(configured)
         if not binary.is_file():raise RuntimeError('Настроенный Codex CLI не найден')
         return str(binary)
+    bundled = HERE.parent / 'codex' / 'codex.exe'
+    if bundled.is_file():
+        return str(bundled)
     found = shutil.which('codex.exe' if os.name=='nt' else 'codex')
     if found: return str(Path(found).resolve())
     base = Path(os.environ.get('LOCALAPPDATA','')) / 'OpenAI' / 'Codex' / 'bin'
@@ -96,7 +99,7 @@ def json_answer(text):
     return json.loads(value)
 
 
-def run_codex(prompt, schema, directory, config):
+def run_codex(prompt, schema, directory, config, *, text_only=False):
     directory = Path(directory); directory.mkdir(parents=True, exist_ok=True)
     answer = directory/'answer.json'; schema_file = directory/'schema.json'
     atomic_json(schema_file, schema)
@@ -104,6 +107,14 @@ def run_codex(prompt, schema, directory, config):
     cmd = [codex_binary(),'exec','--ephemeral','--skip-git-repo-check','--cd',str(directory),
            '--json','--disable','apps','--disable','plugins','--enable','skip_host_skill_discovery',
            '--output-schema',str(schema_file),'--output-last-message',str(answer)]
+    if text_only:
+        # Editing prose must not inherit project automation or execute commands.
+        # These overrides belong only to this child; the user's config is untouched.
+        cmd += ['--sandbox','read-only','-c','project_doc_max_bytes=0',
+                '-c','web_search="disabled"','-c','developer_instructions="Return only the requested text analysis. Do not manage projects or run tools."']
+        for feature in ['shell_tool','multi_agent','hooks','goals','browser_use','computer_use',
+                        'image_generation','view_image','skill_search']:
+            cmd += ['--disable',feature]
     local = codex_config()
     if config.get('codex_model'): cmd += ['--model',config['codex_model']]
     # App jobs need their input and native image generation, not unrelated project MCPs.
@@ -164,7 +175,7 @@ def run_openrouter_text(prompt, directory, config):
 
 
 def text_result(prompt, schema, directory, config):
-    if config['analysis_provider']=='codex': return run_codex(prompt,schema,directory,config)
+    if config['analysis_provider']=='codex': return run_codex(prompt,schema,directory,config,text_only=True)
     return run_openrouter_text(prompt, directory, config)
 
 

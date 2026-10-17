@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import uuid
 from .covers import validate_cover
+from .deep_analysis import validate_reports
 
 
 def validate(data):
@@ -36,7 +37,7 @@ def validate(data):
         for left,right,other in spans.get(a['version'],[]):
             if not(end<=left or start>=right):errors.append(aid+': пересечение с '+other)
         spans.setdefault(a['version'],[]).append((start,end,aid))
-    return errors
+    return errors + validate_reports(data, texts)
 
 
 class DocumentStore:

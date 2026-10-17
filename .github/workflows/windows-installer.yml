@@ -1,0 +1,56 @@
+name: Windows installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYTHONUTF8: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      GRANKA_BROWSER_CHANNEL: chromium
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m playwright install chromium
+      - name: Run tests with isolated application state
+        env:
+          GRANKA_CONFIG: ${{ runner.temp }}/granka-missing-config.json
+          GRANKA_STATE_DIR: ${{ runner.temp }}/granka-test-state
+        run: python -B -m unittest discover -s tests -q
+      - run: python tools/release.py --check
+      - run: python tools/public_audit.py
+      - name: Build installer and portable archive
+        run: python tools/windows/build.py --output _dist/windows
+      - name: Smoke-test standalone runtime
+        run: python tools/windows/smoke.py --receipt _dist/windows/build-receipt.json --output _audit/windows-smoke
+      - name: Verify install, repair and uninstall
+        run: python tools/windows/verify_installer.py --receipt _dist/windows/build-receipt.json --output _audit/windows-installer
+      - name: Save verification receipts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: granka-windows-verification
+          path: |
+            _dist/windows/build-receipt.json
+            _audit/windows-smoke/smoke-receipt.json
+            _audit/windows-installer/installer-verification.json
+            _audit/windows-installer/*.log
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: granka-windows-x64
+          path: |
+            _dist/windows/*-Setup-x64.exe
+            _dist/windows/*-Portable-x64.zip
+            _dist/windows/SHA256SUMS.txt
+          if-no-files-found: error

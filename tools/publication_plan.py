@@ -131,13 +131,20 @@ class PublicationPlan:
             available = {(s['root'], s['file'], s['channel']) for s in library}
             for value in entries:
                 if value.get('origin') == 'library' and (value['root'], value['file'], value['channel']) not in available:
-                    value['source_error'] = 'Источник больше не доступен среди черновиков: проверь файл и его статус'
+                    value['source_error'] = 'Источник больше не доступен в библиотеке: проверь файл и выбранные папки'
             for source in library:
                 linked = next((i for i in entries if i.get('root') == source['root'] and i.get('file') == source['file'] and i['channel'] == source['channel']), None)
                 if linked:
                     merged = {**source, **linked}
                     for key in ['origin', 'source_rel', 'has_granka', 'source_revision', 'readiness']:
                         merged[key] = source[key]
+                    merged.pop('source_error', None)
+                    if source['status'] == 'published':
+                        # A verified release supersedes an older scheduling decision.
+                        # Preserve the calendar ID, title and private notes.
+                        merged.update(status='published', excluded=False)
+                        if source.get('date'): merged['date'] = source['date']
+                        if source.get('url'): merged['url'] = source['url']
                     entries[entries.index(linked)] = merged
                 else:
                     entries.append(source)

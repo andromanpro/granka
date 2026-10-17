@@ -124,3 +124,67 @@ class LibraryCalendarTests(unittest.TestCase):
         self.draft('same.md', '# Статья автора\n\nТекст статьи.')
         rows=catalog_sources(scan_library(self.roots),[])
         self.assertEqual(len(rows),1);self.assertEqual(len(rows[0]['copies']),1)
+
+    def test_published_metadata_reaches_calendar_library_and_is_not_scheduled(self):
+        self.draft('published.md','---\nstatus: publish\ndate: 2026-09-20\nurl: https://example.invalid/post\n---\n# Выпущено\n\nТекст.')
+        sources=lambda:scan_library(self.roots,include_published=True)
+        plan=PublicationPlan(lambda:self.root/'state',sources)
+        current=plan.read();item=current['entries'][0]
+        self.assertEqual((item['status'],item['date'],item['url']),('published','2026-09-20','https://example.invalid/post'))
+        self.assertEqual(plan.schedule({'expected_revision':current['revision'],'options':{'start':'2026-09-21'}})['assignments'],[])
+        row=catalog_sources(sources(),current['entries'])[0]
+        self.assertEqual((row['state'],row['published_date'],row['url'],row['readiness']['percent']),('published','2026-09-20','https://example.invalid/post',100))
+        self.assertFalse(plan.path.exists())
+
+    def test_confirmed_calendar_link_groups_cross_root_publication_copies(self):
+        self.draft('article.md','# Статья\n\nАвторская редакция.')
+        other=self.root/'other';other.mkdir();(other/'export.md').write_text('# Статья\n\nПубликационная редакция.',encoding='utf-8')
+        roots={**self.roots,'other':other}
+        sources=scan_library(roots)
+        links=[{**s,'status':'published','date':'2026-09-20','url':'https://example.invalid/post'} for s in sources]
+        rows=catalog_sources(sources,links)
+        self.assertEqual(len(rows),1);self.assertEqual(len(rows[0]['copies']),1)
+        self.assertEqual(rows[0]['state'],'published')
+        self.assertEqual(rows[0]['url'],'https://example.invalid/post')
+
+    def test_link_only_publications_are_visible_once_and_bad_urls_are_not_links(self):
+        self.draft()
+        published={'id':'external','title':'Внешний выпуск','status':'published','date':'2026-09-20',
+                   'url':'https://example.invalid/released','file':'','root':'','channel':'article'}
+        bad={**published,'id':'bad','url':'javascript:alert(1)'}
+        rows=catalog_sources(self.library(),[published,{**published,'id':'copy'},bad])
+        external=[r for r in rows if r.get('external')]
+        self.assertEqual(len(external),1);self.assertEqual(external[0]['url'],published['url'])
+        self.draft('unsafe.md','---\nstatus: publish\nurl: "javascript:alert(1)"\n---\n# Текст\n\nСтатья.')
+        self.assertEqual(next(s for s in scan_library(self.roots,include_published=True) if s['source_rel']=='unsafe.md')['url'],'')
+
+    def test_different_publication_addresses_do_not_merge_on_decoded_reserved_characters(self):
+        self.draft('one.md','# Первый материал\n\nПервый текст.')
+        self.draft('two.md','# Второй материал\n\nВторой текст.')
+        links=[{'root':'articles','file':name+'.granka.json','url':url,'date':'2026-10-16'}
+               for name,url in [('one','https://example.invalid/a%2Fb'),('two','https://example.invalid/a/b')]]
+        rows=catalog_sources(scan_library(self.roots,include_published=True,publications=links),[])
+        self.assertEqual(len(rows),2)
+        self.assertEqual({r['url'] for r in rows},{e['url'] for e in links})
+
+    def test_explicit_release_link_marks_manuscript_without_rewriting_it(self):
+        path=self.draft();before=path.read_bytes()
+        link={'root':'articles','file':'draft.granka.json','url':'https://example.invalid/released','date':'2026-09-20'}
+        self.assertEqual(scan_library(self.roots,publications=[link]),[])
+        source=scan_library(self.roots,include_published=True,publications=[link])[0]
+        self.assertEqual((source['status'],source['date'],source['url']),('published','2026-09-20',link['url']))
+        self.assertEqual(path.read_bytes(),before)
+        with self.assertRaises(ValueError):scan_library(self.roots,publications=[link,link])
+        with self.assertRaises(ValueError):scan_library(self.roots,publications=[{**link,'url':'javascript:alert(1)'}])
+
+    def test_exclusions_keep_new_articles_discoverable_without_deleting_old_sources(self):
+        old=self.draft('old.md','# Прежняя версия\n\nСтарый текст.')
+        self.draft('old.granka.json',json.dumps({'versions':[{'id':'v1','text':old.read_text(encoding='utf-8')}]}))
+        self.draft('support/notes.md','# Журнал\n\nРабочие заметки.')
+        options={'excluded_sources':{'articles':['old.md','support']}}
+        before=old.read_bytes()
+        self.assertEqual(scan_library(self.roots,**options),[])
+        self.draft('new.md','# Новый материал\n\nНовый текст.')
+        self.assertEqual([s['source_rel'] for s in scan_library(self.roots,**options)],['new.md'])
+        self.assertEqual(old.read_bytes(),before)
+        with self.assertRaises(ValueError):scan_library(self.roots,excluded_sources={'articles':['../outside']})

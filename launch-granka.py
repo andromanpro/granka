@@ -34,6 +34,15 @@ def is_running():
         raise RuntimeError(f"Не удалось проверить локальный сервер на порту {PORT}.") from exc
     if "<title>Гранка</title>" not in html or 'id="docsel"' not in html:
         raise RuntimeError(f"Порт {PORT} занят другим приложением.")
+    if os.environ.get('GRANKA_PACKAGED') == '1':
+        import json
+        try:
+            with OPENER.open(URL + 'api/runtime', timeout=5) as response:
+                runtime = json.load(response)
+        except (OSError, ValueError):
+            raise RuntimeError('На этом порту работает другая копия Гранки. Сначала останови её.') from None
+        if not runtime.get('packaged') or runtime.get('installation') != str(HERE):
+            raise RuntimeError('На этом порту работает другая копия Гранки. Сначала останови её.')
     return True
 
 

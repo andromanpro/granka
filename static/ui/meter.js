@@ -7,12 +7,21 @@ const color = (n) =>
   n < 15 ? "#68d8b0" : n < 30 ? "#d8cf85" : n < 45 ? "#efb279" : "#ee8994";
 export const meterHighlights = () =>
   highlights ? S.meter?.highlights || [] : [];
+function drawHighlightButton() {
+  const button = $("#meterhl"),
+    count = S.meter?.axes?.["маркеры"]?.hits;
+  button.textContent = highlights
+    ? "Снять подсветку" + (count == null ? "" : " · " + count)
+    : "Подсветить обороты" + (count == null ? "" : " · " + count);
+  button.setAttribute("aria-pressed", String(highlights));
+}
 export function clearMeter() {
   ++sequence;
   clearTimeout(timer);
   cancelAnimationFrame(animation);
   S.meter = null;
   highlights = false;
+  drawHighlightButton();
   $("#meter-number").textContent = "—";
   $("#meter-orbit").style.setProperty("--value", 0);
   $("#meter-status").textContent = "Измеряю текущую версию";
@@ -51,6 +60,7 @@ export async function measure() {
   }
 }
 function drawMeter(meter) {
+  drawHighlightButton();
   const n = meter.score,
     tone = n == null ? "#809aab" : color(n),
     orbit = $("#meter-orbit");
@@ -83,23 +93,25 @@ function drawMeter(meter) {
     ["структура", "structure"],
     ["маркеры", "markers"],
   ]) {
-    const value = n == null ? 0 : meter.axes[key].score;
-    $("#axis-" + id + "-number").textContent = n == null ? "—" : value;
-    $("#axis-" + id).style.width = value + "%";
+    const available = meter.status !== "insufficient_text" && (key !== "голос" || n != null),
+      value = available ? meter.axes[key].score : null;
+    $("#axis-" + id + "-number").textContent = value ?? "—";
+    $("#axis-" + id).style.width = (value ?? 0) + "%";
   }
   const notes = $("#meterflags");
   notes.replaceChildren();
-  const texts =
-    n == null
-      ? [
-          meter.status === "uncalibrated"
-            ? "Укажи voice.corpus_dir в конфигурации и добавь свои рукописные тексты. Итоговая оценка появится после калибровки."
-            : "Для измерения нужна проза.",
-        ]
-      : [
-          ...(meter.sample_warning ? [meter.sample_warning] : []),
-          ...meter.axes["структура"].flags,
-        ];
+  const texts = [
+    ...(meter.status === "uncalibrated"
+      ? ["Добавь свои тексты в voice.corpus_dir для сравнения голоса. Словарные обороты и структура проверяются и без корпуса."]
+      : meter.status === "insufficient_text" ? ["Для измерения нужна проза."] : []),
+    ...(meter.sample_warning ? [meter.sample_warning] : []),
+    ...(meter.status !== "insufficient_text" ? meter.axes["структура"].flags : []),
+    meter.axes["маркеры"].hits
+      ? "Найдено словарных оборотов: " + meter.axes["маркеры"].hits + ". Подсветка показывает совпадения, которые стоит перечитать."
+      : "Словарных оборотов не найдено. Это не исключает шаблонной подачи: словарь не оценивает смысл и развитие текста.",
+  ];
+  if (meter.axes["маркеры"].hits > meter.highlights.length)
+    texts.push("Показаны первые " + meter.highlights.length + " совпадений из " + meter.axes["маркеры"].hits + ".");
   for (const text of texts) {
     const p = document.createElement("p");
     p.textContent = text;
@@ -137,9 +149,7 @@ export function initMeter() {
       return;
     }
     highlights = !highlights;
-    $("#meterhl").textContent = highlights
-      ? "Снять подсветку"
-      : "Подсветить обороты";
+    drawHighlightButton();
     emit("reader");
   });
   events.addEventListener("document", () => {
@@ -154,5 +164,7 @@ export function initMeter() {
     $("#meter-status").textContent =
       "Показатели сохранённой версии · есть правки";
     highlights = false;
+    drawHighlightButton();
   });
+  drawHighlightButton();
 }

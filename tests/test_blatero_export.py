@@ -9,6 +9,15 @@ from unittest.mock import patch
 
 
 class BlateroExportTests(unittest.TestCase):
+    def test_published_source_includes_verified_link_and_date(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory);article=base/'published.md'
+            article.write_text('---\nstatus: publish\ndate: 2026-09-20\nurl: https://example.invalid/post\n---\n# Статья\n\nТекст.',encoding='utf-8')
+            result=export_plan({'articles':base},base/'state',{'server':{},'site':{},'planning':{}})
+            item=result['entries'][0]
+            self.assertEqual((item['status'],item['date'],item['url']),('published','2026-09-20','https://example.invalid/post'))
+            self.assertFalse((base/'state/publication-plan.json').exists())
+
     def test_user_selected_file_is_shared_with_board_without_scanning_neighbors(self):
         with tempfile.TemporaryDirectory() as directory:
             base=Path(directory);articles=base/'external';articles.mkdir()

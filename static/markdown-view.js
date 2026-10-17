@@ -44,20 +44,22 @@
     function append(parent, value, map) {
       if (!value) return;
       const relevant = spans.filter(a => a.uend > map.starts[0] && a.ustart < map.ends.at(-1));
-      let begin = 0, previous = undefined;
+      let begin = 0, previous = [];
       function flush(end) {
         if (end <= begin) return;
         const text = document.createTextNode(value.slice(begin, end));
-        if (previous) {
-          const mark = options.mark(previous);
+        if (previous.length) {
+          const mark = options.mark(previous[0], previous);
           mark.appendChild(text); parent.appendChild(mark);
         } else parent.appendChild(text);
         rows.push({node: text, starts: map.starts.slice(begin, end), ends: map.ends.slice(begin, end)});
         begin = end;
       }
       for (let i = 0; i < value.length; i++) {
-        const a = relevant.find(a => map.starts[i] < a.uend && map.ends[i] > a.ustart);
-        if (a !== previous) { flush(i); previous = a; }
+        const active = relevant.filter(a => map.starts[i] < a.uend && map.ends[i] > a.ustart);
+        if (active.length !== previous.length || active.some((a, j) => a !== previous[j])) {
+          flush(i); previous = active;
+        }
       }
       flush(value.length);
     }

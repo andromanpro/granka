@@ -81,3 +81,30 @@ class CalendarTests(unittest.TestCase):
         state = self.add('План', root='articles', file='article.granka.json')
         self.plan.schedule({'expected_revision': state['revision'], 'options': self.options()}, apply=True)
         self.assertEqual(article.read_text(encoding='utf-8'), 'Original text')
+
+    def test_publication_supersedes_saved_draft_and_keeps_private_notes(self):
+        from tools.planning_library import scan_library, catalog_sources
+        article = self.root / 'article.md'
+        article.write_text('# Исходник\n\nТекст статьи.', encoding='utf-8')
+        links = []
+        self.plan.library = lambda: catalog_sources(scan_library({'work': self.root},
+            {'work': ['article.md']}, include_published=True, publications=links), [])
+        source = self.plan.read()['entries'][0]
+        self.plan.change({'action': 'save', 'id': source['id'], 'expected_revision': self.plan.read()['revision'],
+            'entry': {**source, 'status': 'ready', 'date': '2026-10-20', 'excluded': True,
+                      'notes': 'Моя заметка', 'url': 'https://example.invalid/old'}})
+        stored = self.plan.path.read_bytes()
+        links.append({'root': 'work', 'file': 'article.granka.json',
+                      'url': 'https://example.invalid/released', 'date': '2026-10-16'})
+        item = self.plan.read()['entries'][0]
+        self.assertEqual(item['id'], source['id'])
+        self.assertEqual((item['status'], item['date'], item['url']),
+                         ('published', '2026-10-16', 'https://example.invalid/released'))
+        self.assertEqual(item['notes'], 'Моя заметка')
+        self.assertFalse(item['excluded'])
+        self.assertNotIn('source_error', item)
+        self.assertEqual(item['readiness']['percent'], 100)
+        self.assertEqual(distribute([item], self.options()), [])
+        self.assertEqual(self.plan.path.read_bytes(), stored)
+        self.assertEqual(article.read_text(encoding='utf-8'), '# Исходник\n\nТекст статьи.')
+        self.assertFalse(article.with_suffix('.granka.json').exists())

@@ -19,6 +19,7 @@ from tools.text_edit import edit_text
 from tools import iimeter
 from tools.document_store import DocumentStore, validate as contract_errors
 from tools import ai_provider
+from tools import deep_analysis
 from tools import config as environment
 from tools.jobs import Jobs, JobConflict
 from tools.git_history import GitHistory
@@ -36,7 +37,7 @@ from tools.library_locations import LibraryLocations, LocationsConflict
 from tools.file_dialog import choose_local_path
 TELEGRAM = telegram.Telegram(lambda: ai_provider.STATE)
 SITE = SitePublisher(lambda: ai_provider.STATE)
-CALENDAR = PublicationPlan(lambda: ai_provider.STATE, lambda: [s for s in library_sources() if s['state']=='draft'])
+CALENDAR = PublicationPlan(lambda: ai_provider.STATE, lambda: library_sources())
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -100,7 +101,7 @@ def source_document(path, root_id, data):
 def enqueue_job(root_id, rel, body):
     path=safe_resolve(root_id,rel)
     kind=body.get('kind')
-    if kind not in {'apply','analysis','image','editorial','announcement','benchmark','rules'}: raise ValueError('Неизвестное задание')
+    if kind not in {'apply','analysis','deep-analysis','image','editorial','announcement','benchmark','rules'}: raise ValueError('Неизвестное задание')
     with LOCK:
         raw=path.read_bytes();revision=hashlib.sha256(raw).hexdigest()[:16]
         if body.get('expected_revision')!=revision: return 409,{'error':'conflict','revision':revision}
@@ -157,7 +158,7 @@ def enqueue_job(root_id, rel, body):
         if kind=='editorial':
             report,receipt=ai_provider.text_result(request_prompt(version['text'],request),REQUEST_SCHEMA,directory,config)
             def fn(current):return add_editorial_result(current,version['id'],target['id'],report,provider)
-        elif kind=='analysis':
+        elif kind in {'analysis','deep-analysis'}:
             protected=[a['quote'] for a in data['annotations'] if a['version']==version['id'] and
                        (a.get('type')=='protected' or (a.get('decision') or {}).get('action')=='reject')]
             feedback=[item for item in data.get('feedback',[]) if not item.get('read_by_agent')][-20:]
@@ -167,12 +168,22 @@ def enqueue_job(root_id, rel, body):
             comments.extend({'context':item.get('context'),'text':item['text']} for item in feedback)
             preferences=PREFERENCES.context(version['text'])
             ai_provider.atomic_json(directory/'author-preferences.json',preferences)
-            report,receipt=ai_provider.text_result(analysis_prompt(version['text'],protected,comments,preferences),ANALYSIS_SCHEMA,directory,config)
+            if kind=='deep-analysis':
+                try:
+                    report=deep_analysis.run(data,version['id'],preferences,comments,directory,config,ai_provider.text_result)
+                except (ValueError,RuntimeError) as error:
+                    raise RuntimeError(f'{error}. Проверь полученные ответы и квитанции в журнале задания {directory.name}. Автоматического повтора нет.') from None
+                receipt={'provider':provider,'stages':report['receipts']}
+            else:
+                report,receipt=ai_provider.text_result(analysis_prompt(version['text'],protected,comments,preferences),ANALYSIS_SCHEMA,directory,config)
             def fn(current):
-                result=add_analysis(current,version['id'],report,provider)
-                current['analyses'][-1]['preferences']={'fingerprint':preferences['fingerprint'],'rules':len(preferences['rules']),
-                    'examples':len(preferences['decisions']),'total_decisions':preferences['total_decisions']}
-                result['preferences']=current['analyses'][-1]['preferences']
+                if kind=='deep-analysis':
+                    result=deep_analysis.add_report(current,version['id'],report)
+                else:
+                    result=add_analysis(current,version['id'],report,provider)
+                    current['analyses'][-1]['preferences']={'fingerprint':preferences['fingerprint'],'rules':len(preferences['rules']),
+                        'examples':len(preferences['decisions']),'total_decisions':preferences['total_decisions']}
+                    result['preferences']=current['analyses'][-1]['preferences']
                 ids={item['id'] for item in feedback}
                 for item in current.get('feedback',[]):
                     if item['id'] in ids:item['read_by_agent']=True
@@ -262,9 +273,11 @@ SKIP_DIRS = {".git", "node_modules", "_archive", "_исходники-докст
 
 
 def library_sources(calendar=None):
-    selectors = dict(environment.load()['planning']['source_dirs'] or {key: ['.'] for key in ROOTS})
+    planning = environment.load()['planning']
+    selectors = dict(planning['source_dirs'] or {key: ['.'] for key in ROOTS})
     selectors.update(LOCATIONS.selectors())
-    sources = scan_library(ROOTS, selectors, include_published=True)
+    sources = scan_library(ROOTS, selectors, include_published=True,
+                           publications=planning.get('publications',[]), excluded_sources=planning.get('excluded_sources',{}))
     return catalog_sources(sources, calendar or [], SITE.directory, SITE.repo, ROOTS)
 
 
@@ -420,6 +433,9 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, (STATIC / 'brand/granka.ico').read_bytes(), 'image/x-icon')
             elif url.path == '/api/version':
                 self._send(200, {'version': (STATIC.parent / 'VERSION').read_text().strip()})
+            elif url.path == '/api/runtime':
+                self._send(200, {'installation': str(HERE),
+                    'packaged': os.environ.get('GRANKA_PACKAGED') == '1'})
             elif url.path == '/api/preferences':
                 self._send(200,PREFERENCES.summary())
             elif url.path == '/api/publication-plan':
@@ -553,6 +569,15 @@ class H(BaseHTTPRequestHandler):
 
             if url.path == '/api/settings':
                 self._send(200,{'ok':True,'settings':ai_provider.save_settings(b.get('settings',{}))})
+
+            elif url.path == '/api/quit':
+                from tools.desktop_runtime import active_jobs
+                if os.environ.get('GRANKA_PACKAGED') != '1' or b.get('installation') != str(HERE):
+                    raise ValueError('Остановка доступна только для своей установленной копии Гранки.')
+                if active_jobs(ai_provider.STATE / 'jobs'):
+                    raise ValueError('Дождись завершения заданий Гранки, затем повтори остановку.')
+                self._send(200, {'ok': True})
+                threading.Thread(target=self.server.shutdown, daemon=True).start()
 
             elif url.path == '/api/library-locations':
                 kind = b.get('kind')
@@ -749,6 +774,11 @@ class H(BaseHTTPRequestHandler):
                     if url.path.endswith('/undo'):return undo_batch(data,b.get('version'),b.get('batch_id'))
                     return decide_batch(data,b.get('version'),b.get('rule_id'),b.get('items'),op_id)
                 code,out=mutate(p,b.get('expected_revision'),op_id,fn);self._send(code,out)
+            elif url.path == '/api/deep-decision':
+                p=self._doc_path(q)
+                code,out=mutate(p,b.get('expected_revision'),op_id,
+                    lambda data:deep_analysis.decide(data,b.get('report_id'),b.get('finding_id'),b.get('decision')))
+                self._send(code,out)
             elif url.path == "/api/decision":
                 p = self._doc_path(q)
                 ann_id = b.get("annotation_id")
@@ -1007,10 +1037,14 @@ def main():
     print(f"Аллергены: {CORRECTIONS}")
     if "--no-browser" not in sys.argv:
         webbrowser.open(url)
+    from tools.desktop_runtime import server_mutex
     try:
-        srv.serve_forever()
+        with server_mutex():
+            srv.serve_forever()
     except KeyboardInterrupt:
         print("Гранка остановлена.")
+    finally:
+        srv.server_close()
 
 
 if __name__ == "__main__":

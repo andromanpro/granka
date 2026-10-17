@@ -86,6 +86,34 @@ class JobServiceTests(unittest.TestCase):
         with patch.object(self.server.ai_provider,'text_result',side_effect=RuntimeError('Проверочная ошибка')) as provider:
             job=self.wait(self.start('analysis'));self.assertEqual(job['status'],'failed');self.assertIn('Проверочная ошибка',job['message']);self.assertEqual(provider.call_count,1)
 
+    def test_deep_job_preserves_article_and_conflicting_result_stays_in_journal(self):
+        from test_deep_analysis import document,responses
+        for conflict in [False,True]:
+            with self.subTest(conflict=conflict):
+                data=document();data['feedback']=[{'id':'f1','text':'Проверь развитие мысли.','read_by_agent':False}]
+                self.file.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
+                before_md=(self.root/'article.md').read_bytes()
+                entered=threading.Event();release=threading.Event();replies=iter(responses())
+                def respond(*args):
+                    result=next(replies)
+                    if args[2].name=='verify':entered.set();release.wait(3)
+                    return result,{'provider':'codex'}
+                with patch.object(self.server.ai_provider,'text_result',side_effect=respond) as provider:
+                    job_id=self.start('deep-analysis',op='deep-'+str(conflict))
+                    self.assertTrue(entered.wait(2))
+                    if conflict:
+                        changed=json.loads(self.file.read_text(encoding='utf-8'));changed['external']='fresh'
+                        self.file.write_text(json.dumps(changed),encoding='utf-8')
+                    release.set();job=self.wait(job_id)
+                saved=json.loads(self.file.read_text(encoding='utf-8'))
+                self.assertEqual(provider.call_count,3)
+                self.assertEqual(job['status'],'conflict' if conflict else 'succeeded',job)
+                self.assertEqual(saved['versions'],data['versions']);self.assertEqual(saved['annotations'],[])
+                self.assertEqual((self.root/'article.md').read_bytes(),before_md)
+                self.assertTrue((self.root/'jobs'/job_id/'deep-report.json').is_file())
+                self.assertEqual(bool(saved.get('deep_analyses')),not conflict)
+                self.assertEqual(saved['feedback'][0]['read_by_agent'],not conflict)
+
     def test_settings_keep_both_providers_and_default_codex(self):
         self.assertEqual(self.server.ai_provider.settings()['image_provider'],'codex')
         out=self.server.ai_provider.save_settings({'image_provider':'openrouter','openrouter_image_model':'test/model','analysis_provider':'codex'})

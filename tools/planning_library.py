@@ -1,13 +1,30 @@
 """Read article drafts for planning; never create or edit their source files."""
 import hashlib
+from datetime import date
 import json
 from pathlib import Path
 import re
 import frontmatter
+from urllib.parse import urlsplit
 from .editorial_requests import editorial_requests
 
 SKIP_DIRS = {'.git', 'node_modules', '_archive', '_audit', 'covers', 'voice-corpus', '__pycache__'}
 SKIP_NAMES = {'readme.md', 'agents.md', 'claude.md', 'changelog.md', 'devlog.md', 'roadmap.md', 'public_release.md'}
+
+
+def public_url(value):
+    if not isinstance(value, str) or len(value)>2000 or any(ord(c) < 32 for c in value): return ''
+    value = value.strip()
+    try:
+        parts = urlsplit(value)
+        return value if parts.scheme in {'http', 'https'} and parts.hostname and not parts.username and not parts.password else ''
+    except ValueError:
+        return ''
+
+
+def publication_day(value):
+    try: return date.fromisoformat(str(value)[:10]).isoformat()
+    except ValueError: return None
 
 
 def source_readiness(text, data=None):
@@ -41,11 +58,29 @@ def source_readiness(text, data=None):
             'details': details, 'pending': pending, 'requests': len(requests)}
 
 
-def scan_library(roots, source_dirs=None, include_published=False):
+def scan_library(roots, source_dirs=None, include_published=False, publications=None, excluded_sources=None):
     """source_dirs restricts each root to relative folders or explicitly selected files."""
     if source_dirs is not None and not isinstance(source_dirs, dict):
         raise ValueError('planning.source_dirs должен быть объектом')
     selectors = source_dirs or {key: ['.'] for key in roots}
+    if excluded_sources is not None and not isinstance(excluded_sources, dict):
+        raise ValueError('planning.excluded_sources должен быть объектом')
+    exclusions = {}
+    for key, paths in (excluded_sources or {}).items():
+        if key not in roots or not isinstance(paths, list) or any(not isinstance(p, str) or not p for p in paths):
+            raise ValueError('Проверь корни и пути planning.excluded_sources')
+        root = Path(roots[key]).resolve()
+        exclusions[key] = [(root / p).resolve() for p in paths]
+        if any(not p.is_relative_to(root) for p in exclusions[key]):
+            raise ValueError('Исключённый источник находится вне рабочего корня')
+    links = {}
+    if publications is not None and not isinstance(publications, list): raise ValueError('planning.publications должен быть списком')
+    for item in publications or []:
+        if not isinstance(item, dict) or not isinstance(item.get('root'),str) or not isinstance(item.get('file'),str) or not public_url(item.get('url')) or not publication_day(item.get('date')):
+            raise ValueError('Проверь связь выпущенного материала: root, file, url и date')
+        identity = (item['root'], item['file'])
+        if identity in links: raise ValueError('Повторная связь выпущенного материала')
+        links[identity] = item
     out = []; seen = set()
     for key, folders in selectors.items():
         if key not in roots or not isinstance(folders, list) or any(not isinstance(p, str) for p in folders):
@@ -72,6 +107,8 @@ def scan_library(roots, source_dirs=None, include_published=False):
                 if markdown.name.lower() in SKIP_NAMES or any(p in SKIP_DIRS or p.endswith('.assets') for p in parts[:-1]): continue
                 document = markdown.with_name(markdown.stem + '.granka.json')
                 if not document.resolve().is_relative_to(root): continue
+                if any(markdown.resolve().is_relative_to(p) or document.resolve().is_relative_to(p)
+                       for p in exclusions.get(key, [])): continue
                 path = document if document.is_file() else markdown
                 try:
                     if path.stat().st_size > 8 * 1024 * 1024: continue
@@ -80,7 +117,8 @@ def scan_library(roots, source_dirs=None, include_published=False):
                     text = data['versions'][-1]['text'] if data else raw.decode('utf-8-sig')
                     if len(text) > 300_000: continue
                     post = frontmatter.loads(text)
-                    published = post.metadata.get('status') in {'publish', 'published'}
+                    link = links.get((key, document.relative_to(root).as_posix()), {})
+                    published = bool(link) or post.metadata.get('status') in {'publish', 'published'}
                     if post.metadata.get('status') in {'private', 'archive', 'archived'} or (published and not include_published): continue
                     heading = re.search(r'^#\s+(.+)$', post.content, re.M)
                     title = str(post.metadata.get('title') or (heading[1] if heading else markdown.stem))
@@ -97,8 +135,9 @@ def scan_library(roots, source_dirs=None, include_published=False):
                             'source_status': 'published' if published else 'draft', 'slug': str(post.metadata.get('slug') or ''),
                             'content_hash': hashlib.sha256(post.content.strip().encode('utf-8')).hexdigest(),
                             'mtime': path.stat().st_mtime, 'kb': round(len(raw) / 1024, 1),
-                            'channel': channel, 'status': 'draft', 'date': None, 'pinned': False,
-                            'excluded': False, 'progress': None, 'url': '', 'notes': '', 'readiness': readiness})
+                            'channel': channel, 'status': 'published' if published else 'draft',
+                            'date': publication_day(link.get('date') or post.metadata.get('date')) if published else None, 'pinned': False,
+                            'excluded': False, 'progress': None, 'url': public_url(link.get('url') or post.metadata.get('url')), 'notes': '', 'readiness': readiness})
     return out
 
 
@@ -111,7 +150,12 @@ def catalog_sources(sources, calendar, publication_directory=None, repository=No
         state = 'published' if source['source_status'] == 'published' or item.get('status') == 'published' else 'draft'
         rows.append({**source, 'name': source['title'], 'rel': source['source_rel'], 'granka_rel': source['file'],
                      'dir': Path(source['source_rel']).parent.as_posix(), 'state': state,
-                     'readiness': item.get('readiness', source['readiness']), 'planning_id': item.get('id'),
+                     'status': 'published' if state == 'published' else source['status'],
+                     'readiness': ({'percent':100,'basis':'published','checks':[],'details':[]} if state=='published' else item.get('readiness', source['readiness'])),
+                     'url': public_url(item.get('url')) or public_url(source.get('url')),
+                     'published_date': (item.get('date') or source.get('date')) if state=='published' else None,
+                     'date': (item.get('date') or source.get('date')) if state=='published' else None,
+                     'planning_id': item.get('id'),
                      'planning_state': 'published' if state == 'published' else 'excluded' if item.get('excluded') else 'scheduled' if item.get('date') else 'queue',
                      'planned_date': item.get('date'), 'copies': []})
     by_key = {(r['root'], r['granka_rel']): r for r in rows}
@@ -134,6 +178,8 @@ def catalog_sources(sources, calendar, publication_directory=None, repository=No
             except (OSError, ValueError, KeyError, TypeError):
                 continue
     def group_key(row):
+        if row['state']=='published' and public_url(row.get('url')):
+            return ('publication', row['url'])
         return (row['root'], row['state'], 'slug' if row['slug'] else 'content', row['slug'] or row['content_hash'])
     for exported_key, original_key in list(aliases.items()):
         same = group_key(by_key[exported_key])
@@ -141,7 +187,8 @@ def catalog_sources(sources, calendar, publication_directory=None, repository=No
             if key != original_key and group_key(row) == same:
                 aliases[key] = original_key
     result = []; groups = {}
-    for row in sorted(rows, key=lambda r: (r['root'], r['granka_rel'])):
+    for row in sorted(rows, key=lambda r: (0 if r['state']=='published' and r['has_granka'] else 1,
+                                          0 if r['slug'] else 1, r['root'], r['granka_rel'])):
         key = (row['root'], row['granka_rel'])
         if key in aliases:
             by_key[aliases[key]]['copies'].append({**row, 'copy_label': 'Копия для сайта'})
@@ -151,4 +198,16 @@ def catalog_sources(sources, calendar, publication_directory=None, repository=No
             groups[duplicate_key]['copies'].append({**row, 'copy_label': 'Другой исходник'})
         else:
             groups[duplicate_key] = row; result.append(row)
+    # A publication can have a confirmed URL without a local editable manuscript.
+    known_urls = {r['url'] for r in result if r['state']=='published' and r.get('url')}
+    for item in calendar:
+        url = public_url(item.get('url'))
+        if item.get('status')!='published' or not url or item.get('file') or url in known_urls: continue
+        result.append({'id':item['id'],'name':item['title'],'title':item['title'],'state':'published','status':'published',
+            'external':True,'root':'','file':'','rel':'','granka_rel':'','source_rel':'','dir':'Публикация без локального исходника',
+            'url':url,'published_date':item.get('date'),'date':item.get('date'),'planned_date':item.get('date'),
+            'planning_id':item['id'],'planning_state':'published','channel':item.get('channel','article'),
+            'has_granka':False,'mtime':0,'copies':[],
+            'readiness':{'percent':100,'basis':'published','checks':[],'details':[]}})
+        known_urls.add(url)
     return sorted(result, key=lambda r: -r['mtime'])

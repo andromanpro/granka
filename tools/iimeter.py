@@ -35,7 +35,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 HERE = Path(__file__).resolve().parent
 CORPUS_DIR = environment.path(environment.load()['voice']['corpus_dir'])
 PROFILE = environment.path(environment.load()['voice']['profile_file'])
-ENGINE_VERSION = "0.2"
+ENGINE_VERSION = "0.3"
 PROFILES = {"blog": "Статьи и блог", "talks": "Доклады"}
 
 
@@ -74,7 +74,9 @@ MARKERS = {
     r"ключев\w+ (?:роль|момент|фактор|аспект)": "слово-затычка «ключевой»",
     r"способству\w+ развитию|подчёркива\w+ важность|отража\w+ тенденцию": "деепричастный псевдоанализ",
 }
-MARKER_RE = {re.compile(p, re.I): why for p, why in MARKERS.items()}
+# Inline emphasis can separate words without changing their visible phrase.
+# Match the original Markdown so reported offsets still address the source.
+MARKER_RE = {re.compile(p.replace(" ", r"[ \t*_~]+"), re.I): why for p, why in MARKERS.items()}
 
 FUNCTION_WORDS = """и в не на я что с а как это по но у же к так вот бы за
 то из для все или если когда только там ещё уже они мы он она их его её

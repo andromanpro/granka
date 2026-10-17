@@ -7,6 +7,7 @@ import {
   query,
   version,
   annotations,
+  deepSelection,
   latest,
   loadDocument,
   busy,
@@ -154,16 +155,14 @@ function render() {
   $("#texteditor").value = current.text;
   const spans = annotations(),
     extra = meterHighlights()
-      .filter(
-        (h) => !spans.some((a) => !(h.end <= a.start || h.start >= a.end)),
-      )
       .map((h) => ({ ...h, meter: true }));
-  reader = GrankaMarkdown.render(box, current.text, [...spans, ...extra], {
+  const deep = deepSelection().map((a, index) => ({ ...a, id: "deep-anchor-" + index, deep: true, deepIndex: index }));
+  reader = GrankaMarkdown.render(box, current.text, [...spans, ...extra, ...deep], {
     imageUrl: (src) =>
       "/api/article-image?" + query() + "&src=" + encodeURIComponent(src),
-    mark: (a) => {
+    mark: (a, overlapping = []) => {
       const mark = document.createElement("mark");
-      mark.className = a.meter
+      mark.className = a.deep ? "deep-mark" : a.meter
         ? "meter"
         : (a.type === "protected"
             ? "protected"
@@ -172,12 +171,22 @@ function render() {
               : a.severity || "P2") +
           (a.decision ? " decided" : "") +
           (a.id === S.active ? " active" : "");
-      if (a.meter) mark.title = a.why;
-      else mark.dataset.id = a.id;
+      const reasons = overlapping.filter((span) => span.meter).map((span) => span.why);
+      if (reasons.length) {
+        mark.classList.add("meter");
+        mark.title = [...new Set(reasons)].join(" · ");
+      }
+      const linked = overlapping.filter((span) => span.deep);
+      if (linked.length) {
+        mark.classList.add("deep-mark");
+        mark.dataset.deepIndexes = linked.map((span) => span.deepIndex).join(" ");
+      }
+      if (!a.meter && !a.deep) mark.dataset.id = a.id;
       mark.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
         if (!getSelection().isCollapsed) return;
+        if (a.deep) return;
         if (a.meter) toast(a.why);
         else {
           S.active = a.id;
@@ -471,6 +480,27 @@ export function initEditor() {
           );
         }
       }
+    }
+  });
+  events.addEventListener("deep-selection", () => {
+    if (S.editor) return;
+    setView("article");
+    render();
+    const index = S.deepFocus?.anchorIndex || 0;
+    const mark = [...document.querySelectorAll("#doc mark[data-deep-indexes]")].find(
+      (node) => node.dataset.deepIndexes.split(" ").includes(String(index)),
+    );
+    if (mark) mark.scrollIntoView({ block: "center", behavior: "smooth" });
+    else {
+      const anchor = deepSelection()[index];
+      if (!anchor) return;
+      setView("source");
+      const input = $("#texteditor");
+      input.focus();
+      input.setSelectionRange(
+        [...version().text].slice(0, anchor.start).join("").length,
+        [...version().text].slice(0, anchor.end).join("").length,
+      );
     }
   });
   window.addEventListener("beforeunload", (e) => {

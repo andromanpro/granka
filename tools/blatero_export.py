@@ -23,11 +23,13 @@ def export_plan(roots=None, state=None, settings=None):
     selectors = dict(settings.get('planning', {}).get('source_dirs') or {key: ['.'] for key in roots})
     selectors.update({key: value for key, value in locations.selectors().items() if key in roots})
     sources = catalog_sources(
-        scan_library(roots, selectors, include_published=True),
+        scan_library(roots, selectors, include_published=True,
+                     publications=settings.get('planning',{}).get('publications',[]),
+                     excluded_sources=settings.get('planning',{}).get('excluded_sources',{})),
         [], state / 'site-publications', repository, roots)
-    plan = PublicationPlan(lambda: state, lambda: [s for s in sources if s['state'] == 'draft']).read()
+    plan = PublicationPlan(lambda: state, lambda: sources).read()
     allowed = ('id', 'title', 'root', 'file', 'source_rel', 'source_revision', 'channel',
-               'date', 'status', 'excluded', 'notes', 'readiness', 'source_error', 'readonly', 'has_granka')
+               'date', 'status', 'url', 'excluded', 'notes', 'readiness', 'source_error', 'readonly', 'has_granka')
     entries = []
     for item in plan['entries']:
         value = {k: item[k] for k in allowed if k in item}

@@ -59,6 +59,14 @@ class MeterTests(unittest.TestCase):
                 self.assertIsNone(result["score"])
                 self.assertEqual(result["status"], "insufficient_text")
 
+    def test_marker_spans_markdown_emphasis_with_exact_unicode_offsets(self):
+        text = '😀 [ссылка](https://example.invalid/)\n\nВажно **отметить** результат.\n\n`Важно отметить`'
+        hits = meter.find_markers(text)
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["start"], text.index("Важно"))
+        self.assertEqual(text[hits[0]["start"]:hits[0]["end"]], hits[0]["quote"])
+        self.assertIn("отметить", hits[0]["quote"])
+
 
 if __name__ == "__main__":
     unittest.main()

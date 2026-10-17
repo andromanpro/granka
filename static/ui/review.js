@@ -304,10 +304,15 @@ export function renderReview() {
   const all = annotations(),
     judged = all.filter((a) => a.type !== "protected"),
     done = judged.filter((a) => a.decision).length;
+  const deep = Array.isArray(S.document.deep_analyses) && !S.contractErrors?.some((error) => error.startsWith("deep_analyses:"))
+    ? S.document.deep_analyses.filter((r) => r?.version === S.version).at(-1)?.findings || []
+    : [];
+  const deepPending = Array.isArray(deep) ? deep.filter((f) => !f.decision).length : 0;
   $("#review-count").textContent = `${done} из ${judged.length}`;
   $("#review-progress").style.width =
     (judged.length ? (done / judged.length) * 100 : 0) + "%";
-  $("#review-tab-count").textContent = judged.length - done;
+  $("#review-tab-count").textContent = judged.length - done + deepPending;
+  $("#review-tab-count").title = `${judged.length - done} локальных пометок и ${deepPending} замечаний к статье целиком`;
   if (!all.some((a) => a.id === S.active))
     S.active =
       judged.find((a) => !a.decision)?.id || judged[0]?.id || all[0]?.id;
@@ -320,7 +325,7 @@ export function renderReview() {
       el(
         "p",
         "empty",
-        "Замечаний нет. Можно править текст или запустить анализ.",
+        deep.length ? "Локальных замен нет. Замечания к статье целиком показаны выше." : "Замечаний нет. Можно править текст или запустить анализ.",
       ),
     );
   const pending = judged.filter((a) => !a.decision && a.id !== S.active);
@@ -374,6 +379,8 @@ const actions = {
   "batch-undo": "Отмена пакета",
   "apply-decisions": "Применение",
   analysis: "Анализ",
+  "deep-analysis": "Разбор статьи целиком",
+  "deep-decision": "Решение по разбору",
   status: "Статус",
   "voice-session": "Голос",
 };

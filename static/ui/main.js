@@ -16,6 +16,7 @@ import {
 import { editor, initEditor, save, setView } from "./editor.js";
 import { initMeter, measure } from "./meter.js";
 import { initReview } from "./review.js";
+import { initDeepReview } from "./deep-review.js";
 import { initDiff } from "./diff.js";
 import { initImages, openImages } from "./images.js";
 import { initSettings } from "./settings.js";
@@ -72,6 +73,19 @@ function documentHeader() {
 }
 async function documents() {
   const requested = new URLSearchParams(location.search);
+  if (requested.has("source_file")) {
+    const root = requested.get("root"), relative = requested.get("source_file");
+    const catalog = (await api("/api/sources")).sources || [];
+    const source = catalog.flatMap(s => [s, ...(s.copies || [])]).find(s =>
+      !s.external && s.root === root && s.source_rel === relative);
+    if (!source) {
+      $("#doc").textContent = "Статья по этой ссылке не найдена. Открой библиотеку и проверь источник.";
+      toast("Статья по ссылке больше не доступна");
+      return;
+    }
+    await openSource(source);
+    return;
+  }
   if (requested.has("source")) {
     await openSources();
     $("#source-search").value = requested.get("source").slice(0, 300);
@@ -184,14 +198,21 @@ function drawSources() {
   });
   const matches = sources.filter(s => (sourceFilter === 'all' || s.state === sourceFilter) &&
     (s.name + ' ' + s.dir + ' ' + (s.copies || []).map(c => c.rel).join(' ')).toLowerCase().includes(q));
-  $("#source-summary").textContent = `${matches.length} материалов · те же черновики доступны в календаре`;
+  $("#source-summary").textContent = `Найдено: ${matches.length} · доступны и в календаре`;
   for (const source of matches) {
-    const row = el('article', 'source-item'), main = button('', () => openSource(source), 'source-open');
-    const label = source.state === 'published' ? 'Опубликовано' : source.planning_state === 'excluded' ? 'Исключено из плана' :
+    const row = el('article', 'source-item');
+    const main = source.external ? el('a', 'source-open') : button('', () => openSource(source), 'source-open');
+    if (source.external) { main.href = source.url; main.target = '_blank'; main.rel = 'noopener noreferrer'; }
+    const label = source.state === 'published' ? 'Опубликовано' + (source.published_date ? ' · ' + source.published_date : '') : source.planning_state === 'excluded' ? 'Исключено из плана' :
       source.planned_date ? 'В плане · ' + source.planned_date : (source.readiness?.percent ?? 0) + '% · без даты';
     const location = source.dir === '.' ? (source.root === 'blog' ? 'Блог' : 'Рабочая папка') : source.dir;
     main.append(el('strong', null, source.name), el('small', null, (source.channel === 'telegram' ? 'Telegram · ' : '') + location), el('span', 'tag', label));
     row.append(main);
+    if (source.url && source.state === 'published' && !source.external) {
+      const link = el('a', 'source-publication', 'Читать публикацию');
+      link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+      row.append(link);
+    }
     if (source.state !== 'published') row.append(button(source.planning_state === 'excluded' ? 'Вернуть в план' : 'В календарь', async () => {
       try {
         if (source.planning_state === 'excluded') {
@@ -248,6 +269,7 @@ async function sync() {
 }
 initEditor();
 initReview();
+initDeepReview();
 initMeter();
 initDiff();
 initImages();
