@@ -1,5 +1,5 @@
 # Tests and rendering brand assets.
 -r requirements.txt
 playwright==1.58.0
-Pillow==12.1.1
+Pillow==13.0.0
 fonttools==4.62.1
