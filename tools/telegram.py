@@ -10,6 +10,7 @@ import urllib.error
 import urllib.request
 import uuid
 from .ai_provider import atomic_json
+from .telegram_media import MAX_TOTAL, MIME, validate_bytes
 
 
 class TelegramRejected(RuntimeError):
@@ -20,19 +21,24 @@ class TelegramUnknown(RuntimeError):
     """Delivery may have happened. Retrying could duplicate the publication."""
 
 
-def bot_call(token,method,payload,photo=None):
-    if photo:
+def bot_call(token,method,payload,photo=None,files=None):
+    files=dict(files or {})
+    if photo:files['photo']=photo
+    if files:
         boundary='granka-'+uuid.uuid4().hex;parts=[]
         for key,value in payload.items():
+            if isinstance(value,(dict,list,bool)):value=json.dumps(value,ensure_ascii=False)
             parts.append(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode('utf-8'))
-        parts.extend([f'--{boundary}\r\nContent-Disposition: form-data; name="photo"; filename="cover{photo.suffix}"\r\nContent-Type: application/octet-stream\r\n\r\n'.encode(),
-                      photo.read_bytes(),f'\r\n--{boundary}--\r\n'.encode()])
+        for key,path in files.items():
+            if not re.fullmatch(r'[A-Za-z0-9_]{1,64}',key):raise ValueError('Некорректное поле файла')
+            parts.extend([f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"; filename="media{path.suffix}"\r\nContent-Type: {MIME.get(path.suffix.lower(),"application/octet-stream")}\r\n\r\n'.encode(),path.read_bytes(),b'\r\n'])
+        parts.append(f'--{boundary}--\r\n'.encode())
         raw=b''.join(parts);ctype='multipart/form-data; boundary='+boundary
     else:
         raw=json.dumps(payload,ensure_ascii=False).encode('utf-8');ctype='application/json'
     req=urllib.request.Request('https://api.telegram.org/bot'+token+'/'+method,data=raw,headers={'Content-Type':ctype})
     try:
-        with urllib.request.urlopen(req,timeout=35) as response:result=json.load(response)
+        with urllib.request.urlopen(req,timeout=120 if files else 35) as response:result=json.load(response)
     except urllib.error.HTTPError as error:
         try: result=json.loads(error.read())
         except (ValueError,OSError): result={}
@@ -124,15 +130,29 @@ class Telegram:
 
     @staticmethod
     def public(record):
-        return {k:v for k,v in record.items() if k not in {'config_fingerprint','photo_path'}}
+        return {k:v for k,v in record.items() if k not in {'config_fingerprint','photo_path','media_paths','rich_message'}}
 
-    def prepare(self,root,rel,version,text,photo=None):
+    def prepare(self,root,rel,version,text,photo=None,media=None,rich_message=None,rich_files=None):
         with self.lock:
-            fingerprint=self.fingerprint();channel=self.connection()
             raw=photo.read_bytes() if photo else b''
             if photo and (len(raw)>10*1024*1024 or photo.suffix.lower() not in {'.jpg','.jpeg','.png'}):
                 raise ValueError('Для Telegram нужна обложка PNG/JPEG до 10 МБ')
-            identity=json.dumps([root,rel,channel['chat_id'],text,hashlib.sha256(raw).hexdigest()],ensure_ascii=False)
+            blobs={};descriptors=[]
+            if media and rich_message:raise ValueError('Выбери вложения или статью')
+            for i,item in enumerate(media or []):
+                path=item['path'] if isinstance(item,dict) else item
+                data=path.read_bytes();kind=validate_bytes(data,path.suffix);field='m'+str(i)
+                blobs[field]=(path,data);descriptors.append({'type':kind,'name':item.get('name',path.name) if isinstance(item,dict) else path.name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'field':field})
+            if photo and (len(descriptors)>=10 or rich_message):raise ValueError('Обложка не помещается в выбранный формат')
+            if photo and media:
+                blobs={'cover':(photo,raw),**blobs};descriptors.insert(0,{'type':'photo','name':'Обложка','bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'field':'cover'})
+            for field,path in (rich_files or {}).items():
+                data=path.read_bytes();kind=validate_bytes(data,path.suffix);blobs[field]=(path,data);descriptors.append({'type':kind,'name':path.name,'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest(),'field':field})
+            if sum(len(v[1])for v in blobs.values())>MAX_TOTAL:raise ValueError('Суммарный размер вложений — до 50 МБ')
+            if media and len(descriptors)>10:raise ValueError('В альбоме может быть до 10 вложений')
+            fingerprint=self.fingerprint();channel=self.connection()
+            legacy=[root,rel,channel['chat_id'],text,hashlib.sha256(raw).hexdigest()]
+            identity=json.dumps(legacy if not descriptors and not rich_message else legacy+[descriptors,rich_message],ensure_ascii=False,sort_keys=True)
             identifier=hashlib.sha256(identity.encode()).hexdigest()[:32]
             path=self.record_path(identifier)
             if path.exists():
@@ -142,10 +162,16 @@ class Telegram:
                     previous.pop('error',None);atomic_json(path,previous)
                 return self.public(previous)
             record={'id':identifier,'root':root,'rel':rel,'version':version,'text':text,'channel':channel,
-                    'status':'prepared','created':time.time(),'config_fingerprint':fingerprint,'with_cover':bool(photo)}
-            if photo:
+                    'status':'prepared','created':time.time(),'config_fingerprint':fingerprint,'with_cover':bool(photo),
+                    'mode':'article' if rich_message else 'announcement','attachments':descriptors}
+            if photo and not blobs:
                 copy=path.parent/('cover'+photo.suffix.lower());copy.parent.mkdir(parents=True,exist_ok=True)
                 copy.write_bytes(raw);record['photo_path']=str(copy)
+            if blobs:
+                record['media_paths']={};path.parent.mkdir(parents=True,exist_ok=True)
+                for field,(source,data) in blobs.items():
+                    copy=path.parent/(field+source.suffix.lower());copy.write_bytes(data);record['media_paths'][field]=str(copy)
+            if rich_message:record['rich_message']=rich_message
             atomic_json(path,record)
             return self.public(record)
 
@@ -157,13 +183,35 @@ class Telegram:
                 raise ValueError('Настройки бота изменились. Подготовь предпросмотр заново.')
             path=self.record_path(identifier)
             token=self.token();photo=Path(record['photo_path']) if record.get('photo_path') else None
+            files={k:Path(v)for k,v in record.get('media_paths',{}).items()}
+            for item in record.get('attachments',[]):
+                if hashlib.sha256(files[item['field']].read_bytes()).hexdigest()!=item['sha256']:
+                    raise ValueError('Снимок вложения изменился. Подготовь публикацию заново.')
             record.pop('error',None)
             record.update(status='sending',started=time.time());atomic_json(path,record)
             payload={'chat_id':record['channel']['chat_id']}
-            if photo:payload['caption']=record['text']
+            method='sendPhoto' if photo else 'sendMessage'
+            if record.get('rich_message'):
+                method='sendRichMessage';payload['rich_message']=record['rich_message']
+            elif len(files)>1:
+                method='sendMediaGroup';payload['media']=[]
+                for i,item in enumerate(record['attachments']):
+                    descriptor={'type':item['type'],'media':'attach://'+item['field']}
+                    if item['type']=='video':descriptor['supports_streaming']=True
+                    if i==0:descriptor['caption']=record['text']
+                    payload['media'].append(descriptor)
+            elif files:
+                item=record['attachments'][0];method='sendVideo' if item['type']=='video' else 'sendPhoto'
+                field='video' if item['type']=='video' else 'photo';files={field:files[item['field']]};payload['caption']=record['text']
+                if field=='video':payload['supports_streaming']=True
+            elif photo:payload['caption']=record['text']
             else:payload.update(text=record['text'],link_preview_options={'is_disabled':True})
             try:
-                result=bot_call(token,'sendPhoto' if photo else 'sendMessage',payload,photo)
+                result=bot_call(token,method,payload,files=files) if files else bot_call(token,method,payload,photo)
+                if method=='sendMediaGroup':
+                    if not isinstance(result,list) or len(result)!=len(record['attachments']) or any(not isinstance(v,dict)or type(v.get('message_id'))is not int for v in result):
+                        raise TelegramUnknown('Не получено подтверждение всего альбома. Проверь канал.')
+                    record['message_ids']=[v['message_id']for v in result];result=result[0]
                 if not isinstance(result,dict) or not isinstance(result.get('message_id'),int):
                     raise TelegramUnknown('Не получен номер публикации. Проверь канал.')
                 record.update(status='sent',message_id=result['message_id'],finished=time.time())

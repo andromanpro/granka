@@ -1,4 +1,27 @@
-import { $, S, el, events, version, query } from "./core.js";
+import { $, S, el, events, query, allowNavigation } from "./core.js";
+import { setView } from "./editor.js";
+const key = () => S.root + '|' + S.file;
+function comparison() {
+  const versions = S.document.versions;
+  const at = versions.findIndex(v => v.id === S.version);
+  const chosen = S.comparison;
+  if (!chosen || chosen.key !== key() || chosen.anchor !== S.version ||
+      !versions.some(v => v.id === chosen.from) || !versions.some(v => v.id === chosen.to)) {
+    S.comparison = {key: key(), anchor: S.version,
+      from: versions[Math.max(0, at - 1)].id,
+      to: at > 0 ? S.version : versions.at(-1).id};
+  }
+  return S.comparison;
+}
+export async function compareVersions(from, to = null) {
+  const documentKey = key();
+  if (S.busy || S.recording || !(await allowNavigation()) || documentKey !== key()) return;
+  to = to || S.version;
+  if (![from, to].every(id => S.document.versions.some(v => v.id === id))) return;
+  S.comparison = {key: key(), anchor: S.version, from, to};
+  setView('diff');
+  if (getComputedStyle($('#inspector-close')).display !== 'none') $('#inspector').classList.remove('mobile-open');
+}
 function pairs(a, b, cap) {
   if (a.length * b.length > cap) return null;
   const rows = Array.from(
@@ -49,19 +72,23 @@ function words(left, right, a, b) {
 }
 export function renderDiff() {
   if (S.view !== "diff" || !S.document) return;
-  const at = S.document.versions.findIndex((v) => v.id === S.version),
+  const pair = comparison(),
     left = $("#diffL"),
     right = $("#diffR");
+  $('#diff-controls').hidden = false;
+  for (const [id, value] of [['diff-from', pair.from], ['diff-to', pair.to]]) {
+    const select = $('#' + id); select.replaceChildren();
+    for (const v of S.document.versions) select.append(new Option(v.id + ' · ' + (v.label || v.ts || ''), v.id));
+    select.value = value;
+  }
   left.replaceChildren();
   right.replaceChildren();
-  if (at < 1) {
-    left.textContent = "Предыдущей версии пока нет.";
-    return;
-  }
-  const before = S.document.versions[at - 1],
-    after = version();
-  left.appendChild(el("h3", null, "Было · " + before.id));
-  right.appendChild(el("h3", null, "Стало · " + after.id));
+  const before = S.document.versions.find(v => v.id === pair.from),
+    after = S.document.versions.find(v => v.id === pair.to);
+  $('#diff-status').textContent = pair.from === pair.to ? 'Выбрана одна и та же версия' :
+    before.text === after.text && JSON.stringify(before.cover) === JSON.stringify(after.cover) ? 'Текст и обложка совпадают' : '';
+  left.appendChild(el("h3", null, "Слева · " + before.id));
+  right.appendChild(el("h3", null, "Справа · " + after.id));
   if (JSON.stringify(before.cover) !== JSON.stringify(after.cover)) {
     for (const [parent, cover] of [
       [left, before.cover],
@@ -135,6 +162,12 @@ export function renderDiff() {
     };
 }
 export function initDiff() {
+  for (const [id, field] of [['diff-from', 'from'], ['diff-to', 'to']]) {
+    $('#' + id).addEventListener('change', event => { comparison()[field] = event.target.value; renderDiff(); });
+  }
+  $('#diff-swap').addEventListener('click', () => {
+    const pair = comparison(); [pair.from, pair.to] = [pair.to, pair.from]; renderDiff();
+  });
   events.addEventListener("view", renderDiff);
   events.addEventListener("document", renderDiff);
   events.addEventListener("version", renderDiff);
