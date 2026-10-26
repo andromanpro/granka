@@ -71,7 +71,7 @@ export async function pollJobs() {
     emit("jobs");
     const done = S.jobs.find(
       (j) =>
-        !["image", "announcement", "site", "benchmark", "rules"].includes(
+        !["image", "announcement", "site", "benchmark", "rules", "spice"].includes(
           j.kind,
         ) &&
         j.status === "succeeded" &&

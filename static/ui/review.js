@@ -375,6 +375,8 @@ const actions = {
   "text-edit": "Правка текста",
   "image-insert": "Картинка",
   "cover-edit": "Обложка",
+  "spice-edit": "Приправы",
+  "version-restore": "Возврат версии",
   "decisions-batch": "Пакет решений",
   "batch-undo": "Отмена пакета",
   "apply-decisions": "Применение",

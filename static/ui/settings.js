@@ -6,6 +6,8 @@ const fields = {
   "or-text-model": "openrouter_text_model",
   "or-image-model": "openrouter_image_model",
   "image-aspect": "image_aspect",
+  "spice-view": "spice_view",
+  "spice-motion": "spice_motion",
 };
 export async function loadSettings() {
   try {
