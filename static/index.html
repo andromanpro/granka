@@ -17,6 +17,7 @@
     <link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png" />
     <link rel="stylesheet" href="/static/ui/workbench.css" />
     <link rel="stylesheet" href="/static/ui/planner.css" />
+    <link rel="stylesheet" href="/static/ui/spices.css" />
   </head>
   <body>
     <header class="app-header">
@@ -135,6 +136,12 @@
             spellcheck="false"
             hidden
           ></textarea>
+          <div id="diff-controls" class="diff-controls" hidden>
+            <label>Слева<select id="diff-from" aria-label="Левая версия для сравнения"></select></label>
+            <button id="diff-swap" class="quiet" aria-label="Поменять версии местами">⇄</button>
+            <label>Справа<select id="diff-to" aria-label="Правая версия для сравнения"></select></label>
+            <span id="diff-status" class="fine-print" role="status"></span>
+          </div>
           <div id="diffwrap" class="diffwrap" hidden>
             <section id="diffL" class="diffpane"></section>
             <section id="diffR" class="diffpane"></section>
@@ -172,7 +179,8 @@
           <button data-pane="review" class="selected">
             Замечания <span id="review-tab-count">0</span></button
           ><button data-pane="meter">Разбор</button
-          ><button data-pane="history">История</button>
+          ><button data-pane="history">История</button
+          ><button data-pane="spices">Приправы</button>
         </nav>
         <section data-panel="review" class="inspector-panel review-panel">
           <div class="review-summary">
@@ -244,8 +252,24 @@
           <button id="meterhl" class="full-width">Подсветить обороты</button>
           <p id="meterscale" class="fine-print"></p>
         </section>
+        <section id="spice-panel" data-panel="spices" class="inspector-panel" hidden>
+          <div class="spice-heading"><h2 class="panel-title">Приправы</h2><button id="spice-settings" class="quiet" aria-label="Настройки приправ">⚙</button></div>
+          <p class="fine-print">Перетащи флакон на абзац. Или выбери фрагмент и составь смесь.</p>
+          <div class="spice-recipe-row"><select id="spice-recipe" aria-label="Рецепт"><option value="mix">Своя смесь</option></select><button id="spice-new" class="quiet">＋ Рецепт</button></div>
+          <div id="spice-ingredients" class="spice-ingredients" aria-label="Приправы и дозировки"></div>
+          <div class="spice-config"><label>Действие<select id="spice-mode"><option value="add">Добавить</option><option value="reduce">Убавить</option></select></label><label>Количество<select id="spice-density"><option value="rare">Щепотка</option><option value="some">Местами</option><option value="rich">От души</option></select></label></div>
+          <label class="spice-prompt">Пожелание к смеси<textarea id="spice-prompt" maxlength="2000" placeholder="Можно написать своё задание без готовых приправ"></textarea></label>
+          <details id="spice-recipe-editor"><summary>Сохранить свой рецепт</summary><label class="spice-prompt">Название<input id="spice-recipe-name" maxlength="80" /></label><p class="fine-print">Сохраняются состав, дозировки, действие, количество и пожелание.</p><div class="spice-buttons"><button id="spice-save">Сохранить новым</button><button id="spice-update" hidden>Обновить</button><button id="spice-delete" class="quiet" hidden>Удалить рецепт</button></div></details>
+          <div class="spice-target-actions"><button id="spice-pick">Выбрать абзац</button><button id="spice-selection">Выделение</button><button id="spice-all">Вся статья</button></div>
+          <p id="spice-target" class="spice-target" aria-live="polite">Выбери область обработки</p>
+          <button id="spice-run" class="primary full-width">Приправить</button>
+          <p id="spice-status" class="fine-print" role="status" aria-live="polite"></p>
+          <section id="spice-result" hidden aria-label="Предложения по рецепту"><p id="spice-summary"></p><div id="spice-changes"></div><div class="spice-buttons"><button id="spice-apply" class="primary">Применить выбранное</button><button id="spice-discard" class="quiet">Оставить как есть</button></div></section>
+        </section>
         <section data-panel="history" class="inspector-panel" hidden>
           <h2 class="panel-title">История этой статьи</h2>
+          <div id="version-history" aria-label="Версии статьи"></div>
+          <h3 class="history-events-title">События</h3>
           <div id="history-list"></div>
         </section>
       </aside>
@@ -385,7 +409,7 @@
       <header>
         <div>
           <small>Настройки</small>
-          <h2 id="settings-title">Исполнители ИИ</h2>
+          <h2 id="settings-title">Настройки</h2>
         </div>
         <button
           id="settingsclose"
@@ -444,6 +468,8 @@
           <option>3:2</option>
         </select></label
       >
+      <h3>Приправы</h3>
+      <div class="settings-grid"><label>Правая панель<select id="spice-view"><option value="jars">Флаконы с приправами</option><option value="text">Текстовая панель</option></select></label><label>Во время обработки<select id="spice-motion"><option value="ripple">Мягкая рябь</option><option value="gleam">Только блик</option><option value="none">Без движения</option></select></label></div>
       <p id="settingsnote" class="fine-print"></p>
       <footer>
         <button id="settingssave" class="primary">Сохранить настройки</button>
@@ -457,7 +483,7 @@
       <header>
         <div>
           <small>После статьи</small>
-          <h2 id="telegram-title">Анонс в Telegram</h2>
+          <h2 id="telegram-title">Telegram</h2>
         </div>
         <button
           id="telegram-close"
@@ -468,12 +494,17 @@
         </button>
       </header>
       <div class="segmented image-tabs">
-        <button data-tg-tab="compose" class="selected">Анонс</button
+        <button data-tg-tab="compose" class="selected">Текст и медиа</button
         ><button data-tg-tab="bot">Бот и канал</button>
       </div>
       <section id="tg-compose-panel">
         <div id="tg-compose" class="telegram-layout">
           <section>
+            <label class="field-label" for="tg-mode">Формат</label>
+            <select id="tg-mode"><option value="announcement">Анонс с вложениями</option><option value="article">Статья с картинками и видео</option></select>
+            <p id="tg-format-help" class="fine-print"></p>
+            <button id="tg-use-article" hidden>Взять текст текущей статьи</button>
+            <div id="tg-announcement-options">
             <label class="field-label" for="tg-direction"
               >Что подчеркнуть?</label
             ><input
@@ -484,6 +515,7 @@
             <button id="tg-generate">Предложить три анонса</button>
             <p id="tg-generation" class="fine-print" role="status"></p>
             <div id="tg-variants" class="tg-variants"></div>
+            </div>
             <label class="field-label" for="tg-text">Текст анонса</label
             ><textarea
               id="tg-text"
@@ -496,12 +528,17 @@
             <label class="tg-checkbox"
               ><input id="tg-cover" type="checkbox" /> С обложкой статьи</label
             >
+            <div class="actions"><button id="tg-add-media">Добавить фото или видео</button><button id="tg-article-assets">Из материалов статьи</button></div>
+            <input id="tg-upload" type="file" accept="image/png,image/jpeg,image/webp,video/mp4" multiple hidden />
+            <div id="tg-assets" class="tg-media-list" hidden></div>
+            <div id="tg-media-list" class="tg-media-list"></div>
             <p id="tg-count" class="fine-print"></p>
           </section>
           <section>
             <p id="tg-channel" class="field-label">Предпросмотр</p>
             <div class="telegram-preview">
               <img id="tg-photo" alt="Обложка анонса" hidden />
+              <div id="tg-media-preview"></div>
               <div id="tg-preview"></div>
               <small>Telegram · предпросмотр</small>
             </div>

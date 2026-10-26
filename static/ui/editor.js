@@ -151,6 +151,7 @@ function render() {
   $("#doc").hidden = S.view !== "article";
   $("#texteditor").hidden = S.view !== "source";
   $("#diffwrap").hidden = S.view !== "diff";
+  $("#diff-controls").hidden = S.view !== "diff";
   $("#formatbar").hidden = S.view !== "article";
   $("#texteditor").value = current.text;
   const spans = annotations(),
@@ -233,7 +234,7 @@ function controls() {
       !!S.editor ||
       S.busy ||
       (b.dataset.view === "diff" &&
-        S.document?.versions.findIndex((v) => v.id === S.version) < 1);
+        (S.document?.versions.length || 0) < 2);
   }
   $("#reader-hint").textContent = S.editor
     ? "Ctrl+S — сохранить · Ctrl+Z — отменить ввод"
@@ -518,6 +519,7 @@ export const editor = {
   context,
   contextForAnnotation,
   selection,
+  blockRange: (element) => S.editor ? null : reader?.blockOffsets(element),
   insertImage,
   render,
   setView,

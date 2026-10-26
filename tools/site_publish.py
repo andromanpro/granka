@@ -50,7 +50,7 @@ def metadata(values):
 class Images(HTMLParser):
     def __init__(self):super().__init__();self.sources=[]
     def handle_starttag(self,tag,attrs):
-        if tag=='img':self.sources.extend(v for k,v in attrs if k=='src' and v)
+        if tag in {'img','video'}:self.sources.extend(v for k,v in attrs if k=='src' and v)
 
 
 class SitePublisher:
@@ -145,10 +145,10 @@ class SitePublisher:
             if parsed.scheme in {'http','https'}:return src,None
             if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment:raise ValueError('Неподдерживаемый путь картинки: '+src[:100])
             path=(document.parent/unquote(src)).resolve()
-            if not path.is_relative_to(source_root.resolve()) or path.suffix.lower() not in {'.png','.jpg','.jpeg','.gif','.webp'} or not path.is_file():
+            if not path.is_relative_to(source_root.resolve()) or path.suffix.lower() not in {'.png','.jpg','.jpeg','.gif','.webp','.mp4'} or not path.is_file():
                 raise ValueError('Картинка не найдена в каталоге статьи: '+src[:100])
             raw=path.read_bytes()
-            if len(raw)>25*1024*1024:raise ValueError('Картинка больше 25 МБ')
+            if len(raw)>(50 if path.suffix.lower()=='.mp4' else 25)*1024*1024:raise ValueError('Медиа превышает допустимый размер')
             target='covers/'+hashlib.sha256(raw).hexdigest()+path.suffix.lower()
             (bundle/'covers').mkdir(exist_ok=True);(bundle/target).write_bytes(raw);assets[target]=hashlib.sha256(raw).hexdigest()
             return '../'+target,target
