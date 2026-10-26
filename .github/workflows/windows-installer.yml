@@ -15,7 +15,7 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
       GRANKA_BROWSER_CHANNEL: chromium
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -36,7 +36,7 @@ jobs:
       - name: Verify install, repair and uninstall
         run: python tools/windows/verify_installer.py --receipt _dist/windows/build-receipt.json --output _audit/windows-installer
       - name: Save verification receipts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: granka-windows-verification
@@ -46,7 +46,7 @@ jobs:
             _audit/windows-installer/installer-verification.json
             _audit/windows-installer/*.log
           if-no-files-found: warn
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: granka-windows-x64
           path: |
