@@ -45,6 +45,14 @@ class MediaTests(unittest.TestCase):
         repeated=telegram_media.import_asset(self.doc,self.root,'renamed.png',png())
         self.assertEqual(self.image['src'],repeated['src'])
 
+    def test_import_resolves_document_parent_before_relative_asset_path(self):
+        nested = self.root / 'nested'
+        nested.mkdir()
+        alias = nested / '..' / self.doc.name
+        asset = telegram_media.import_asset(alias, self.root, 'alias.png', png())
+        self.assertTrue(asset['src'].startswith('article.assets/'))
+        self.assertEqual(telegram_media.resolve_asset(alias, self.root, asset['src']), self.path(asset))
+
     def test_caption_limit_and_separate_rich_article_limit(self):
         draft=announcements.draft({'text':'я'*1025,'attachments':[self.video]},'v1')
         with self.assertRaises(ValueError):announcements.message(draft)

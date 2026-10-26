@@ -44,6 +44,7 @@ def validate_bytes(raw, suffix):
 
 
 def import_asset(document, root, filename, raw):
+    document, root = document.resolve(), root.resolve()
     suffix = Path(filename).suffix.lower()
     kind = validate_bytes(raw, suffix)
     digest = hashlib.sha256(raw).hexdigest()
