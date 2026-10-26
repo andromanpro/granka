@@ -12,7 +12,7 @@ import urllib.request
 import urllib.error
 from unittest.mock import patch
 from tools.jobs import Jobs
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright, expect, TimeoutError as BrowserTimeout
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -41,6 +41,7 @@ class MarkdownBrowserTests(unittest.TestCase):
 
     def setUp(self):
         self.server.JOBS=Jobs(self.directory/('jobs-'+self._testMethodName))
+        self.addCleanup(self.server.JOBS.pool.shutdown, wait=True)
         from tools.author_preferences import AuthorPreferences
         self.server.CORRECTIONS=self.directory/(self._testMethodName+'-rules.md')
         self.server.PREFERENCES=AuthorPreferences(lambda:self.directory/('prefs-'+self._testMethodName),lambda:self.server.ROOTS,lambda:self.server.CORRECTIONS)
@@ -48,32 +49,55 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.server.TELEGRAM=Telegram(lambda:self.directory/('tg-'+self._testMethodName))
         from tools.publication_plan import PublicationPlan
         self.server.CALENDAR=PublicationPlan(lambda:self.directory/('calendar-'+self._testMethodName))
-        self.state_patch=patch.object(self.server.ai_provider,'STATE',self.directory/'ai-state');self.state_patch.start()
-        self.config_patch=patch.object(self.server.ai_provider,'CONFIG',self.directory/(self._testMethodName+'-config.json'));self.config_patch.start()
+        self.state_patch=patch.object(self.server.ai_provider,'STATE',self.directory/'ai-state');self.state_patch.start();self.addCleanup(self.state_patch.stop)
+        self.config_patch=patch.object(self.server.ai_provider,'CONFIG',self.directory/(self._testMethodName+'-config.json'));self.config_patch.start();self.addCleanup(self.config_patch.stop)
         self.file=self.directory/'fixture.granka.json'
         self.source='# Заголовок 😀\n\nДо **жирного** есть [ссылка](https://example.org/).\n\n## Раздел\n\n- пункт один\n- пункт два\n\n> Цитата автора.\n'
         self.data={'doc':'fixture.md','versions':[{'id':'v1','text':self.source}],'annotations':[]}
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
         self.context=self.browser.new_context(viewport={'width':1440,'height':1000})
+        self.addCleanup(self.context.close)
         self.page=self.context.new_page()
         self.errors=[];self.page.on('pageerror',lambda e:self.errors.append(str(e)))
-        self.page.goto(self.base+'/workbench');self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.load_errors=[]
+        self.page.on('console', lambda message: self.load_errors.append(message.text) if message.type == 'error' else None)
+        self.page.on('requestfailed', lambda request: self.load_errors.append(request.url + ': ' + str(request.failure)))
+        self.page.goto(self.base+'/workbench');self.wait_ready()
+
+    def wait_ready(self):
+        try:
+            self.page.wait_for_function('window.granka?.state.document && !window.granka.state.busy && typeof window.GrankaMarkdown?.render === "function"')
+        except BrowserTimeout as error:
+            diagnostic = self.page.evaluate('''() => ({ready:document.readyState,app:typeof window.granka,renderer:typeof window.GrankaMarkdown,toast:document.querySelector('#toast')?.textContent})''')
+            raise AssertionError({'bootstrap':diagnostic,'page_errors':self.errors,'load_errors':self.load_errors}) from error
+
+    def reload_ready(self, **options):
+        self.page.reload(**options)
+        self.wait_ready()
 
     def tearDown(self):
         self.context.close()
-        self.server.JOBS.pool.shutdown(wait=True);self.state_patch.stop();self.config_patch.stop()
         self.assertEqual(self.errors,[])
 
     def test_source_mapping_and_safe_rendering(self):
         results=self.page.evaluate((ROOT/'tests/markdown-browser-cases.js').read_text(encoding='utf-8'))
         self.assertEqual(len(results),21)
 
+    def test_reload_waits_for_delayed_module_initialization(self):
+        def delayed_main(route):
+            response = route.fetch()
+            route.fulfill(response=response, body='await new Promise(resolve => setTimeout(resolve, 180));\n' + response.text())
+        self.page.route('**/static/ui/main.js', delayed_main)
+        self.reload_ready(wait_until='commit')
+        expect(self.page.locator('#doc h1')).to_have_text('Заголовок 😀')
+        self.assertEqual(self.page.evaluate('granka.state.version'), 'v1')
+
     def test_unsaved_navigation_cancel_save_discard_and_failed_save(self):
         self.data['versions'].append({'id':'v2','text':self.source+'\nВторая версия.\n'})
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
         other=self.directory/'other.granka.json'
         other.write_text(json.dumps({'doc':'other.md','versions':[{'id':'v1','text':'# Другая статья\n\nЕё текст.'}],'annotations':[]}),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('granka.state.version === "v2" && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('granka.state.version === "v2" && !granka.state.busy')
         self.page.click('[data-view=source]')
         edited='# Сохранить перед переходом\n\nМой незавершённый текст.'
         self.page.fill('#texteditor',edited)
@@ -167,7 +191,7 @@ class MarkdownBrowserTests(unittest.TestCase):
     def test_native_select_options_are_readable_and_keep_keyboard_navigation(self):
         self.data['versions'].append({'id':'v2','text':self.source+'\nВторая версия.\n'})
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.version === "v2" && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.version === "v2" && !granka.state.busy')
         before=self.file.read_bytes()
         # Native popups may use a light OS theme even when the page is dark.
         # Check actual options, including grouped options, in both OS themes.
@@ -201,7 +225,7 @@ class MarkdownBrowserTests(unittest.TestCase):
     def test_publication_calendar_preview_apply_and_edit(self):
         self.data['versions'].append({'id':'v2','text':self.source+'\nНовая строка.\n'})
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.version === "v2" && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.version === "v2" && !granka.state.busy')
         for view in ['article','source','diff']:
             self.page.click('[data-view='+view+']')
             self.assertTrue(self.page.locator('#planner-btn').is_visible(),view)
@@ -250,7 +274,7 @@ class MarkdownBrowserTests(unittest.TestCase):
             'configured':True,'environments':{'prod':{'url':'https://example.invalid'}},'plans':[],'source_hash':'new',
             'publication':{'url':'https://example.invalid/article','post_id':42,'post_status':'publish','version':'v1','date':'2026-09-01','changed':True},
             'metadata':{'title':'Заголовок','slug':'original-address','date':'2026-09-01','status':'publish','categories':['Тест'],'tags':[],'excerpt':''}}))
-        self.page.reload();self.page.locator('#publication-banner').wait_for()
+        self.reload_ready();self.page.locator('#publication-banner').wait_for()
         self.assertIn('Есть неопубликованные изменения',self.page.locator('#publication-description').inner_text())
         self.page.click('#publication-edit')
         self.page.wait_for_function('document.querySelector("#site-slug").value === "original-address"')
@@ -420,7 +444,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.data['annotations']=[{'id':'syntax','type':'candidate','version':'v1','start':0,'end':2,
           'quote':'# ','class':'heading','severity':'P2','variants':[],'decision':None}]
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.locator('#card-syntax .review-quote').click()
         self.assertEqual(self.page.evaluate('granka.state.view'),'source')
         self.assertEqual(self.page.evaluate('document.querySelector("#texteditor").value.slice(document.querySelector("#texteditor").selectionStart,document.querySelector("#texteditor").selectionEnd)'), '# ')
@@ -516,7 +540,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         start=self.source.index('До ')
         self.data['annotations']=[{'id':'u-image','type':'note','kind':'image','version':'v1','start':start,'end':start+2,'quote':'До','variants':[],'decision':None}]
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.locator('#card-u-image').get_by_text('Выбрать или сгенерировать картинку',exact=True).click()
         self.page.locator('.image-tile').filter(has_text='note-image.png').click()
         self.page.wait_for_function('document.querySelector("#imagepreview").naturalWidth===1')
@@ -541,7 +565,7 @@ class MarkdownBrowserTests(unittest.TestCase):
     def test_rich_draft_can_be_restored_after_reload(self):
         self.select_visible('#doc strong');self.page.keyboard.type('Мой незаконченный текст')
         self.page.on('dialog',lambda dialog:dialog.accept())
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.click('#restore-draft')
         self.assertIn('Мой незаконченный текст',self.page.locator('#doc').inner_text())
         self.page.click('#savebtn');self.page.wait_for_function('granka.state.document.versions.length===2 && !granka.state.busy && !granka.state.editor')
@@ -551,7 +575,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         source='---\ntitle: hidden\n---\n\n# Заголовок\n\nОбычная фраза с [ссылкой][ref].\n\n~~~bsl\nСообщить(1);\n~~~\n\n[ref]: https://example.org/ "Адрес"\n'
         self.data['versions'][0]['text']=source
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.select_visible('#doc p',True);self.page.keyboard.type('Вставка. ')
         self.page.keyboard.press('Control+s');self.page.wait_for_function('granka.state.document.versions.length===2 && !granka.state.busy && !granka.state.editor')
         text=json.loads(self.file.read_text(encoding='utf-8'))['versions'][-1]['text']
@@ -574,7 +598,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         start=self.source.index('жирного')
         self.data['annotations']=[{'id':'approved','type':'candidate','version':'v1','start':start,'end':start+7,'quote':'жирного','decision':{'action':'accept','text':'своего'},'class':'Стиль','severity':'P2','variants':['своего']}]
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('granka?.state.document && !granka.state.busy')
         self.page.click('#readybtn');self.page.wait_for_function('granka.state.document.versions.length===2',timeout=10000)
         self.assertIn('своего',self.page.locator('#doc').inner_text());self.assertIn('Новая версия готова',self.page.locator('#stage-label').inner_text())
         self.page.click('[data-view=diff]');self.assertIn('своего',self.page.locator('#diffR').inner_text())
@@ -587,6 +611,15 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.assertIn('Найдено одно замечание',self.page.locator('#review-result').inner_text())
         self.assertEqual(len(json.loads(self.file.read_text(encoding='utf-8'))['annotations']),1)
 
+    def test_submitted_analysis_is_loaded_even_if_client_clock_is_ahead(self):
+        self.page.evaluate('granka.state.loadedAt = Date.now() / 1000 + 60')
+        response={'summary':'Результат текущего запроса.','findings':[{'quote':'Цитата автора.','occurrence':0,'class':'Стиль','severity':'P2','why':'Проверка','variants':['Авторская цитата.']}]}
+        with patch.object(self.server.ai_provider,'text_result',return_value=(response,{'provider':'codex'})) as provider:
+            self.page.click('#analysisbtn')
+            self.page.wait_for_function('granka.state.document.analyses?.length===1',timeout=10000)
+            self.assertEqual(provider.call_count,1)
+        expect(self.page.locator('#review-result')).to_contain_text('Результат текущего запроса.')
+
     def test_deep_review_links_multiple_passages_saves_decision_and_preserves_markdown(self):
         from test_deep_analysis import responses,anchor
         replies=responses()
@@ -598,7 +631,7 @@ class MarkdownBrowserTests(unittest.TestCase):
                                   'quote':'пункт один','why':'Обычная карточка','variants':['первый пункт'],'severity':'P2'}]
         self.data['analyses']=[{'version':'v1','summary':'Предыдущая обычная проверка','added':['existing']}]
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('!granka.state.busy && granka.state.document.annotations.length===1')
+        self.reload_ready();self.page.wait_for_function('!granka.state.busy && granka.state.document.annotations.length===1')
         with patch.object(self.server.ai_provider,'text_result',side_effect=[(r,{'provider':'codex'}) for r in replies]) as provider:
             self.page.click('#deep-analysis-btn')
             self.page.wait_for_function('granka.state.document.deep_analyses?.length===1',timeout=15000)
@@ -618,7 +651,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         saved=json.loads(self.file.read_text(encoding='utf-8'))
         self.assertEqual(saved['versions'],self.data['versions']);self.assertEqual(saved['annotations'],self.data['annotations'])
         self.assertEqual(saved['deep_analyses'][0]['findings'][0]['decision']['note'],'Здесь мне нужны оба этапа.')
-        self.page.reload();self.page.wait_for_function('!granka.state.busy && granka.state.document?.deep_analyses?.length===1')
+        self.reload_ready();self.page.wait_for_function('!granka.state.busy && granka.state.document?.deep_analyses?.length===1')
         self.assertIn('Здесь мне нужны оба этапа.',self.page.locator('#deep-review .decision-text').inner_text())
         self.page.locator('#deep-review .deep-map summary').click()
         self.page.locator('.deep-map-block button').click()
@@ -639,7 +672,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         data=document();report,_=run_fixture(self.directory/'deep-api-fixture')
         self.server.deep_analysis.add_report(data,'v1',report)
         self.file.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('!granka.state.busy && granka.state.document?.deep_analyses?.length===1')
+        self.reload_ready();self.page.wait_for_function('!granka.state.busy && granka.state.document?.deep_analyses?.length===1')
         external=json.loads(self.file.read_text(encoding='utf-8'));external['external']='new'
         self.file.write_text(json.dumps(external),encoding='utf-8')
         self.page.locator('.deep-card').get_by_role('button',name='В работу',exact=True).click()
@@ -653,7 +686,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.server.deep_analysis.add_report(data,'v1',report)
         report['findings'][0]['anchors'][0]['start']+=1
         self.file.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('!granka.state.busy && granka.state.contractErrors?.length')
+        self.reload_ready();self.page.wait_for_function('!granka.state.busy && granka.state.contractErrors?.length')
         self.assertIn('ошибки разметки',self.page.locator('#deep-review').inner_text())
         self.assertIn('Скобочки оставлю)))',self.page.locator('#doc').inner_text())
 
@@ -665,7 +698,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         report,_=run_fixture(self.directory/'deep-clues-fixture',data,replies)
         self.server.deep_analysis.add_report(data,'v1',report)
         self.file.write_text(json.dumps(data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('!granka.state.busy && granka.state.document?.deep_analyses?.length===1')
+        self.reload_ready();self.page.wait_for_function('!granka.state.busy && granka.state.document?.deep_analyses?.length===1')
         self.page.locator('.deep-signals summary').click()
         self.page.locator('.deep-signals button').nth(1).click()
         self.assertIsNotNone(self.page.evaluate('granka.state.deepFocus.signalIndex'))
@@ -696,7 +729,7 @@ class MarkdownBrowserTests(unittest.TestCase):
              'decision': {'action': 'reject', 'reason': 'worse'}},
         ]
         self.file.write_text(json.dumps(self.data, ensure_ascii=False), encoding='utf-8')
-        self.page.reload(); self.page.wait_for_function('granka.state.meter?.axes["маркеры"].hits === 2')
+        self.reload_ready(); self.page.wait_for_function('granka.state.meter?.axes["маркеры"].hits === 2')
         self.page.click('[data-pane=meter]'); self.page.click('#meterhl')
         expect(self.page.locator('#doc mark.meter')).to_have_count(2)
         expect(self.page.locator('#doc mark.protected.meter')).to_have_count(1)
@@ -711,7 +744,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.data['versions'][0]['text'] = '# Пример\n\nВажно отметить результат.'
         self.data['versions'].append({'id': 'v2', 'text': '# Другая версия\n\nЯ открыл файл.'})
         self.file.write_text(json.dumps(self.data, ensure_ascii=False), encoding='utf-8')
-        self.page.reload(); self.page.wait_for_function('granka.state.version === "v2" && granka.state.meter')
+        self.reload_ready(); self.page.wait_for_function('granka.state.version === "v2" && granka.state.meter')
         self.page.select_option('#versel', 'v1')
         self.page.wait_for_function('granka.state.version === "v1" && granka.state.meter?.axes["маркеры"].hits === 1')
         self.page.click('[data-pane=meter]'); self.page.click('#meterhl')
@@ -727,7 +760,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.data['versions'][0]['text'] = '# Пример\n\nВажно отметить результат.'
         self.file.write_text(json.dumps(self.data, ensure_ascii=False), encoding='utf-8')
         with patch.object(self.server.iimeter, 'CORPUS_DIR', self.directory/'missing-corpus'):
-            self.page.reload(); self.page.wait_for_function('granka.state.meter?.status === "uncalibrated"')
+            self.reload_ready(); self.page.wait_for_function('granka.state.meter?.status === "uncalibrated"')
             self.page.click('[data-pane=meter]')
             self.assertEqual(self.page.locator('#axis-markers-number').inner_text(), '100')
             self.assertEqual(self.page.locator('#axis-voice-number').inner_text(), '—')
@@ -739,7 +772,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         source = '# Пример 😀\n\n[Важно **отметить**](https://example.invalid/) результат.\n\n`В современном мире` — пример в коде.\n'
         self.data['versions'][0]['text'] = source
         self.file.write_text(json.dumps(self.data, ensure_ascii=False), encoding='utf-8')
-        self.page.reload(); self.page.wait_for_function('granka.state.meter?.axes["маркеры"].hits === 1')
+        self.reload_ready(); self.page.wait_for_function('granka.state.meter?.axes["маркеры"].hits === 1')
         self.page.click('[data-pane=meter]'); self.page.click('#meterhl')
         self.assertEqual(''.join(self.page.locator('#doc mark.meter').all_text_contents()), 'Важно отметить')
         self.assertEqual(self.page.locator('#doc code mark').count(), 0)
@@ -838,7 +871,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         from test_batch_decisions import fixture
         self.data=fixture();self.data['doc']='fixture.md'
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.locator('#batch-groups').get_by_role('button',name='Принять варианты').click()
         self.assertEqual(self.page.locator('#batch-items .batch-after').all_text_contents(),['Первый.','Второй.'])
         self.page.screenshot(path=str(ROOT/'_audit/batch-preview.png'),full_page=True)
@@ -852,7 +885,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.data=fixture();self.data['doc']='fixture.md'
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
         self.server.CORRECTIONS.write_text('## 2026-01-01 — Правило автора\nСохраняй конкретику.\n',encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.click('#preferences-btn');self.page.wait_for_function('document.querySelector("#preferences-summary").textContent.includes("Уникальных решений: 1")')
         self.assertIn('Правило автора',self.page.locator('#preferences-rules').inner_text())
         self.page.click('#benchmark-build');self.page.wait_for_function('document.querySelector("#benchmark-summary").textContent.includes("В наборе 1")')
@@ -868,7 +901,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         from test_author_preferences import fixture
         self.data=fixture();self.data['doc']='fixture.md';self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
         self.server.CORRECTIONS.write_text('## Правило автора\nСохраняй терминологию.\n',encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.click('#preferences-btn');self.page.wait_for_function('document.querySelector("#preferences-summary").textContent.includes("Уникальных решений: 1")')
         def answer(*args):
             case=self.server.PREFERENCES.collect()[0][0]
@@ -937,7 +970,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         from test_editorial_requests import request_document,VARIANT,MARKER
         self.data=request_document();self.data['doc']='fixture.md'
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         card=self.page.locator('#card-request')
         self.assertIn('Поручение ИИ',card.inner_text())
         self.assertEqual(card.get_by_role('button',name='Принять',exact=True).count(),0)
@@ -963,7 +996,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.data['annotations']=[{'id':'personal','type':'candidate','version':'v1','start':0,'end':len(quote),
             'quote':quote,'variants':[quote],'decision':None,'why':'Какой случай ты помнишь?'}]
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         card=self.page.locator('#card-personal')
         self.assertIn('Вопрос автору',card.inner_text());self.assertEqual(card.locator('.variant').count(),0)
         self.assertEqual(card.locator('.editorial-generate').count(),0)
@@ -979,7 +1012,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         (self.directory/'shot.png').write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jLXYAAAAASUVORK5CYII='))
         self.data['versions'][0]['text']='# Заголовок\n\n![Схема](shot.png)\n\n*Подпись.*\n\nТекст с ![вставкой](shot.png) внутри.\n'
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.locator('#doc .md-image').first.click()
         self.assertEqual(self.page.locator('#doc .md-image').first.get_attribute('data-picked'),'1')
         self.assertTrue(self.page.locator('#delimg').is_visible())
@@ -1000,7 +1033,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         (self.directory/'sample.png').write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jLXYAAAAASUVORK5CYII='))
         self.data['versions'][0]['text']='![Пример](sample.png)'
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.page.reload();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
+        self.reload_ready();self.page.wait_for_function('window.granka?.state.document && !granka.state.busy')
         self.page.wait_for_function("document.querySelector('#doc img')?.naturalWidth===1")
         query='?root=articles&f=fixture.granka.json&src='
         opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))

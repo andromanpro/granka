@@ -1,7 +1,6 @@
 /* Safe Markdown DOM + mapping from rendered text back to the immutable source. */
-(function () {
-  'use strict';
-  function render(box, source, annotations, options = {}) {
+import * as GrankaMarkdownParser from './vendor/markdown-parser.js';
+export function render(box, source, annotations, options = {}) {
     const rows = [], blocks = [], cp = [0];
     let u = 0;
     for (const ch of source) { u += ch.length; cp.push(u); }
@@ -275,5 +274,5 @@
       }
     };
   }
-  window.GrankaMarkdown = {render};
-})();
+// Keep the public debugging API; application modules import the renderer directly.
+window.GrankaMarkdown = {render};

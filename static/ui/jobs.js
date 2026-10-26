@@ -12,6 +12,7 @@ import {
   toast,
 } from "./core.js";
 const seen = new Set();
+const submitted = new Set();
 let submitting = false;
 export const workingJob = () =>
   S.jobs.find(
@@ -32,6 +33,7 @@ export async function startJob(kind, extra = {}) {
         ...extra,
       },
     });
+    submitted.add(result.job.id);
     S.jobs = [result.job, ...S.jobs.filter((j) => j.id !== result.job.id)];
     emit("jobs");
     return result.job;
@@ -75,11 +77,12 @@ export async function pollJobs() {
           j.kind,
         ) &&
         j.status === "succeeded" &&
-        j.finished > S.loadedAt &&
+        (submitted.has(j.id) || j.finished > S.loadedAt) &&
         !seen.has(j.id),
     );
     if (done) {
       seen.add(done.id);
+      submitted.delete(done.id);
       if (!S.editor && !document.querySelector("dialog[open]")) {
         if (["analysis", "editorial", "deep-analysis"].includes(done.kind)) S.view = "article";
         else if (!done.result?.unchanged) S.view = "diff";
