@@ -6,7 +6,7 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "mdast-util-from-markdown": "2.0.3",
+    "mdast-util-from-markdown": "2.1.0",
     "mdast-util-gfm": "3.1.0",
     "micromark-extension-gfm": "3.0.0",
     "micromark-util-decode-string": "2.0.1",
@@ -15,6 +15,6 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
-    "prettier": "3.9.6"
+    "prettier": "3.9.10"
   }
 }
