@@ -28,6 +28,7 @@ export const S = {
   file: null,
   version: null,
   active: null,
+  comparison: null,
   deepFocus: null,
   busy: false,
   view: "article",

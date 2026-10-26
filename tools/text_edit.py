@@ -37,7 +37,7 @@ def unchanged_ranges(before, after):
 _INHERIT_COVER = object()
 
 
-def edit_text(data, base_version, text, *, cover=_INHERIT_COVER):
+def edit_text(data, base_version, text, *, cover=_INHERIT_COVER, force=False):
     if not isinstance(text, str) or not text.strip():
         raise ValueError("Текст статьи не может быть пустым")
     if len(text) > 300_000:
@@ -47,7 +47,7 @@ def edit_text(data, base_version, text, *, cover=_INHERIT_COVER):
         raise ValueError("Появилась новая версия статьи. Перечитайте документ перед правкой.")
     next_cover = base.get('cover') if cover is _INHERIT_COVER else cover
     cover_changed = next_cover != base.get('cover')
-    if text == base["text"] and not cover_changed:
+    if text == base["text"] and not cover_changed and not force:
         return {"version": base_version, "unchanged": True}
     spans = unchanged_ranges(base["text"], text)
     existing = {v["id"] for v in data["versions"]}
@@ -87,3 +87,31 @@ def edit_text(data, base_version, text, *, cover=_INHERIT_COVER):
         "base_version": base_version, "transferred": len(copies), "retired": retired,
         "previous_status": previous_status})
     return {"version": vid, "transferred": len(copies), "retired": len(retired)}
+
+
+def restore_version(data, source_version, base_version):
+    """Restore a historical snapshot as a new head, keeping every old version."""
+    base = data['versions'][-1]
+    if base['id'] != base_version:
+        raise ValueError('Появилась новая версия статьи. Перечитайте документ перед возвратом.')
+    source = next((v for v in data['versions'] if v['id'] == source_version), None)
+    if source is None:
+        raise ValueError('Версия для возврата не найдена')
+    if source['id'] == base['id']:
+        return {'version': base_version, 'unchanged': True}
+    annotations = [deepcopy(a) for a in data['annotations'] if a['version'] == source_version]
+    retired = [a['id'] for a in data['annotations'] if a['version'] == base_version]
+    out = edit_text(data, base_version, source['text'], cover=deepcopy(source.get('cover')), force=True)
+    vid = out['version']
+    data['annotations'] = [a for a in data['annotations'] if a['version'] != vid]
+    for annotation in annotations:
+        origin = annotation['id']
+        annotation.update(id=('u' if annotation['type'] == 'note' else 'a') + uuid.uuid4().hex,
+                          version=vid, source_annotation=origin)
+        data['annotations'].append(annotation)
+    data['versions'][-1].update(origin='restore', label='возврат к ' + source_version,
+                                restored_from=source_version, transferred_annotations=len(annotations),
+                                retired_annotations=retired)
+    data['history'][-1].update(action='version-restore', restored_from=source_version,
+                               transferred=len(annotations), retired=retired)
+    return {**out, 'restored_from': source_version, 'transferred': len(annotations), 'retired': len(retired)}

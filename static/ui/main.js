@@ -28,9 +28,12 @@ import { initSite } from "./site.js";
 import { initPlanner } from "./planner.js";
 import { initBatch } from "./batch.js";
 import { initPreferences } from "./preferences.js";
+import { initSpices } from "./spices.js";
+import { initHistory, selectVersion } from "./history.js";
 let sources = [], sourceFilter = "draft";
 function pane(name) {
   S.pane = name;
+  $("#meterwidget").hidden = name === "spices";
   document
     .querySelectorAll("[data-pane]")
     .forEach((b) => b.classList.toggle("selected", b.dataset.pane === name));
@@ -272,6 +275,7 @@ initReview();
 initDeepReview();
 initMeter();
 initDiff();
+initHistory();
 initImages();
 initCover();
 initTelegram();
@@ -279,6 +283,7 @@ initSite();
 initPlanner();
 initBatch();
 initPreferences();
+initSpices();
 initSettings();
 initVoice();
 initJobs();
@@ -297,12 +302,7 @@ $("#docsel").addEventListener("change", () => {
 $("#versel").addEventListener("change", async () => {
   const target = $("#versel").value;
   $("#versel").value = S.version;
-  if (target === S.version || !(await allowNavigation())) return;
-  S.version = target;
-  $("#versel").value = target;
-  S.active = null;
-  emit("version");
-  controls();
+  if (target !== S.version) await selectVersion(target);
 });
 document
   .querySelectorAll("[data-pane]")

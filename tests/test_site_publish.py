@@ -208,3 +208,45 @@ class SiteTests(unittest.TestCase):
         with patch.object(wp,'wp',side_effect=call),patch.object(wp,'remote_shell') as upload:
             result=wp.media(path,engine)
         self.assertEqual(result[0],277);upload.assert_not_called()
+
+    def test_mp4_is_uploaded_with_its_hash_filename(self):
+        from unittest.mock import Mock
+        path=self.root/('c'*64+'.mp4');path.write_bytes(b'video transport fixture')
+        wp=WordPress('staging',self.root,ENVIRONMENTS);engine=Mock();engine.find_attachment_by_filename.return_value=None
+        imported=[]
+        def call(args,content=None):
+            if args[:2]==['media','import']:imported.append(args[2]);return '9'
+            if 'wp_get_attachment_url' in args[-1]:return 'https://staging.example.invalid/uploads/'+path.name
+            return ''
+        with patch.object(wp,'wp',side_effect=call),patch.object(wp,'remote_shell') as remote:
+            result=wp.media(path,engine)
+        self.assertEqual(result,(9,'https://staging.example.invalid/uploads/'+path.name))
+        self.assertEqual(Path(imported[0]).name,path.name)
+        self.assertEqual(remote.call_args_list[0].args[1],path.read_bytes())
+        self.assertIn('rm -f',remote.call_args_list[-1].args[0])
+
+    def test_mp4_survives_bundle_and_wordpress_writer(self):
+        from tools.site_wordpress import load_engine
+        assets=self.source/'article.assets';assets.mkdir();(assets/'demo.mp4').write_bytes(b'video transport fixture')
+        self.data['versions'][0]['text']='# Статья\n\n![Ролик](article.assets/demo.mp4)\n'
+        plan=self.prepare();directory=self.service.path(plan['id']);wp=WordPress('prod',directory,ENVIRONMENTS)
+        filename=Path(plan['assets'][0]).name;url='https://prod.example.invalid/uploads/'+filename
+        import frontmatter
+        post=frontmatter.load(directory/'bundle'/plan['file']);engine=load_engine(directory/'engine.py')
+        html=engine.render_markdown(post.content.replace('../covers/'+filename,url))
+        after={'id':42,'title':'Статья','status':'draft','excerpt':'Описание','cover':0,'categories':['дев-лог'],
+               'tags':[],'content':html,'url':'https://prod.example.invalid/article/'}
+        calls=[]
+        def call(args,content=None):
+            calls.append((args,content))
+            if args[:2]==['media','import']:return '9'
+            if args[0]=='eval':
+                if 'wp_get_attachment_url' in args[-1]:return url
+                if 'global $wpdb' in args[-1]:return ''
+                return str(datetime.date.today())
+            return '42'
+        with patch.object(wp,'inspect',side_effect=[None,after]),patch.object(wp,'wp',side_effect=call),patch.object(wp,'remote_shell'):
+            result=wp.deploy(plan,fingerprint(None))
+        sent=next(content for args,content in calls if args[:2]==['post','create'])
+        self.assertIn('<video',sent);self.assertIn(url,sent)
+        self.assertNotIn('../covers/',sent);self.assertEqual(result['post_id'],42)

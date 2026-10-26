@@ -19,12 +19,17 @@ let context = null,
   settings = {},
   generating = null,
   displayed = null,
-  locked = false;
+  locked = false,
+  attachments = [],
+  drafts = {},
+  currentMode = "announcement";
 const key = () => `granka.telegram:${S.root}|${S.file}`;
 const payload = () => ({
   text: $("#tg-text").value,
   url: $("#tg-url").value.trim(),
   include_cover: $("#tg-cover").checked,
+  mode: $("#tg-mode").value,
+  attachments: $("#tg-mode").value === "article" ? [] : attachments,
   version: context.version,
   expected_revision: S.revision,
 });
@@ -39,25 +44,40 @@ function tab(name) {
     .forEach((b) => b.classList.toggle("selected", b.dataset.tgTab === name));
 }
 function store() {
+  drafts[currentMode] = payload();
   try {
     localStorage.setItem(
       key(),
-      JSON.stringify({ ...payload(), direction: $("#tg-direction").value }),
+      JSON.stringify({ ...payload(), drafts, direction: $("#tg-direction").value }),
     );
   } catch (_) {}
 }
 function render() {
+  const rich = $("#tg-mode").value === "article";
+  $("#tg-announcement-options").hidden = rich;
+  $("#tg-use-article").hidden = !rich;
+  $("#tg-cover").closest("label").hidden = rich;
+  $("#tg-text").maxLength = rich ? 60000 : 4096;
+  document.querySelector('label[for="tg-text"]').textContent = rich ? "Текст статьи · Markdown" : "Текст анонса";
+  $("#tg-format-help").textContent = rich
+    ? "Картинки и видео размещаются между абзацами. Добавление файла вставит его в текст. Отправка использует Rich Messages; вид зависит от версии Telegram."
+    : "До 10 фото и видео, включая обложку. С вложениями подпись до 1024 символов; без них — до 4096.";
   const value = prepared?.text ?? assembled();
-  $("#tg-preview").textContent = value || "Здесь появится текст анонса.";
+  if(rich && value) window.GrankaMarkdown.render($("#tg-preview"),value,[],{imageUrl:src=>{
+    const index=prepared?.attachments?.findIndex(item=>item.name===decodeURIComponent(src).split('/').at(-1))??-1;
+    return index>=0 ? "/api/telegram/media?"+query()+"&id="+prepared.id+"&index="+index : mediaURL(src);
+  }});
+  else $("#tg-preview").textContent = value || "Здесь появится текст.";
+  const limit=rich?60000:$("#tg-cover").checked||attachments.length?1024:4096;
   $("#tg-count").textContent =
-    `${value.length} / ${$("#tg-cover").checked ? 1024 : 4096} символов со ссылкой`;
+    `${value.length} / ${limit} символов со ссылкой`;
   $("#tg-count").classList.toggle(
     "error",
-    value.length > ($("#tg-cover").checked ? 1024 : 4096),
+    value.length > limit,
   );
-  const photo = prepared?.with_cover
+  const photo = prepared?.with_cover && !prepared?.attachments?.length
     ? "/api/telegram/photo?" + query() + "&id=" + prepared.id
-    : !prepared && $("#tg-cover").checked && version()?.cover
+    : !prepared && !rich && $("#tg-cover").checked && version()?.cover
       ? "/api/article-image?" +
         query() +
         "&src=" +
@@ -66,6 +86,20 @@ function render() {
   $("#tg-photo").hidden = !photo;
   if (photo) $("#tg-photo").src = photo;
   else $("#tg-photo").removeAttribute("src");
+  const gallery=$("#tg-media-preview");gallery.replaceChildren();
+  if(!rich)for(const [i,item]of(prepared?.attachments||attachments).entries()){
+    const node=el(item.type==="video"?"video":"img");
+    node.src=prepared?"/api/telegram/media?"+query()+"&id="+prepared.id+"&index="+i:mediaURL(item.src);
+    if(item.type==="video"){node.controls=true;node.preload="auto";}else node.alt=item.name;
+    gallery.appendChild(node);
+  }
+  const list=$("#tg-media-list");list.replaceChildren();
+  if(!rich)attachments.forEach((item,index)=>{
+    const row=el("div","tg-media-row");row.appendChild(el("span",null,(item.type==="video"?"Видео · ":"Фото · ")+item.name));
+    const move=delta=>{const to=index+delta;if(to<0||to>=attachments.length)return;[attachments[index],attachments[to]]=[attachments[to],attachments[index]];store();render();};
+    for(const [label,fn]of[["↑",()=>move(-1)],["↓",()=>move(1)],["Убрать",()=>{attachments.splice(index,1);store();render();}]])row.appendChild(button(label,fn));
+    list.appendChild(row);
+  });
   $("#tg-channel").textContent = prepared
     ? prepared.channel.title +
       " · " +
@@ -104,8 +138,20 @@ function render() {
         prepared.error ||
         (prepared.status === "sending"
           ? "Отправка выполняется."
-          : "Проверь текст, обложку и канал. Кнопка ниже отправит именно этот пост.");
+          : "Проверь текст, вложения и канал. Кнопка ниже отправит сохранённый снимок этого поста.");
   }
+}
+const mediaURL=src=>"/api/article-image?"+query()+"&src="+encodeURIComponent(src);
+function addMedia(item){
+  if($("#tg-mode").value==="article"){
+    const area=$("#tg-text"),start=area.selectionStart,end=area.selectionEnd;
+    const alt=item.type==="video"?"Видео":"Иллюстрация";
+    area.setRangeText("\n\n!["+alt+"]("+item.src+")\n\n",start,end,"end");
+  }else{
+    if(attachments.length+Number($("#tg-cover").checked)>=10)throw Error("В одном альбоме до10вложений,включая обложку");
+    if(!attachments.some(a=>a.src===item.src))attachments.push(item);
+  }
+  store();render();
 }
 async function refreshSettings() {
   settings = await api("/api/telegram/settings");
@@ -153,11 +199,15 @@ export async function openTelegram() {
   try {
     draft = JSON.parse(localStorage.getItem(key())) || draft;
   } catch (_) {}
+  drafts={...(S.document.telegram_drafts||{}),...(draft.drafts||{})};
+  currentMode=draft.mode||"announcement";$("#tg-mode").value=currentMode;
+  draft=drafts[currentMode]||draft;attachments=draft.attachments||[];
   $("#tg-text").value = draft.text || "";
   $("#tg-url").value = draft.url || "";
   $("#tg-direction").value = draft.direction || "";
   $("#tg-cover").disabled = !version().cover;
-  $("#tg-cover").checked = !!version().cover && (draft.include_cover ?? true);
+  $("#tg-cover").checked = currentMode!=="article" && !!version().cover && (draft.include_cover ?? true);
+  $("#tg-assets").hidden=true;
   $("#tg-status").textContent =
     draft.version && draft.version !== S.version
       ? "Черновик анонса от " +
@@ -219,6 +269,26 @@ async function action(fn) {
   }
 }
 export function initTelegram() {
+  $("#tg-mode").addEventListener("change",()=>{
+    const selected=$("#tg-mode").value;$("#tg-mode").value=currentMode;store();currentMode=selected;$("#tg-mode").value=selected;
+    const draft=drafts[selected]||{};$("#tg-text").value=draft.text||"";$("#tg-url").value=draft.url||"";
+    $("#tg-cover").checked=selected!=="article"&&!!version().cover&&!!draft.include_cover;attachments=draft.attachments||[];store();render();
+  });
+  $("#tg-use-article").addEventListener("click",()=>{
+    if($("#tg-text").value.trim()&&!confirm("Заменить текст Telegram текущей статьёй? Черновик статьи в редакторе не изменится."))return;
+    $("#tg-text").value=version().text.replace(/^\ufeff?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/,"").trim();store();render();
+  });
+  $("#tg-add-media").addEventListener("click",()=>$("#tg-upload").click());
+  $("#tg-upload").addEventListener("change",()=>action(async()=>{
+    const files=[...$("#tg-upload").files];$("#tg-upload").value="";
+    for(const file of files){const r=await api("/api/telegram/upload?"+query()+"&name="+encodeURIComponent(file.name),{method:"POST",body:file,headers:{"X-Granka-Revision":S.revision}});addMedia(r.asset);}
+    $("#tg-status").textContent="Материалы добавлены в папку статьи. Сохрани черновик Telegram.";
+  }));
+  $("#tg-article-assets").addEventListener("click",()=>action(async()=>{
+    const {assets}=await api("/api/telegram/assets?"+query()),box=$("#tg-assets");box.replaceChildren();box.hidden=false;
+    for(const item of assets)box.appendChild(button((item.type==="video"?"Видео · ":"Фото · ")+item.name,()=>{try{addMedia(item);}catch(error){toast(error.message,true);}}));
+    if(!assets.length)box.textContent="В папке статьи пока нет фото и видео.";
+  }));
   $("#announcement-btn").addEventListener("click", openTelegram);
   $("#telegram-close").addEventListener("click", () =>
     $("#telegramdialog").close(),
@@ -254,7 +324,7 @@ export function initTelegram() {
       if (result) {
         S.document.announcement = result.announcement;
         store();
-        $("#tg-status").textContent = "Черновик анонса сохранён.";
+        $("#tg-status").textContent = "Черновик Telegram сохранён.";
       }
     }),
   );

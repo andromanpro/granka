@@ -4,6 +4,7 @@ import re
 import time
 from urllib.parse import urlsplit
 from .editorial_requests import editorial_requests
+from .telegram_media import attachment_specs
 
 SCHEMA = {'type':'object','properties':{'variants':{'type':'array','items':{
     'type':'object','properties':{'label':{'type':'string'},'text':{'type':'string'}},
@@ -27,17 +28,24 @@ def link(value):
 
 def draft(body,version):
     text=body.get('text','');url=link(body.get('url',''));cover=body.get('include_cover',False)
-    if not isinstance(text,str) or not text.strip() or units(text)>4096 or type(cover) is not bool:
-        raise ValueError('Напиши анонс: до 4096 символов')
+    mode=body.get('mode','announcement')
+    if mode not in {'announcement','article'}:raise ValueError('Выбери анонс или статью Telegram')
+    cap=60000 if mode=='article' else 4096
+    if not isinstance(text,str) or not text.strip() or units(text)>cap or type(cover) is not bool:
+        raise ValueError(f'Напиши текст: до {cap} символов')
+    attachments=attachment_specs(body.get('attachments',[]))
+    if mode=='article' and attachments:raise ValueError('В статье вставляй медиа между абзацами')
+    if mode=='article':cover=False
     return {'text':text.strip(),'url':url,'include_cover':cover,'version':version,
+            'mode':mode,'attachments':attachments,
             'updated':time.strftime('%Y-%m-%dT%H:%M:%S')}
 
 
 def message(value):
     text=value['text'] + ('\n\n'+value['url'] if value['url'] else '')
-    limit=1024 if value['include_cover'] else 4096
+    limit=60000 if value.get('mode')=='article' else 1024 if value['include_cover'] or value.get('attachments') else 4096
     if units(text)>limit:
-        raise ValueError(f'Анонс со ссылкой длиннее {limit} символов. Сократи текст или отключи обложку.')
+        raise ValueError(f'Текст со ссылкой длиннее {limit} символов. Сократи подпись или выбери режим статьи.')
     if editorial_requests(text):
         raise ValueError('В анонсе осталось незаполненное поручение редактору')
     return text
