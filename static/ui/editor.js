@@ -1,3 +1,4 @@
+import {render as renderMarkdown} from '../markdown-view.js';
 import {
   $,
   S,
@@ -158,7 +159,7 @@ function render() {
     extra = meterHighlights()
       .map((h) => ({ ...h, meter: true }));
   const deep = deepSelection().map((a, index) => ({ ...a, id: "deep-anchor-" + index, deep: true, deepIndex: index }));
-  reader = GrankaMarkdown.render(box, current.text, [...spans, ...extra, ...deep], {
+  reader = renderMarkdown(box, current.text, [...spans, ...extra, ...deep], {
     imageUrl: (src) =>
       "/api/article-image?" + query() + "&src=" + encodeURIComponent(src),
     mark: (a, overlapping = []) => {
@@ -449,7 +450,7 @@ export function initEditor() {
   $("#restore-draft").addEventListener("click", () => {
     const draft = JSON.parse(localStorage.getItem(draftKey()) || "null");
     if (!draft || !start()) return;
-    reader = GrankaMarkdown.render($("#doc"), draft.text, [], {
+    reader = renderMarkdown($("#doc"), draft.text, [], {
       imageUrl: (src) =>
         "/api/article-image?" + query() + "&src=" + encodeURIComponent(src),
     });

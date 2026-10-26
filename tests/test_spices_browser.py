@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SpiceBrowserTests(unittest.TestCase):
+    wait_ready = markdown_browser.MarkdownBrowserTests.wait_ready
+    reload_ready = markdown_browser.MarkdownBrowserTests.reload_ready
     @classmethod
     def setUpClass(cls):
         markdown_browser.MarkdownBrowserTests.setUpClass.__func__(cls)
