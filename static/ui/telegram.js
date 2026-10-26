@@ -1,3 +1,4 @@
+import {render as renderMarkdown} from '../markdown-view.js';
 import {
   $,
   S,
@@ -63,7 +64,7 @@ function render() {
     ? "Картинки и видео размещаются между абзацами. Добавление файла вставит его в текст. Отправка использует Rich Messages; вид зависит от версии Telegram."
     : "До 10 фото и видео, включая обложку. С вложениями подпись до 1024 символов; без них — до 4096.";
   const value = prepared?.text ?? assembled();
-  if(rich && value) window.GrankaMarkdown.render($("#tg-preview"),value,[],{imageUrl:src=>{
+  if(rich && value) renderMarkdown($("#tg-preview"),value,[],{imageUrl:src=>{
     const index=prepared?.attachments?.findIndex(item=>item.name===decodeURIComponent(src).split('/').at(-1))??-1;
     return index>=0 ? "/api/telegram/media?"+query()+"&id="+prepared.id+"&index="+index : mediaURL(src);
   }});

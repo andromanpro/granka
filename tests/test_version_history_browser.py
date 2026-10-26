@@ -17,6 +17,8 @@ class VersionHistoryBrowserTests(unittest.TestCase):
     def tearDownClass(cls):
         markdown_browser.MarkdownBrowserTests.tearDownClass.__func__(cls)
 
+    wait_ready = markdown_browser.MarkdownBrowserTests.wait_ready
+    reload_ready = markdown_browser.MarkdownBrowserTests.reload_ready
     tearDown = markdown_browser.MarkdownBrowserTests.tearDown
 
     def setUp(self):
@@ -26,7 +28,7 @@ class VersionHistoryBrowserTests(unittest.TestCase):
             {'id': 'v3', 'text': self.source.replace('жирного', 'специального'), 'label': 'поздняя правка'}])
         self.file.write_text(json.dumps(self.data, ensure_ascii=False), encoding='utf-8')
         self.md = self.file.with_name('fixture.md'); self.md.write_text(self.data['versions'][-1]['text'], encoding='utf-8')
-        self.page.reload(); self.page.wait_for_function('granka.state.version === "v3" && !granka.state.busy')
+        self.reload_ready(); self.page.wait_for_function('granka.state.version === "v3" && !granka.state.busy')
         self.page.click('[data-pane=history]')
 
     def row(self, version):
@@ -76,7 +78,7 @@ class VersionHistoryBrowserTests(unittest.TestCase):
         self.file.write_text(json.dumps(changed), encoding='utf-8')
         code = self.page.evaluate('''async body => {try {await granka.api('/api/restore-version?root=articles&f=fixture.granka.json',{method:'POST',body});return 200;}catch(e){return e.status;}}''', body)
         self.assertEqual(code, 409); self.assertEqual(len(json.loads(self.file.read_text(encoding='utf-8'))['versions']), 3)
-        self.page.reload(); self.page.wait_for_function('granka.state.version === "v3" && !granka.state.busy'); self.page.click('[data-pane=history]')
+        self.reload_ready(); self.page.wait_for_function('granka.state.version === "v3" && !granka.state.busy'); self.page.click('[data-pane=history]')
         self.md.write_text('Внешняя новая рукопись.', encoding='utf-8')
         self.row('v1').get_by_role('button', name='Вернуть в работу', exact=True).click()
         self.page.wait_for_function('granka.state.version === "v4" && !granka.state.busy')
@@ -88,7 +90,7 @@ class VersionHistoryBrowserTests(unittest.TestCase):
         result = self.page.evaluate('''async body => {const path='/api/restore-version?root=articles&f=fixture.granka.json';const a=await granka.api(path,{method:'POST',body});const b=await granka.api(path,{method:'POST',body});return {a,b};}''', body)
         self.assertEqual(result['a']['version'], 'v4'); self.assertTrue(result['b']['idempotent'])
         self.assertEqual(len(json.loads(self.file.read_text(encoding='utf-8'))['versions']), 4)
-        self.page.reload(); self.page.wait_for_function('granka.state.version === "v4" && !granka.state.busy')
+        self.reload_ready(); self.page.wait_for_function('granka.state.version === "v4" && !granka.state.busy')
         self.page.set_viewport_size({'width': 375, 'height': 950})
         self.page.evaluate('granka.pane("history");document.querySelector("#inspector").classList.add("mobile-open")')
         self.row('v1').get_by_role('button', name='Сравнить с открытой', exact=True).click()
