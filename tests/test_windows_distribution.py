@@ -72,6 +72,23 @@ class WindowsDistributionTests(unittest.TestCase):
             builder.extract(archive, self.root / 'target')
         self.assertFalse((self.root / 'escaped.txt').exists())
 
+    def test_windows_lock_matches_runtime_dependencies_and_rejects_version_drift(self):
+        lock = json.loads((ROOT / 'tools/windows/dependencies.lock.json').read_text(encoding='utf-8'))
+        builder.validate_wheel_lock(lock, ROOT / 'requirements.txt')
+        lock['wheels'][0]['version'] = '0.0.0'
+        with self.assertRaisesRegex(ValueError, 'does not match requirements'):
+            builder.validate_wheel_lock(lock, ROOT / 'requirements.txt')
+
+    def test_wheel_bytes_must_match_declared_name_and_version(self):
+        archive = self.root / 'package.whl'
+        with zipfile.ZipFile(archive, 'w') as out:
+            out.writestr('pillow-13.0.0.dist-info/METADATA', 'Name: Pillow\nVersion: 13.0.0\n')
+        item = {'name': 'pillow', 'version': '13.0.0', 'filename': archive.name}
+        builder.validate_wheel_metadata(archive, item)
+        for change in [{'version': '12.1.1'}, {'name': 'other-package'}]:
+            with self.assertRaisesRegex(ValueError, 'metadata does not match lock'):
+                builder.validate_wheel_metadata(archive, {**item, **change})
+
     def test_first_run_seeds_once_and_never_replaces_user_text(self):
         app = self.fixture_app()
         state = self.root / 'state'

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 const output = '../../static/vendor/markdown-parser.js';
 const result = await build({entryPoints:['entry.js'], bundle:true, minify:true,
-  format:'iife', globalName:'GrankaMarkdownParser', platform:'browser', target:'es2020',
+  format:'esm', platform:'browser', target:'es2020',
   outfile:output, metafile:true, legalComments:'none'});
 const dirs = new Set();
 for (const file of Object.keys(result.metafile.inputs)) {
