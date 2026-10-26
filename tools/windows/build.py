@@ -1,11 +1,13 @@
 """Build an audited Windows x64 payload, portable ZIP and per-user installer."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from email.parser import BytesParser
 import hashlib
 import json
 import os
 from pathlib import Path
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +26,35 @@ RUNTIME_EXCLUDE = {'public_audit.py', 'public_export.py', 'release.py', 'build-b
 def sha256(path):
     with Path(path).open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def package_name(name):
+    return re.sub(r'[-_.]+', '-', name).lower()
+
+
+def validate_wheel_lock(lock, requirements):
+    expected = {}
+    for line in Path(requirements).read_text(encoding='utf-8').splitlines():
+        line = line.split('#', 1)[0].strip()
+        if not line:
+            continue
+        match = re.fullmatch(r'([A-Za-z0-9_.-]+)==([^\s]+)', line)
+        if not match:
+            raise ValueError('Runtime dependency must have an exact version: ' + line)
+        expected[package_name(match[1])] = match[2]
+    actual = {package_name(wheel['name']): wheel['version'] for wheel in lock['wheels']}
+    if len(actual) != len(lock['wheels']) or actual != expected:
+        raise ValueError('Windows wheel lock does not match requirements.txt')
+
+
+def validate_wheel_metadata(path, item):
+    with zipfile.ZipFile(path) as wheel:
+        metadata = [name for name in wheel.namelist() if name.endswith('.dist-info/METADATA')]
+        if len(metadata) != 1:
+            raise ValueError('Wheel must contain one package metadata file')
+        package = BytesParser().parsebytes(wheel.read(metadata[0]))
+    if package_name(package.get('Name', '')) != package_name(item['name']) or package.get('Version') != item['version']:
+        raise ValueError('Wheel metadata does not match lock: ' + item['filename'])
 
 
 def fetch(item, cache):
@@ -122,6 +153,7 @@ def build(output, cache, allow_dirty=False, iscc=None, portable_only=False):
     payload = work / 'Granka'
     payload.mkdir(parents=True)
     lock = json.loads((ROOT / 'tools/windows/dependencies.lock.json').read_text(encoding='utf-8'))
+    validate_wheel_lock(lock, ROOT / 'requirements.txt')
     items = [(key, lock[key]) for key in ['python', 'codex', 'inno']]
     items += [(item['filename'], item) for item in lock['wheels']]
     items += [(item['name'], item) for item in lock['licenses']]
@@ -135,6 +167,7 @@ def build(output, cache, allow_dirty=False, iscc=None, portable_only=False):
     packages = runtime / 'Lib/site-packages'
     packages.mkdir(parents=True, exist_ok=True)
     for wheel in lock['wheels']:
+        validate_wheel_metadata(downloads[wheel['filename']], wheel)
         extract(downloads[wheel['filename']], packages)
     # Isolate the runtime from registry paths, PYTHONPATH and global packages.
     (runtime / 'python314._pth').write_text('.\nDLLs\nLib\nLib/site-packages\n../app\nimport site\n', encoding='utf-8')
