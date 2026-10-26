@@ -19,7 +19,8 @@ HERE = Path(__file__).resolve().parents[1]
 CONFIG = environment.CONFIG_FILE
 STATE = environment.STATE
 DEFAULTS = {'analysis_provider':'codex', 'image_provider':'codex', 'codex_model':'',
-            'openrouter_text_model':'', 'openrouter_image_model':'', 'image_aspect':'16:9'}
+            'openrouter_text_model':'', 'openrouter_image_model':'', 'image_aspect':'16:9',
+            'spice_view':'jars', 'spice_motion':'ripple'}
 
 
 def atomic_json(path, data):
@@ -45,6 +46,8 @@ def save_settings(values):
         raise ValueError('Неизвестный исполнитель')
     if new['image_aspect'] not in {'16:9','1:1','9:16','4:3','3:2'}:
         raise ValueError('Неизвестный формат картинки')
+    if new['spice_view'] not in {'jars','text'} or new['spice_motion'] not in {'ripple','gleam','none'}:
+        raise ValueError('Неизвестное оформление приправ')
     stored = json.loads(CONFIG.read_text(encoding='utf-8')) if CONFIG.exists() else {}
     stored['ai'] = new; atomic_json(CONFIG, stored)
     return new

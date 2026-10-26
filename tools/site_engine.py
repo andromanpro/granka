@@ -1,6 +1,21 @@
 """Markdown rendering and WordPress taxonomy helpers for publication snapshots."""
 import json
 import markdown
+from markdown.extensions import Extension
+from markdown.treeprocessors import Treeprocessor
+from urllib.parse import urlsplit
+
+
+class VideoMedia(Treeprocessor):
+    def run(self,root):
+        for node in root.iter('img'):
+            if urlsplit(node.get('src','')).path.lower().endswith('.mp4'):
+                node.tag='video';node.set('controls','');node.set('preload','metadata')
+                node.set('aria-label',node.attrib.pop('alt','Видео'))
+
+
+class VideoExtension(Extension):
+    def extendMarkdown(self,md):md.treeprocessors.register(VideoMedia(md),'granka-video',5)
 
 
 def run_wp(args,site_dir,capture=True):
@@ -8,7 +23,7 @@ def run_wp(args,site_dir,capture=True):
 
 
 def render_markdown(body):
-    return markdown.markdown(body,extensions=['extra','codehilite','sane_lists','smarty'],
+    return markdown.markdown(body,extensions=['extra','codehilite','sane_lists','smarty',VideoExtension()],
         extension_configs={'codehilite':{'css_class':'highlight','guess_lang':False,'linenums':False}},output_format='html5')
 
 

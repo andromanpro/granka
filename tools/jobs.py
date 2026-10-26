@@ -66,7 +66,7 @@ class Jobs:
             return job
 
     def _run(self,job,work,directory):
-        job={**job,'status':'running','message':{'apply':'Применяю решения','analysis':'Анализирую статью','deep-analysis':'Разбираю статью: карта, замечания и перепроверка','image':'Генерирую картинку','editorial':'Выполняю редакторское поручение','announcement':'Готовлю анонс для Telegram','site':'Публикую статью на сайте','benchmark':'Проверяю модель на авторских решениях','rules':'Предлагаю уточнения личных правил'}[job['kind']]}
+        job={**job,'status':'running','message':{'apply':'Применяю решения','analysis':'Анализирую статью','deep-analysis':'Разбираю статью: карта, замечания и перепроверка','image':'Генерирую картинку','editorial':'Выполняю редакторское поручение','announcement':'Готовлю анонс для Telegram','site':'Публикую статью на сайте','benchmark':'Проверяю модель на авторских решениях','rules':'Предлагаю уточнения личных правил','spice':'Готовлю предложения по рецепту'}[job['kind']]}
         atomic_json(directory/'job.json',job)
         try:
             result=work(directory)

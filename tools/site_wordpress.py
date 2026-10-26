@@ -81,7 +81,7 @@ class WordPress:
     def media(self,path,engine):
         path=Path(path)
         # Exported filenames are content hashes; lookup cannot inject SQL or collide by basename.
-        if not re.fullmatch(r'[a-f0-9]{64}\.(png|jpg|jpeg|webp|gif)',path.name):raise ValueError('Непроверенное имя картинки')
+        if not re.fullmatch(r'[a-f0-9]{64}\.(png|jpg|jpeg|webp|gif|mp4)',path.name):raise ValueError('Непроверенное имя медиа')
         existing=engine.find_attachment_by_filename(path.name,'')
         if not existing:
             pattern=json.dumps('%/granka-%-'+path.name)

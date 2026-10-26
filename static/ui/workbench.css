@@ -1210,6 +1210,19 @@ mark.active {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
+.version-history-item { padding:14px 10px; border-bottom:1px solid var(--line); border-left:2px solid transparent; }
+.version-history-item.current { border-left-color:var(--accent); background:var(--accent-bg); }
+.version-history-item strong { font-size:13px; font-weight:500; }
+.version-history-item p { margin:5px 0; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+.version-history-item time { color:var(--muted); font-size:11px; }
+.version-history-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.version-history-actions button { font-size:12px; padding:6px 8px; white-space:normal; }
+.history-events-title { font-size:13px; margin:22px 0 5px; color:var(--muted); font-weight:500; }
+.diff-controls { display:flex; align-items:end; flex-wrap:wrap; gap:10px; padding:12px 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+.diff-controls label { display:flex; flex-direction:column; flex:1; min-width:120px; gap:4px; color:var(--muted); font-size:12px; }
+.diff-controls select { width:100%; }
+.diff-controls > span { flex-basis:100%; }
+.diff-controls > span:empty { display:none; }
 .history-item time {
   font-size: 10px;
   color: var(--muted);
@@ -1842,3 +1855,13 @@ mark.active {
 .deep-actions { flex-wrap:wrap; margin-top:10px; }
 .deep-map-block { padding:8px 0; border-bottom:1px solid var(--line); }
 #doc mark.deep-mark { box-shadow:inset 0 -3px #218c82; background-color:#218c821a; }
+.tg-media-list{display:grid;gap:8px;margin:12px 0;max-height:240px;overflow:auto}
+.tg-media-row{display:flex;align-items:center;gap:6px;padding:8px;border:1px solid var(--line,#d6d4cb);border-radius:8px}
+.tg-media-row span{flex:1;min-width:0;overflow-wrap:anywhere;font-size:13px}
+#tg-mode{width:100%;padding:10px;margin-bottom:8px}
+#tg-media-preview{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px}
+.telegram-preview img,.telegram-preview video,.md-image video{max-width:100%;height:auto;display:block}
+.telegram-preview .md-image{display:block;margin:16px 0}
+.telegram-preview .md-image-caption{display:block;font-size:12px;opacity:.75;margin-top:5px}
+.telegram-preview h1,.telegram-preview h2{font-size:22px;line-height:1.2;margin-top:20px}
+.telegram-preview p{white-space:normal;line-height:1.55}

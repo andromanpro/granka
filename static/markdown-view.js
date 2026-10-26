@@ -123,9 +123,12 @@
       const caption = make('span'); caption.className = 'md-image-caption';
       caption.textContent = node.alt || 'Иллюстрация';
       if (url) {
-        const img = make('img'); img.src = url; img.alt = node.alt || ''; img.loading = 'lazy';
+        const video = /\.mp4(?:[?#]|$)/i.test(raw);
+        const img = make(video ? 'video' : 'img'); img.src = url;
+        if(video){img.controls=true;img.preload='auto';img.setAttribute('aria-label',node.alt||'Видео');}
+        else {img.alt = node.alt || '';img.loading = 'lazy';}
         img.referrerPolicy = 'no-referrer';
-        img.addEventListener('error', () => { img.hidden = true; caption.textContent += ' · изображение недоступно'; });
+        img.addEventListener('error', () => { img.hidden = true; caption.textContent += video?' · видео недоступно':' · изображение недоступно'; });
         figure.appendChild(img);
       }
       figure.appendChild(caption); parent.appendChild(figure);
@@ -241,6 +244,10 @@
     }
     return {
       serialize,
+      blockOffsets(element) {
+        const block = blocks.find(b => b.element === element);
+        return block ? {start:toCp(block.start), end:toCp(block.end,true)} : null;
+      },
       selectionOffsets(range) {
         if (!box.contains(range.startContainer) || !box.contains(range.endContainer) || range.collapsed) return null;
         let start = null, end = null;

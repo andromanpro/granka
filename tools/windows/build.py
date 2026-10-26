@@ -170,7 +170,7 @@ def build(output, cache, allow_dirty=False, iscc=None, portable_only=False):
     print('Payload ready: ' + str(payload), flush=True)
     # The bundled interpreter, imports and native dialogs must work without system Python.
     run([runtime / 'python.exe', '-I', '-B', '-c',
-         'import sys,frontmatter,markdown,yaml,tkinter;from tools import iimeter;print(sys.version);print(tkinter.Tcl().eval("info patchlevel"))'], cwd=payload / 'app')
+         'import sys,frontmatter,markdown,yaml,tkinter;from PIL import Image;from tools import iimeter,telegram_media;print(sys.version);print(tkinter.Tcl().eval("info patchlevel"))'], cwd=payload / 'app')
     codex_version = run([codex / 'codex.exe', '--version'])
     if lock['codex']['version'] not in codex_version:
         raise ValueError('Bundled Codex version did not match the lock')

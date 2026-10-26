@@ -1,0 +1,72 @@
+.inspector-tabs { flex-wrap: wrap; }
+.spice-heading, .spice-recipe-row, .spice-buttons { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.spice-heading { justify-content:space-between; }
+.spice-heading h2 { margin:0; }
+.spice-recipe-row select { flex:1; width:130px; }
+.spice-recipe-row button { padding:7px; }
+.spice-ingredients { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; margin:22px 0 17px; }
+.spice-tile { min-width:0; display:flex; flex-direction:column; align-items:center; }
+.spice-vessel-button { display:flex; flex-direction:column; align-items:center; justify-content:end; gap:6px; width:100%; padding:7px 2px; background:transparent; border:0; border-radius:12px; cursor:grab; }
+.spice-vessel-button:hover { background:#22362f; }
+.spice-vessel-button:active { cursor:grabbing; }
+.spice-name { font-size:13px; color:var(--text); }
+.spice-flavour { font-size:11px; color:var(--muted); white-space:normal; }
+.spice-vessel { position:relative; display:block; width:62px; height:67px; margin-top:14px; border:1px solid #6c8a7a; border-radius:18px 18px 22px 22px; background:linear-gradient(100deg,#314a4199,#182822cc 42%,#425c4b99); box-shadow:inset 4px 0 7px #d9f3dd22,inset -5px 0 8px #020d0777,0 5px 9px #050d1355; transition:transform .18s; }
+.spice-vessel::after { content:""; position:absolute; left:7px; top:14px; width:4px; height:36%; border-radius:6px; background:#e8fff02e; }
+.spice-vessel-button[aria-pressed=true] .spice-vessel { transform:rotate(-4deg) translateY(-2px); }
+.spice-lid { position:absolute; z-index:2; top:-12px; left:0; right:0; height:19px; border-radius:10px 10px 3px 3px; background:repeating-linear-gradient(90deg,#8c9b86 0 4px,#667a69 4px 5px); box-shadow:0 3px 3px #020c0755; }
+.spice-lid::after { content:""; position:absolute; width:27px; height:5px; left:16px; top:3px; background:radial-gradient(circle,#28372e 1px,transparent 1.7px) 0 0/7px 5px; }
+.spice-powder { position:absolute; left:4px; right:4px; bottom:4px; height:var(--spice-fill,10%); border-radius:5px 5px 16px 16px; background:radial-gradient(circle,#fff5c9aa 1px,transparent 1.4px) 0 0/5px 4px,#c5b26780; transition:height .2s; }
+.spice-label { position:absolute; z-index:1; top:19px; left:8px; right:8px; padding:2px 0 4px; text-align:center; border-radius:3px; color:#283b2d; background:#f0e4c8; font:600 20px/1.2 Georgia,serif; transform:rotate(3deg); box-shadow:0 1px 3px #07180f33; }
+.spice-label small { display:block; color:#4b5c48; font:10px/1.5 "Segoe UI",sans-serif; }
+.spice-vulgar .spice-vessel { width:44px; height:82px; border-color:#a97457; border-radius:17px 17px 9px 9px; background:linear-gradient(90deg,#5f3325,#85513a 35%,#402319 80%,#784b35); }
+.spice-vulgar .spice-lid { left:-7px; right:-7px; top:-14px; height:25px; border-radius:50%; background:linear-gradient(95deg,#9a6246,#4a2a20); }
+.spice-vulgar .spice-lid::after { width:12px; height:7px; top:-5px; left:23px; border-radius:5px 5px 1px 1px; background:#c8aa80; }
+.spice-vulgar .spice-label { left:3px; right:3px; top:32px; color:#77382b; background:#f3c5a3; transform:rotate(-5deg); }
+.spice-vulgar .spice-powder { background:radial-gradient(circle,#d99c5c 1px,transparent 2px) 0 0/6px 5px,#321c11; max-height:26%; }
+.spice-vulgar .spice-label small { color:#77382b; }
+.spice-metaphor .spice-vessel { width:82px; height:53px; margin-top:43px; border-radius:9px 9px 18px 18px; border-color:#709778; background:linear-gradient(100deg,#56795866,#1a3425bb,#74996d55); }
+.spice-metaphor .spice-lid { top:-14px; height:18px; left:-2px; right:-2px; background:repeating-linear-gradient(18deg,#a88a58 0 4px,#91784d 4px 5px,#b29665 5px 8px); border-radius:5px 5px 2px 2px; }
+.spice-metaphor .spice-lid::after { display:none; }
+.spice-metaphor .spice-label { top:9px; left:17px; right:15px; background:#dce7bd; transform:rotate(-3deg); }
+.spice-metaphor .spice-powder { background:repeating-linear-gradient(130deg,transparent 0 4px,#99b86777 4px 7px,transparent 7px 10px),#4e6e3c99; }
+.spice-allegory .spice-vessel { width:60px; height:58px; margin-top:38px; border-radius:17px 17px 12px 12px; border-color:#957599; background:linear-gradient(100deg,#9d7bae55,#33223a99,#80648d88); }
+.spice-allegory .spice-lid { left:19px; right:19px; top:-26px; height:31px; border-radius:7px 7px 3px 3px; background:repeating-linear-gradient(90deg,#30323c 0 3px,#484a55 3px 4px); }
+.spice-allegory .spice-lid::after { left:4px; top:-13px; width:14px; height:23px; border-radius:50% 50% 3px 3px; background:linear-gradient(90deg,#41404c,#665d70,#26232f); }
+.spice-allegory .spice-label { top:11px; left:6px; right:6px; background:#ead4ed; color:#66426e; transform:rotate(4deg); }
+.spice-allegory .spice-label small { color:#66426e; }
+.spice-allegory .spice-powder { background:linear-gradient(0deg,#9267b4cc,#a17cc17a); }
+.spice-dose { display:flex; align-items:center; gap:7px; margin-top:5px; }
+.spice-dose button { padding:2px 9px; min-width:30px; min-height:29px; border-color:transparent; background:transparent; }
+.spice-dose output { min-width:16px; text-align:center; color:var(--muted); font-size:12px; }
+.spice-ingredients[data-view=text] { display:block; margin:12px 0; }
+.spice-ingredients[data-view=text] .spice-tile { flex-direction:row; justify-content:space-between; border-bottom:1px solid var(--line); padding:7px 0; }
+.spice-ingredients[data-view=text] .spice-vessel-button { width:auto; align-items:start; padding:5px; cursor:grab; }
+.spice-ingredients[data-view=text] .spice-vessel, .spice-ingredients[data-view=text] .spice-flavour { display:none; }
+.spice-config { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.spice-config label, .spice-prompt { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--muted); min-width:0; }
+.spice-config select { width:100%; }
+.spice-prompt { margin:13px 0; }
+.spice-prompt textarea { min-height:66px; font-size:13px; color:var(--text); }
+#spice-recipe-editor { margin:12px 0; padding-bottom:10px; border-bottom:1px solid var(--line); }
+#spice-recipe-editor summary { cursor:pointer; color:var(--muted); font-size:12px; }
+.spice-target-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:15px; }
+.spice-target-actions button { font-size:12px; padding:7px; }
+.spice-target { border-left:2px solid var(--accent); padding-left:10px; margin:13px 0; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+.spice-buttons { margin:12px 0; }
+.spice-buttons button { font-size:12px; padding:7px 9px; white-space:normal; }
+.spice-change { padding:12px 0; border-bottom:1px solid var(--line); }
+.spice-choice { display:flex; gap:8px; align-items:center; color:var(--accent); font-size:13px; }
+.spice-before { margin:10px 0; padding-left:10px; border-left:2px solid var(--line); color:var(--muted); font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.spice-change select { max-width:100%; }
+.spice-change textarea { min-height:96px; }
+#spice-summary { font-size:13px; }
+#doc.spice-picking > p, #doc.spice-dragging > p { cursor:crosshair; }
+#doc.spice-picking > p:hover, #doc .spice-drop-target { outline:2px dashed var(--accent); outline-offset:5px; background:#75d0bb15; }
+#doc .spice-working { position:relative; isolation:isolate; }
+#doc[data-spice-motion=ripple] .spice-working::after, #doc[data-spice-motion=gleam] .spice-working::after { content:""; position:absolute; inset:-3px; border-radius:6px; pointer-events:none; background:linear-gradient(112deg,transparent 20%,#85d8bf25 40%,#f49b8310 50%,transparent 65%); background-size:270% 100%; animation:spice-gleam 3s linear infinite; }
+#doc[data-spice-motion=ripple] .spice-working { animation:spice-ripple 1.8s ease-in-out infinite; }
+@keyframes spice-gleam { from{background-position:120% 0} to{background-position:-100% 0} }
+@keyframes spice-ripple { 0%,100%{transform:translateY(0)} 35%{transform:translateY(-.5px)} 65%{transform:translateY(.5px)} }
+@media(prefers-reduced-motion:reduce) { #doc .spice-working, #doc .spice-working::after { animation:none !important; } .spice-vessel, .spice-powder { transition:none; } }
+@media(max-width:380px) { .spice-name { font-size:12px; } .spice-config { grid-template-columns:1fr; } }

@@ -15,11 +15,12 @@ import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from tools.text_edit import edit_text
+from tools.text_edit import edit_text, restore_version
 from tools import iimeter
 from tools.document_store import DocumentStore, validate as contract_errors
 from tools import ai_provider
 from tools import deep_analysis
+from tools import spices
 from tools import config as environment
 from tools.jobs import Jobs, JobConflict
 from tools.git_history import GitHistory
@@ -27,6 +28,7 @@ from tools.editorial_workflow import apply_decisions, add_analysis, analysis_pro
 from tools.editorial_requests import editorial_requests, request_prompt, REQUEST_SCHEMA
 from tools.covers import cover_prompt, validate_cover
 from tools import announcements, telegram
+from tools import telegram_media
 from tools.site_publish import SitePublisher, source_hash
 from tools.publication_plan import PublicationPlan, PlanConflict
 from tools.planning_library import scan_library, catalog_sources
@@ -49,6 +51,7 @@ LOCATIONS = LibraryLocations(lambda: ai_provider.STATE)
 ROOTS = {**environment.roots(), **LOCATIONS.roots()}
 CORRECTIONS = environment.path(SETTINGS['corrections_file'])
 PREFERENCES = AuthorPreferences(lambda: ai_provider.STATE, lambda: ROOTS, lambda: CORRECTIONS)
+SPICE_RECIPES = spices.Recipes(lambda: ai_provider.STATE)
 TOKEN = secrets.token_hex(16)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 MAX_BODY = 512 * 1024
@@ -101,7 +104,7 @@ def source_document(path, root_id, data):
 def enqueue_job(root_id, rel, body):
     path=safe_resolve(root_id,rel)
     kind=body.get('kind')
-    if kind not in {'apply','analysis','deep-analysis','image','editorial','announcement','benchmark','rules'}: raise ValueError('Неизвестное задание')
+    if kind not in {'apply','analysis','deep-analysis','image','editorial','announcement','benchmark','rules','spice'}: raise ValueError('Неизвестное задание')
     with LOCK:
         raw=path.read_bytes();revision=hashlib.sha256(raw).hexdigest()[:16]
         if body.get('expected_revision')!=revision: return 409,{'error':'conflict','revision':revision}
@@ -124,6 +127,7 @@ def enqueue_job(root_id, rel, body):
         raise ValueError('Неизвестное назначение картинки')
     op_id=clean_line(body.get('operation_id',''),64) or uuid.uuid4().hex
     target=None
+    spice_request = spices.prepare(data, version, body) if kind == 'spice' else None
     if kind=='editorial':
         target=next((a for a in data['annotations'] if a['id']==body.get('annotation_id') and a['version']==version['id']),None)
         if not target or target.get('type')!='candidate' or target.get('decision'):
@@ -134,6 +138,18 @@ def enqueue_job(root_id, rel, body):
 
     def work(directory):
         ai_provider.atomic_json(directory/'snapshot.json',data)
+        if kind == 'spice':
+            preferences = PREFERENCES.context(version['text'])
+            ai_provider.atomic_json(directory/'spice-request.json', spice_request)
+            report, receipt = ai_provider.text_result(spices.prompt(version['text'], spice_request, preferences),
+                                                     spices.SCHEMA, directory, config)
+            preview = spices.proposals(version['text'], spice_request, report)
+            preview.update(base_revision=revision, source_sha=source_hash, receipt=receipt)
+            ai_provider.atomic_json(directory/'spice-result.json', preview)
+            with LOCK:
+                if revision_of(path) != revision:
+                    raise JobConflict('Статья изменилась. Предложения сохранены в журнале; получите новые для текущего текста.')
+            return preview
         if kind=='rules':
             proposal_source,proposal_prompt=PREFERENCES.learning.proposal_input()
             ai_provider.atomic_json(directory/'rule-evidence.json',proposal_source)
@@ -208,7 +224,8 @@ def enqueue_job(root_id, rel, body):
         out['receipt']=receipt
         return out
     job=job_service().submit(kind,root_id,rel,op_id,
-        {'version':version['id'],'provider':provider, **({'purpose':purpose} if kind=='image' else {})},work)
+        {'version':version['id'],'provider':provider, **({'purpose':purpose} if kind=='image' else {}),
+         **({'target':spice_request['target']} if kind=='spice' else {})},work)
     return 202,{'ok':True,'job':job}
 
 
@@ -381,6 +398,29 @@ def transcribe_webm(raw: bytes) -> dict:
 
 
 class H(BaseHTTPRequestHandler):
+    def _media_file(self,path):
+        size=path.stat().st_size;start=0;end=size-1;status=200
+        request=self.headers.get('Range')
+        if request:
+            match=re.fullmatch(r'bytes=(\d*)-(\d*)',request)
+            if not match or not any(match.groups()):
+                self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.end_headers();return
+            if match[1]:start=int(match[1]);end=int(match[2])if match[2]else end
+            else:start=max(0,size-int(match[2]))
+            if start>=size or end<start:
+                self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.end_headers();return
+            end=min(end,size-1);status=206
+        self.send_response(status);self.send_header('Content-Type',telegram_media.MIME.get(path.suffix.lower(),'application/octet-stream'))
+        self.send_header('Accept-Ranges','bytes');self.send_header('Content-Length',str(end-start+1));self.send_header('X-Content-Type-Options','nosniff')
+        if status==206:self.send_header('Content-Range',f'bytes {start}-{end}/{size}')
+        self.end_headers()
+        with path.open('rb')as stream:
+            stream.seek(start);remaining=end-start+1
+            while remaining:
+                block=stream.read(min(256*1024,remaining))
+                if not block:break
+                self.wfile.write(block);remaining-=len(block)
+
     def log_message(self, fmt, *args):
         print(f"[granka] {fmt % args}")
 
@@ -446,6 +486,18 @@ class H(BaseHTTPRequestHandler):
                 self._send(200,{**SITE.info(data,root,rel),'plans':SITE.plans(root,rel),'source_hash':source_hash(data)})
             elif url.path == '/api/telegram/settings':
                 self._send(200, TELEGRAM.settings())
+            elif url.path == '/api/telegram/assets':
+                q=urllib.parse.parse_qs(url.query);doc=self._doc_path(q)
+                if not doc.is_file():raise LookupError('Статья не найдена')
+                directory=telegram_media.assets_directory(doc,ROOTS[q.get('root',[''])[0]])
+                assets=[{'src':p.relative_to(doc.parent).as_posix(),'name':p.name,'type':'video'if p.suffix.lower()=='.mp4'else'photo','bytes':p.stat().st_size}for p in sorted(directory.glob('*'))if p.is_file()and p.suffix.lower()in telegram_media.MEDIA_EXT]
+                self._send(200,{'assets':assets[:100]})
+            elif url.path == '/api/telegram/media':
+                q=urllib.parse.parse_qs(url.query);self._doc_path(q);record=TELEGRAM.read(q.get('id',[''])[0])
+                if record['root']!=q.get('root',[''])[0]or record['rel']!=q.get('f',[''])[0]:raise LookupError('Публикация не найдена')
+                index=int(q.get('index',['-1'])[0]);items=record.get('attachments',[])
+                if not 0<=index<len(items):raise LookupError('Вложение не найдено')
+                self._media_file(Path(record['media_paths'][items[index]['field']]))
             elif url.path in {'/api/telegram/publications','/api/telegram/photo'}:
                 q=urllib.parse.parse_qs(url.query);self._doc_path(q)
                 root=q.get('root',[''])[0];rel=q.get('f',[''])[0]
@@ -471,11 +523,12 @@ class H(BaseHTTPRequestHandler):
                     raise LookupError("document not found")
                 rel = urllib.parse.unquote(q.get("src", [""])[0])
                 picture = (doc.parent / rel).resolve()
-                if (picture.suffix.lower() not in IMAGE_EXT or
+                if (picture.suffix.lower() not in (IMAGE_EXT | {'.mp4'}) or
                     not any(picture.is_relative_to(base.resolve()) for base in IMAGE_DIRS)):
                     raise PermissionError("image outside allowed directories")
                 if not picture.is_file():
                     self._send(404, {"error": "image not found"}); return
+                if picture.suffix.lower()=='.mp4':self._media_file(picture);return
                 mime = {".png":"image/png", ".jpg":"image/jpeg", ".jpeg":"image/jpeg",
                         ".gif":"image/gif", ".webp":"image/webp"}[picture.suffix.lower()]
                 self._send(200, picture.read_bytes(), mime)
@@ -485,6 +538,8 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, picture.read_bytes(), IMAGE_MIME[picture.suffix.lower()])
             elif url.path == "/api/docs":
                 self._send(200, {"docs": list_docs()})
+            elif url.path == '/api/spice-recipes':
+                self._send(200, SPICE_RECIPES.read())
             elif url.path == '/api/settings':
                 self._send(200, ai_provider.capabilities())
             elif url.path == '/api/models':
@@ -540,6 +595,24 @@ class H(BaseHTTPRequestHandler):
 
     def do_POST(self):
         url = urllib.parse.urlparse(self.path)
+        if url.path == '/api/telegram/upload':
+            if not self._guard(False):return
+            if self.headers.get('X-Granka-Token')!=TOKEN:self._send(403,{'error':'bad token'});return
+            try:
+                q=urllib.parse.parse_qs(url.query);doc=self._doc_path(q);root=ROOTS[q.get('root',[''])[0]]
+                n=int(self.headers.get('Content-Length',0))
+                if not 0<n<=telegram_media.MAX_TOTAL:self._send(413,{'error':'Видео — до50МБ,картинка — до10МБ'});return
+                with LOCK:
+                    _,revision=STORE.read(doc)
+                    if self.headers.get('X-Granka-Revision')!=revision:self._send(409,{'error':'Статья изменилась,открой её заново'});return
+                raw=self.rfile.read(n)
+                if len(raw)!=n:raise ValueError('Загрузка прервалась')
+                with LOCK:
+                    if STORE.revision(doc)!=revision:self._send(409,{'error':'Статья изменилась во время загрузки'});return
+                    item=telegram_media.import_asset(doc,root,q.get('name',[''])[0],raw)
+                self._send(200,{'asset':item})
+            except (ValueError,PermissionError,LookupError,OSError)as error:self._send(400,{'error':str(error)})
+            return
         # транскрипция: тело — аудио, не JSON; свой лимит
         if url.path == "/api/transcribe":
             if not self._guard(False):
@@ -567,7 +640,66 @@ class H(BaseHTTPRequestHandler):
             b = self._body()
             op_id = clean_line(b.get("operation_id", ""), 64) or uuid.uuid4().hex
 
-            if url.path == '/api/settings':
+            if url.path == '/api/restore-version':
+                path = self._doc_path(q)
+                with LOCK:
+                    current, _ = STORE.read(path)
+                    md = source_document(path, q.get('root', [''])[0], current)
+                    source_raw = md.read_bytes() if md.exists() else None
+                    source_sha = hashlib.sha256(source_raw).hexdigest() if source_raw is not None else None
+                    try:
+                        source_known = source_raw is None or source_raw.decode('utf-8-sig').replace('\r\n', '\n') in {
+                            v['text'].replace('\r\n', '\n') for v in current['versions']}
+                    except UnicodeDecodeError:
+                        source_known = False
+                code, out = mutate(path, b.get('expected_revision'), op_id, lambda data: restore_version(
+                    data, b.get('source_version'), b.get('base_version')))
+                if code == 200 and not out.get('idempotent') and not out.get('unchanged'):
+                    with LOCK:
+                        saved, _ = STORE.read(path)
+                        actual = hashlib.sha256(md.read_bytes()).hexdigest() if md.exists() else None
+                        if source_known and actual == source_sha and saved['versions'][-1]['id'] == out['version']:
+                            temporary = md.with_name('.' + md.name + '.' + uuid.uuid4().hex + '.tmp')
+                            try:
+                                temporary.write_text(saved['versions'][-1]['text'], encoding='utf-8', newline='\n')
+                                temporary.replace(md)
+                            finally:
+                                temporary.unlink(missing_ok=True)
+                            out['source_written'] = True
+                        else:
+                            out.update(source_written=False, warning='Версия возвращена в историю, но Markdown изменился снаружи и не был перезаписан.')
+                self._send(code, out)
+            elif url.path == '/api/spice-recipes':
+                try:
+                    self._send(200, SPICE_RECIPES.save(b))
+                except spices.RecipeConflict as error:
+                    self._send(409, {'error': str(error)})
+            elif url.path == '/api/spice-apply':
+                root_id, rel = q.get('root', [''])[0], q.get('f', [''])[0]
+                path = safe_resolve(root_id, rel)
+                job = job_service().get(b.get('job_id', ''))
+                if job['root'] != root_id or job['rel'] != rel or job['kind'] != 'spice' or job['status'] != 'succeeded':
+                    raise ValueError('Предложение не принадлежит этой статье или ещё не готово')
+                preview = job['result']
+                if b.get('expected_revision') != preview['base_revision']:
+                    self._send(409, {'error': 'Статья изменилась после подготовки предложений. Получите новые.'})
+                    return
+                code, out = mutate(path, preview['base_revision'], op_id,
+                                   lambda data: spices.apply(data, preview, b.get('choices')))
+                if code == 200 and not out.get('idempotent') and not out.get('unchanged'):
+                    with LOCK:
+                        data, _ = STORE.read(path)
+                        md = source_document(path, root_id, data)
+                        actual = hashlib.sha256(md.read_bytes()).hexdigest() if md.exists() else None
+                        if actual == preview['source_sha'] and data['versions'][-1]['id'] == out['version']:
+                            temporary = md.with_name('.' + md.name + '.' + uuid.uuid4().hex + '.tmp')
+                            temporary.write_text(data['versions'][-1]['text'], encoding='utf-8', newline='\n')
+                            temporary.replace(md)
+                            out['source_written'] = True
+                        else:
+                            out.update(source_written=False, warning='Новая версия сохранена, но Markdown изменился снаружи и не был перезаписан.')
+                self._send(code, out)
+            elif url.path == '/api/settings':
                 self._send(200,{'ok':True,'settings':ai_provider.save_settings(b.get('settings',{}))})
 
             elif url.path == '/api/quit':
@@ -648,6 +780,7 @@ class H(BaseHTTPRequestHandler):
                 def fn(data):
                     if data['versions'][-1]['id']!=b.get('version'):raise ValueError('Версия статьи изменилась')
                     data['announcement']=announcements.draft(b,b['version'])
+                    data.setdefault('telegram_drafts',{})[data['announcement']['mode']]=data['announcement']
                     return {'announcement':data['announcement']}
                 code,out=mutate(p,b.get('expected_revision'),op_id,fn);self._send(code,out)
             elif url.path == '/api/telegram/prepare':
@@ -659,6 +792,10 @@ class H(BaseHTTPRequestHandler):
                     version=data['versions'][-1]
                     if version['id']!=b.get('version'):raise ValueError('Версия статьи изменилась')
                     value=announcements.draft(b,version['id']);text=announcements.message(value);photo=None
+                    root=ROOTS[q.get('root',[''])[0]];media=[];rich=None;rich_files=None
+                    if value['mode']=='article':rich,rich_files=telegram_media.rich_input(text,lambda src:telegram_media.resolve_asset(p,root,src))
+                    else:
+                        media=[{'path':telegram_media.resolve_asset(p,root,item['src']),'name':item['name']}for item in value['attachments']]
                     if value['include_cover']:
                         cover=validate_cover(version.get('cover'))
                         if not cover:raise ValueError('У статьи нет обложки')
@@ -667,7 +804,7 @@ class H(BaseHTTPRequestHandler):
                         if not assets.is_relative_to(ROOTS[q.get('root',[''])[0]].resolve()) or not photo.is_relative_to(assets):
                             raise PermissionError('Обложка вне каталога статьи')
                         if not photo.is_file():raise LookupError('Обложка не найдена')
-                record=TELEGRAM.prepare(q.get('root',[''])[0],q.get('f',[''])[0],version['id'],text,photo)
+                record=TELEGRAM.prepare(q.get('root',[''])[0],q.get('f',[''])[0],version['id'],text,photo,media=media,rich_message=rich,rich_files=rich_files)
                 self._send(200,record)
             elif url.path == '/api/telegram/publish':
                 self._doc_path(q)
