@@ -1,10 +1,14 @@
 """The only writer of annotation documents: revision checks, validation, atomic save."""
 import hashlib
 import json
+import os
 from pathlib import Path
+import time
 import uuid
 from .covers import validate_cover
 from .deep_analysis import validate_reports
+
+_WINDOWS=os.name=='nt'
 
 
 def validate(data):
@@ -75,6 +79,19 @@ class DocumentStore:
             operations.append(operation_id);data['ops']=operations[-100:]
             temporary=path.with_name('.'+path.name+'.'+uuid.uuid4().hex+'.tmp')
             try:
-                temporary.write_text(json.dumps(data,ensure_ascii=False,indent=1),encoding='utf-8',newline='\n');temporary.replace(path)
+                temporary.write_text(json.dumps(data,ensure_ascii=False,indent=1),encoding='utf-8',newline='\n')
+                # Readers and virus scanners may briefly omit FILE_SHARE_DELETE.
+                # Retry the rename only; never repeat the document operation.
+                for attempt in range(8):
+                    try:
+                        temporary.replace(path)
+                        break
+                    except PermissionError as error:
+                        if not _WINDOWS or getattr(error,'winerror',None) not in {5,32,33} or attempt==7:
+                            raise
+                        time.sleep(min(.02*2**attempt,.25))
+                        current_revision=self.revision(path)
+                        if current_revision!=revision:
+                            return 409,{'error':'conflict','revision':current_revision}
             finally:temporary.unlink(missing_ok=True)
             return 200,{'ok':True,'revision':self.revision(path),**(result if isinstance(result,dict) else {})}

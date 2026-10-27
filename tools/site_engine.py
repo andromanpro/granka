@@ -11,6 +11,10 @@ class VideoMedia(Treeprocessor):
         for node in root.iter('img'):
             if urlsplit(node.get('src','')).path.lower().endswith('.mp4'):
                 node.tag='video';node.set('controls','');node.set('preload','metadata')
+                node.set('playsinline','')
+                # Publication snapshots must fit themes that only constrain images.
+                # Keep the source aspect ratio for both landscape and portrait media.
+                node.set('style','display:block;width:100%;max-width:100%;height:auto;')
                 node.set('aria-label',node.attrib.pop('alt','Видео'))
 
 

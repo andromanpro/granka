@@ -9,8 +9,10 @@ import time
 import urllib.error
 import urllib.request
 import uuid
-from .ai_provider import atomic_json
 from .telegram_media import MAX_TOTAL, MIME, validate_bytes
+from .telegram_delivery import delivery_lock, PublicationBusy, head, post_key, validate_edit, edit_calls
+
+_UNSET=object()
 
 
 class TelegramRejected(RuntimeError):
@@ -86,7 +88,7 @@ class Telegram:
                 'has_token':available,'token_source':'file' if config.get('token_file') else 'local' if config.get('token') else 'environment'}
 
     def save_settings(self,values):
-        with self.lock:
+        with self.lock,delivery_lock(self.directory):
             config=self.config()
             chat=values.get('chat_id',config.get('chat_id',''))
             if not isinstance(chat,str) or (chat and not re.fullmatch(r'@[A-Za-z][A-Za-z0-9_]{3,31}|-100\d{5,20}',chat.strip())):
@@ -100,7 +102,7 @@ class Telegram:
                 config['token']=values['token'].strip();config['token_file']=''
             if values.get('clear_token') is True:config.pop('token',None);config['token_file']=''
             if config.get('token') or config.get('token_file'):self.token(config)
-            atomic_json(self.directory/'settings.json',config)
+            self.persist(self.directory/'settings.json',config)
             return self.settings()
 
     def connection(self):
@@ -128,12 +130,44 @@ class Telegram:
         if not p.exists():raise LookupError('Публикация не найдена')
         return json.loads(p.read_text(encoding='utf-8'))
 
+    def persist(self,path,record):
+        # Retry local persistence only, never the Telegram API operation.
+        path.parent.mkdir(parents=True,exist_ok=True)
+        temporary=path.with_name('.'+path.name+'.'+uuid.uuid4().hex+'.tmp')
+        try:
+            temporary.write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf-8',newline='\n')
+            for attempt in range(8):
+                try:temporary.replace(path);return
+                except PermissionError as error:
+                    if os.name!='nt'or getattr(error,'winerror',None)not in {5,32,33}or attempt==7:raise
+                    time.sleep(min(.02*2**attempt,.25))
+        finally:temporary.unlink(missing_ok=True)
+
+    def records(self,root,rel,recover=False):
+        values=[]
+        for path in (self.directory/'outbox').glob('*/publication.json'):
+            value=json.loads(path.read_text(encoding='utf-8'))
+            if value['root']==root and value['rel']==rel:
+                if recover and value['status']=='sending':
+                    value.update(status='unknown',error='Отправка была прервана. Проверь канал перед дальнейшими действиями.')
+                    self.persist(path,value)
+                values.append(value)
+        return values
+
+    @staticmethod
+    def content_id(record):
+        raw=Path(record['photo_path']).read_bytes()if record.get('photo_path')else b''
+        legacy=[record['root'],record['rel'],record['channel']['chat_id'],record['text'],hashlib.sha256(raw).hexdigest()]
+        identity=legacy+[record['attachments'],record.get('rich_message')]if record.get('attachments')or record.get('rich_message')else legacy
+        return hashlib.sha256(json.dumps(identity,ensure_ascii=False,sort_keys=True).encode()).hexdigest()[:32]
+
     @staticmethod
     def public(record):
         return {k:v for k,v in record.items() if k not in {'config_fingerprint','photo_path','media_paths','rich_message'}}
 
-    def prepare(self,root,rel,version,text,photo=None,media=None,rich_message=None,rich_files=None):
-        with self.lock:
+    def prepare(self,root,rel,version,text,photo=None,media=None,rich_message=None,rich_files=None,action=None,target_id=None,expected_source_id=_UNSET):
+        if action not in {None,'create','update'}:raise ValueError('Выбери создание или обновление публикации')
+        with self.lock,delivery_lock(self.directory):
             raw=photo.read_bytes() if photo else b''
             if photo and (len(raw)>10*1024*1024 or photo.suffix.lower() not in {'.jpg','.jpeg','.png'}):
                 raise ValueError('Для Telegram нужна обложка PNG/JPEG до 10 МБ')
@@ -153,17 +187,37 @@ class Telegram:
             fingerprint=self.fingerprint();channel=self.connection()
             legacy=[root,rel,channel['chat_id'],text,hashlib.sha256(raw).hexdigest()]
             identity=json.dumps(legacy if not descriptors and not rich_message else legacy+[descriptors,rich_message],ensure_ascii=False,sort_keys=True)
-            identifier=hashlib.sha256(identity.encode()).hexdigest()[:32]
+            content_id=hashlib.sha256(identity.encode()).hexdigest()[:32]
+            records=[v for v in self.records(root,rel,recover=True)if v['channel']['chat_id']==channel['chat_id']]
+            latest=head(records);target=None;identifier=content_id
+            if expected_source_id is not _UNSET and expected_source_id!=(latest['id']if latest else None):
+                raise ValueError('История публикаций изменилась в другом окне. Открой Telegram заново перед подготовкой.')
+            if action=='update':
+                target=self.read(target_id or '')
+                if target['root']!=root or target['rel']!=rel or target['channel']['chat_id']!=channel['chat_id']or target['status']!='sent':
+                    raise ValueError('Выбери опубликованный пост этой статьи в текущем канале')
+                if head(records,post_key(target))['id']!=target['id']:raise ValueError('Пост уже обновлён. Открой актуальную публикацию и подготовь правку заново.')
+                if (target.get('content_id')or self.content_id(target))==content_id:return {**self.public(target),'unchanged':True}
+                identifier=hashlib.sha256((content_id+'|update|'+target['id']).encode()).hexdigest()[:32]
+            elif action=='create'and latest:
+                identifier=hashlib.sha256((content_id+'|create|'+latest['id']).encode()).hexdigest()[:32]
             path=self.record_path(identifier)
             if path.exists():
                 previous=self.read(identifier)
                 if previous['status'] in {'prepared','failed'} and previous['config_fingerprint']!=fingerprint:
                     previous.update(config_fingerprint=fingerprint,channel=channel,status='prepared')
-                    previous.pop('error',None);atomic_json(path,previous)
+                    previous.pop('error',None);self.persist(path,previous)
                 return self.public(previous)
+            if action is None and latest:raise ValueError('Статья уже опубликована. Выбери «Обновить опубликованный пост» или явно «Создать новый».')
+            if any(v['status']in {'unknown','sending'}for v in records):raise ValueError('Есть отправка с неизвестным результатом. Проверь канал; новая отправка заблокирована.')
             record={'id':identifier,'root':root,'rel':rel,'version':version,'text':text,'channel':channel,
                     'status':'prepared','created':time.time(),'config_fingerprint':fingerprint,'with_cover':bool(photo),
-                    'mode':'article' if rich_message else 'announcement','attachments':descriptors}
+                    'mode':'article' if rich_message else 'announcement','attachments':descriptors,'action':action or 'create',
+                    'content_id':content_id,'base_source_id':latest['id']if latest else None}
+            if rich_message:record['rich_message']=rich_message
+            if target:
+                validate_edit(record,target)
+                record.update(target_id=target['id'],target_url=target.get('url',''),target_message_id=target['message_id'])
             if photo and not blobs:
                 copy=path.parent/('cover'+photo.suffix.lower());copy.parent.mkdir(parents=True,exist_ok=True)
                 copy.write_bytes(raw);record['photo_path']=str(copy)
@@ -172,23 +226,35 @@ class Telegram:
                 for field,(source,data) in blobs.items():
                     copy=path.parent/(field+source.suffix.lower());copy.write_bytes(data);record['media_paths'][field]=str(copy)
             if rich_message:record['rich_message']=rich_message
-            atomic_json(path,record)
+            self.persist(path,record)
             return self.public(record)
 
     def publish(self,identifier):
-        with self.lock:
+        with self.lock,delivery_lock(self.directory):
             record=self.read(identifier)
             if record['status'] in {'sent','sending','unknown'}:return self.public(record)
             if record['config_fingerprint']!=self.fingerprint():
                 raise ValueError('Настройки бота изменились. Подготовь предпросмотр заново.')
             path=self.record_path(identifier)
             token=self.token();photo=Path(record['photo_path']) if record.get('photo_path') else None
+            records=[v for v in self.records(record['root'],record['rel'])if v['channel']['chat_id']==record['channel']['chat_id']]
+            latest=head(records)
+            if 'base_source_id'in record:
+                if record['base_source_id']!=(latest['id']if latest else None):raise ValueError('В другом окне статья уже опубликована или обновлена. Подготовь актуальный вариант заново.')
+            elif latest and latest.get('finished',latest['created'])>record['created']:
+                raise ValueError('Статья уже опубликована после подготовки этого снимка. Подготовь её заново.')
+            if any(v['id']!=record['id']and v['status']in {'sending','unknown'}for v in records):
+                raise ValueError('Другая отправка не подтверждена. Проверь канал перед дальнейшими действиями.')
+            target=self.read(record['target_id'])if record.get('action')=='update'else None
+            if target and (target['root']!=record['root']or target['rel']!=record['rel']or target['channel']['chat_id']!=record['channel']['chat_id']or target['status']!='sent'):
+                raise ValueError('Прежняя публикация больше не подтверждена')
+            calls=edit_calls(record,target)if target else None
             files={k:Path(v)for k,v in record.get('media_paths',{}).items()}
             for item in record.get('attachments',[]):
                 if hashlib.sha256(files[item['field']].read_bytes()).hexdigest()!=item['sha256']:
                     raise ValueError('Снимок вложения изменился. Подготовь публикацию заново.')
             record.pop('error',None)
-            record.update(status='sending',started=time.time());atomic_json(path,record)
+            record.update(status='sending',started=time.time());self.persist(path,record)
             payload={'chat_id':record['channel']['chat_id']}
             method='sendPhoto' if photo else 'sendMessage'
             if record.get('rich_message'):
@@ -207,8 +273,22 @@ class Telegram:
             elif photo:payload['caption']=record['text']
             else:payload.update(text=record['text'],link_preview_options={'is_disabled':True})
             try:
-                result=bot_call(token,method,payload,files=files) if files else bot_call(token,method,payload,photo)
-                if method=='sendMediaGroup':
+                if calls:
+                    done=[]
+                    for edit_method,edit_payload,edit_files in calls:
+                        try:
+                            result=bot_call(token,edit_method,edit_payload,files=edit_files)if edit_files else bot_call(token,edit_method,edit_payload)
+                        except TelegramRejected as error:
+                            if 'message is not modified'in str(error).lower():result={'message_id':edit_payload['message_id']}
+                            elif done:raise TelegramUnknown('Альбом обновлён частично. Проверь канал.')from None
+                            else:raise
+                        if not isinstance(result,dict)or result.get('message_id')!=edit_payload['message_id']:
+                            raise TelegramUnknown('Не подтверждён номер обновлённого сообщения')
+                        done.append(result['message_id']);record['completed_edits']=done;self.persist(path,record)
+                    result={'message_id':target['message_id']}
+                    if target.get('message_ids'):record['message_ids']=target['message_ids']
+                else:result=bot_call(token,method,payload,files=files) if files else bot_call(token,method,payload,photo)
+                if not calls and method=='sendMediaGroup':
                     if not isinstance(result,list) or len(result)!=len(record['attachments']) or any(not isinstance(v,dict)or type(v.get('message_id'))is not int for v in result):
                         raise TelegramUnknown('Не получено подтверждение всего альбома. Проверь канал.')
                     record['message_ids']=[v['message_id']for v in result];result=result[0]
@@ -221,17 +301,16 @@ class Telegram:
             except TelegramRejected as error:record.update(status='failed',error=str(error),finished=time.time())
             except Exception:
                 record.update(status='unknown',error='Результат отправки неизвестен. Проверь канал; повторная отправка заблокирована.',finished=time.time())
-            atomic_json(path,record)
+            self.persist(path,record)
             return self.public(record)
 
     def publications(self,root,rel):
-        records=[]
         with self.lock:
-            for path in (self.directory/'outbox').glob('*/publication.json'):
-                value=json.loads(path.read_text(encoding='utf-8'))
-                if value['root']==root and value['rel']==rel:
-                    if value['status']=='sending':
-                        value.update(status='unknown',error='Отправка была прервана. Проверь канал перед дальнейшими действиями.')
-                        atomic_json(path,value)
-                    records.append(self.public(value))
-        return sorted(records,key=lambda r:r['created'],reverse=True)[:30]
+            try:
+                with delivery_lock(self.directory):records=self.records(root,rel,recover=True)
+            except PublicationBusy:records=self.records(root,rel)
+        heads={channel:(head([r for r in records if r['channel']['chat_id']==channel])or{}).get('id')for channel in {r['channel']['chat_id']for r in records}}
+        post_heads={post_key(r):(head(records,post_key(r))or{}).get('id')for r in records if r['status']=='sent'}
+        return [{**self.public(r),'is_source_head':heads[r['channel']['chat_id']]==r['id'],
+                 'is_post_head':r['status']=='sent'and post_heads.get(post_key(r))==r['id']}
+                for r in sorted(records,key=lambda r:r.get('finished',r['created']),reverse=True)[:30]]

@@ -11,17 +11,17 @@ import {
   toast,
 } from "./core.js";
 import { editor } from "./editor.js";
+import { openSettings } from './settings.js';
 let plan = null,
   review = null,
   info = null,
   locked = false,
   jobSignature = null,
   refreshSequence = 0;
-const names = {
-  nas: "1 · Git и предпросмотр",
-  staging: "2 · Стейдж",
-  prod: "3 · Прод",
-};
+const sequence = () => info?.pipeline || [];
+const stageName = stage => `${sequence().indexOf(stage)+1} · ${info?.environments?.[stage]?.label || stage}`;
+const previous = stage => sequence()[sequence().indexOf(stage)-1];
+const final = stage => stage === info?.final_stage;
 function metadata() {
   const result = {};
   for (const [key, id] of Object.entries({
@@ -80,34 +80,37 @@ function running() {
 }
 function render() {
   const active = running();
-  const stale = plan && plan.source_hash !== info?.source_hash;
+  const stale = plan && (plan.source_hash !== info?.source_hash ||
+    JSON.stringify(plan.pipeline || ['nas','staging','prod']) !== JSON.stringify(sequence()) ||
+    (plan.destination_signature && plan.destination_signature !== info?.configuration_signature));
   $("#site-fields").inert = locked || !!active;
   $("#site-prepare").disabled = !info?.configured;
   $("#site-domain").textContent =
-    info?.environments?.prod?.url || "WordPress · настрой подключение";
+    info?.environments?.[info?.final_stage]?.url || "WordPress · настрой подключение";
   $("#site-close").disabled = locked;
+  $("#site-open-settings").disabled = locked || !!active;
   $("#site-review").hidden = !review || stale;
   $("#site-confirm").disabled =
     locked ||
     !!active ||
-    (review?.stage !== "nas" && !$("#site-approval").checked);
+    (review?.previous && !$("#site-approval").checked);
   $("#site-snapshot").textContent = plan
-    ? `${plan.version} · ${plan.file} · ${plan.assets.length} картинок` +
-      (stale ? " · Статья изменилась: подготовь новый снимок." : "")
+    ? `${plan.version} · ${plan.file} · ${plan.assets.length} материалов` +
+      (stale ? " · Статья или подключение изменились: подготовь новый снимок." : "")
     : "Подготовь снимок текста, обложки и картинок для публикации.";
   const box = $("#site-stages");
   box.replaceChildren();
-  for (const stage of ["nas", "staging", "prod"]) {
+  for (const stage of sequence()) {
     const state = plan?.stages[stage],
       row = el("article", "site-stage");
-    row.appendChild(el("strong", null, names[stage]));
-    const previous = { staging: "nas", prod: "staging" }[stage];
+    row.appendChild(el("strong", null, stageName(stage)));
+    const predecessor = previous(stage);
     const enabled =
       plan &&
       !stale &&
       !active &&
       !locked &&
-      (!previous || plan.stages[previous]?.status === "succeeded");
+      (!predecessor || plan.stages[predecessor]?.status === "succeeded");
     if (state?.status === "succeeded") {
       const a = el(
         "a",
@@ -120,7 +123,7 @@ function render() {
       a.target = "_blank";
       a.rel = "noreferrer";
       row.appendChild(a);
-      if (stage === "nas" && plan.gitea) {
+      if (stage === sequence()[0] && plan.gitea) {
         const git = el("a", null, "Исходник в Git");
         git.href = plan.gitea.url;
         git.target = "_blank";
@@ -163,37 +166,37 @@ async function action(fn) {
 }
 async function inspect(stage) {
   await action(async () => {
+    $("#site-operation").textContent = "Подключаюсь к площадке «" + stageName(stage) + "» и проверяю статью…";
     review = await api("/api/site/review?" + query(), {
       method: "POST",
       body: { id: plan.id, stage },
     });
-    $("#site-review-title").textContent = names[stage];
+    $("#site-review-title").textContent = stageName(stage);
     $("#site-review-description").textContent =
       (review.existing
         ? "Обновится существующая статья «" +
           review.existing.title +
           "». Текст из WordPress будет заменён подготовленным снимком."
         : "Будет создана статья «" + plan.metadata.title + "».") +
-      (stage === "prod"
-        ? " На проде: " +
+      (final(stage)
+        ? " На сайте: " +
           (plan.metadata.status === "publish"
             ? "публичная публикация."
             : "черновик WordPress.")
         : " Страница будет доступна для просмотра на этом контуре.");
     $("#site-existing").hidden = !review.existing;
     if (review.existing) $("#site-existing").href = review.existing.url;
-    $("#site-approval-row").hidden = stage === "nas";
+    $("#site-approval-row").hidden = !review.previous;
     $("#site-approval").checked = false;
     $("#site-confirm").textContent =
-      stage === "nas"
-        ? "Сохранить в Git и открыть предпросмотр"
-        : stage === "staging"
-          ? "Перенести на стейдж"
+      !final(stage)
+        ? "Перенести на «" + (info.environments[stage]?.label || stage) + "»"
           : plan.metadata.status === "publish"
-            ? (review.existing ? "Обновить статью на " : "Опубликовать на ") + (info.environments.prod.url || "сайте")
+            ? (review.existing ? "Обновить статью на " : "Опубликовать на ") + (info.environments[stage]?.url || "сайте")
             : review.existing?.status === "publish"
               ? "Снять с публикации и сохранить черновиком"
-              : "Сохранить черновик на проде";
+              : "Сохранить черновик на сайте";
+    $("#site-operation").textContent = "Проверка завершена. Просмотри действие перед отправкой.";
   });
 }
 export async function openSite() {
@@ -211,10 +214,11 @@ export async function openSite() {
     fill(plan?.metadata || info.metadata);
     $("#site-operation").textContent = info.configured
       ? ""
-      : "Публикация выключена. Заполни раздел site в локальном файле конфигурации и перезапусти Гранку.";
+      : "Подключи WordPress в Настройках → Публикация на сайт. Можно использовать один сайт без Git и промежуточных площадок.";
   });
 }
 export function initSite() {
+  $("#site-open-settings").addEventListener('click',()=>{$('#sitedialog').close();openSettings();});
   $("#site-btn").addEventListener("click", openSite);
   $("#publication-edit").addEventListener("click", openSite);
   events.addEventListener("document", () => {
@@ -246,7 +250,7 @@ export function initSite() {
       });
       review = null;
       $("#site-operation").textContent =
-        "Снимок готов. Первый шаг — Git и предпросмотр.";
+        "Снимок готов. Проверь переход на первую площадку; отправка потребует отдельного подтверждения.";
     }),
   );
   $("#site-confirm").addEventListener("click", () =>

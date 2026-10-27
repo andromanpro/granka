@@ -5,7 +5,7 @@
   "planning": { "source_dirs": {} },
   "corrections_file": "./private/corrections.md",
   "voice": { "corpus_dir": "./voice-corpus", "profile_file": "./voice-profile.json" },
-  "site": { "enabled": false, "repository": "", "remote": "", "environments": {} },
+  "site": { "enabled": false, "pipeline": [], "git_enabled": false, "repository": "", "remote": "", "environments": {} },
   "codex_binary": "",
   "openrouter_key_file": "",
   "ai": {

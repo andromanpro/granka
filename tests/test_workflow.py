@@ -63,12 +63,14 @@ class JobServiceTests(unittest.TestCase):
         self.assertEqual(code,202);return response['job']['id']
 
     def wait(self,job_id):
-        deadline=time.monotonic()+5
+        # Windows process startup and a bounded file-sharing retry can exceed 5s.
+        # This checks eventual completion, not a performance requirement.
+        deadline=time.monotonic()+15
         while time.monotonic()<deadline:
             job=self.server.JOBS.get(job_id)
             if job['status'] not in {'queued','running'}:return job
             time.sleep(.01)
-        self.fail('Job did not finish')
+        self.fail('Job did not finish: '+repr(job))
 
     def test_apply_job_creates_version_and_materializes_markdown(self):
         job=self.wait(self.start('apply'));self.assertEqual(job['status'],'succeeded');self.assertEqual(job['result']['version'],'v2')

@@ -28,6 +28,29 @@ input, select, textarea { background: #1c201a; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 a { color: var(--accent); }
 a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+#tg-bot-status[data-state] {
+  position: relative;
+  margin: 20px 0 16px;
+  padding: 15px 18px 15px 48px;
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+#tg-bot-status[data-state]::before {
+  position: absolute; left: 17px; top: 15px;
+  font-size: 17px; font-weight: 700;
+}
+#tg-bot-status[data-state="success"] { background: #243322; border-color: #617851; color: #d5e8c6; }
+#tg-bot-status[data-state="success"]::before { content: "✓"; color: #bbd99f; }
+#tg-bot-status[data-state="pending"] { background: #322d20; border-color: #8b7750; color: #ead5ad; }
+#tg-bot-status[data-state="pending"]::before { content: "…"; }
+#tg-bot-status[data-state="error"] { background: #382621; border-color: #a8695b; color: #f2c0b3; }
+#tg-bot-status[data-state="error"]::before { content: "!"; }
 .primary { color: #261e19; }
 .primary:hover { background: #f3c5af; border-color: #f3c5af; }
 .quiet, .icon-button { background: transparent; }
@@ -389,3 +412,34 @@ body[data-section="diff"] .document-canvas { padding-inline: 30px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+.workspace-back { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; }
+#telegramdialog.workspace-page > header { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+.tg-delivery { border: 1px solid var(--line, #4b5542); border-radius: 8px; padding: 16px 18px; margin-bottom: 24px; background: var(--panel, #20271e); display: grid; grid-template-columns: 170px minmax(220px, 1fr); gap: 10px 16px; align-items: center; }
+.tg-delivery .fine-print { grid-column: 1 / -1; margin: 0; }
+.tg-delivery a { margin-left: 8px; }
+@media (max-width: 650px) { .tg-delivery { grid-template-columns: minmax(0, 1fr); } }
+/* Connection routes are settings, never an implicit deployment action. */
+.connection-settings{margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
+.connection-system{padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow-wrap:anywhere}
+.connection-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,1fr);gap:12px 22px;padding:20px 0;border-bottom:1px solid var(--line)}
+.connection-title{display:grid;gap:5px;align-content:center}
+.connection-title small{color:var(--muted);overflow-wrap:anywhere}
+.connection-row label{display:grid;gap:7px;color:var(--muted);font-size:13px}
+.connection-custom,.connection-route{grid-column:1/-1}
+.connection-route{color:var(--muted);overflow-wrap:anywhere}
+.connection-custom[hidden]{display:none}
+.connection-heading{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.connection-heading>small{padding:4px 9px;border:1px solid var(--line);border-radius:20px;color:var(--green)}
+.connection-actions{display:flex;gap:5px;margin-left:auto}
+.connection-active{display:flex!important;align-items:center;gap:8px}
+.connection-active input{width:auto}
+.connection-details{grid-column:1/-1;border:1px solid var(--line);border-radius:10px;padding:12px 15px}
+.connection-details summary,.connection-git summary{cursor:pointer;color:var(--text);padding:4px 0}
+.connection-details .settings-grid{margin:16px 0}
+.connection-details input,.connection-details textarea{width:100%;min-width:0}
+.connection-advanced textarea{font-family:Consolas,monospace;font-size:12px}
+.connection-advanced label{margin:15px 0}
+.connection-git{margin-top:24px;padding:16px 0;border-top:1px solid var(--line)}
+.connection-custom>label{width:100%}
+#connections-error{padding:12px;border:1px solid var(--accent);border-radius:10px;color:var(--accent)}
+@media(max-width:600px){.connection-row{grid-template-columns:1fr}}

@@ -49,7 +49,10 @@ class PublicationStatusBrowserTests(unittest.TestCase):
         self.page.fill('#texteditor',draft)
         self.go('help')
         expect(self.page.locator('#helpdialog')).to_be_visible()
-        expect(self.page.locator('#helpdialog img')).to_have_count(8)
+        expect(self.page.locator('#helpdialog img')).to_have_count(10)
+        for image in self.page.locator('#helpdialog img').all():
+            image.scroll_into_view_if_needed();image.evaluate('(img)=>img.decode()')
+            self.assertGreater(image.evaluate('(img)=>img.naturalWidth'),0)
         self.page.locator('#help-close').click()
         expect(self.page.locator('body')).to_have_attribute('data-section','editor')
         expect(self.page.locator('#texteditor')).to_have_value(draft)

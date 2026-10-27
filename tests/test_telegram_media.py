@@ -63,7 +63,7 @@ class MediaTests(unittest.TestCase):
     def test_one_video_and_album_snapshot_are_sent_once(self):
         for items,method in [([self.video],'sendVideo'),([self.video,self.image],'sendMediaGroup')]:
             with self.subTest(method=method),patch('tools.telegram.bot_call',side_effect=reply)as send:
-                ready=self.service.prepare('a','article.granka.json','v1',method,media=[self.path(i)for i in items])
+                ready=self.service.prepare('a','article.granka.json','v1',method,media=[self.path(i)for i in items],action='create')
                 self.assertEqual(sum(c.args[1].startswith('send')for c in send.call_args_list),0)
                 public=json.dumps(ready);self.assertNotIn(str(self.root),public)
                 out=self.service.publish(ready['id']);self.assertEqual(out['status'],'sent');self.service.publish(ready['id'])
