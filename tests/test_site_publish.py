@@ -249,4 +249,12 @@ class SiteTests(unittest.TestCase):
             result=wp.deploy(plan,fingerprint(None))
         sent=next(content for args,content in calls if args[:2]==['post','create'])
         self.assertIn('<video',sent);self.assertIn(url,sent)
+        from html.parser import HTMLParser
+        class MediaParser(HTMLParser):
+            def handle_starttag(self,tag,attrs):
+                if tag=='video':self.video=dict(attrs)
+        parser=MediaParser();parser.feed(sent)
+        style=dict(part.split(':',1)for part in parser.video['style'].split(';')if part)
+        self.assertEqual(style.get('width'),'100%');self.assertEqual(style.get('max-width'),'100%')
+        self.assertEqual(style.get('height'),'auto');self.assertIn('controls',parser.video)
         self.assertNotIn('../covers/',sent);self.assertEqual(result['post_id'],42)

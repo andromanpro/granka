@@ -16,6 +16,7 @@ from .ai_provider import atomic_json
 from .editorial_requests import editorial_requests
 from .site_wordpress import STAGES,WordPress,fingerprint,load_engine
 from . import config as environment
+from .site_topology import order,git_enabled,signature,publication_result,previous_stage,final_stage
 
 ENGINE=Path(__file__).with_name('site_engine.py')
 
@@ -57,23 +58,36 @@ class SitePublisher:
     def __init__(self,state,repo=None,remote=None,wordpress=None,environments=None):
         config=environment.load()['site']
         self.state=state
-        self.repo=Path(repo) if repo is not None else environment.path(config['repository']) if config.get('repository') else None
+        self.repo=Path(repo) if repo is not None else environment.path(config['repository']) if config.get('repository')and git_enabled(config) else None
         self.remote=remote if remote is not None else config.get('remote','')
         self.branch=config.get('branch','main')
         self.environments=environments if environments is not None else config.get('environments',{})
-        self.enabled=(repo is not None or config.get('enabled',False)) and (wordpress is not None or all(stage in self.environments for stage in STAGES))
+        self.dynamic=all(value is None for value in [repo,remote,wordpress,environments])
+        self.config={**config,'environments':self.environments,'repository':str(self.repo)if self.repo else'','remote':self.remote}
+        if wordpress is not None and not self.environments:self.environments={k:{}for k in STAGES};self.config['environments']=self.environments
+        if repo is not None or wordpress is not None:self.config['enabled']=True
+        self.enabled=self.config.get('enabled',False)
+        # A new operation reads current routes. An existing WordPress instance
+        # keeps its own config snapshot for the whole operation.
         self.wordpress=wordpress or (lambda stage,directory:WordPress(stage,directory,self.environments))
         self.lock=threading.RLock()
 
     def require_config(self):
-        if not self.enabled or not self.repo or not self.remote:
-            raise ValueError('Настрой site.repository, site.remote и site.environments, затем включи site.enabled')
+        self.refresh_config()
+        if not self.enabled or not order(self.config):raise ValueError('Открой Настройки → Публикация на сайт, добавь WordPress и включи публикацию')
+        if git_enabled(self.config)and(not self.repo or not self.remote):raise ValueError('Настрой Git или отключи его в настройках публикации')
+
+    def refresh_config(self):
+        if self.dynamic:
+            self.config=environment.load()['site'];self.environments=self.config.get('environments',{})
+            self.repo=environment.path(self.config['repository'])if self.config.get('repository')and git_enabled(self.config)else None
+            self.remote=self.config.get('remote','');self.branch=self.config.get('branch')or'main';self.enabled=self.config.get('enabled',False)
 
     @property
     def directory(self):return Path(self.state())/'site-publications'
 
     def git(self,*args,input=None,check=True):
-        self.require_config()
+        if not git_enabled(self.config)or not self.repo:raise ValueError('Git для этой публикации отключён')
         env=environment.git_environment()
         r=subprocess.run(['git','-C',str(self.repo),*environment.git_options(),*args],input=input,capture_output=True,timeout=120,env=env,
                          creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
@@ -81,25 +95,34 @@ class SitePublisher:
         return r.stdout.decode('utf-8').strip()
 
     def info(self,data,root=None,rel=None):
+        with self.lock:
+            self.refresh_config();return self._info(data,root,rel)
+
+    def _info(self,data,root=None,rel=None):
         import frontmatter
         post=frontmatter.loads(data['versions'][-1]['text']);fm=post.metadata
         history=self.plans(root,rel) if root is not None and rel is not None else []
-        published=next((p for p in history if p['stages'].get('prod',{}).get('status')=='succeeded'),None)
+        published=next((p for p in history if publication_result(p).get('status')=='succeeded'),None)
+        receipt=publication_result(published)if published else{}
         prior=(published or (history[0] if history else {})).get('metadata',{})
         heading=re.search(r'^#\s+(.+)$',post.content,re.M)
         title=str(fm.get('title') or (heading[1] if heading else data.get('doc','Статья')))
         table=dict(zip('абвгдеёзийклмнопрстуфхцчшщъыьэюя',
                        ['a','b','v','g','d','e','yo','z','i','y','k','l','m','n','o','p','r','s','t','u','f','h','ts','ch','sh','sch','','y','','e','yu','ya']))
         slug=re.sub('[^a-z0-9]+','-',''.join(table.get(c,c) for c in title.lower())).strip('-')[:90].rstrip('-') or 'article'
-        return {'configured':bool(self.enabled and self.repo and self.remote),'environments':{k:{'label':self.environments.get(k,{}).get('label',label),'url':self.environments.get(k,{}).get('url','')} for k,label in STAGES.items()},
+        sequence=order(self.config)
+        return {'configured':bool(self.enabled and sequence and(not git_enabled(self.config)or(self.repo and self.remote))),
+                'pipeline':sequence,'git_enabled':git_enabled(self.config),'final_stage':sequence[-1]if sequence else None,
+                'configuration_signature':signature(self.config)if sequence else None,
+                'environments':{k:{'label':self.environments[k].get('label',STAGES.get(k,k)),'url':self.environments[k].get('url','')} for k in sequence},
                 'repo':str(self.repo) if self.repo else '',
-                'publication':({'url':published['stages']['prod']['url'],'post_id':published['stages']['prod']['post_id'],
-                                'post_status':published['stages']['prod']['post_status'],'version':published['version'],
+                'publication':({'url':receipt['url'],'post_id':receipt['post_id'],
+                                'post_status':receipt['post_status'],'version':published['version'],
                                 'date':published['metadata']['date'],'changed':published['source_hash']!=source_hash(data)} if published else None),
                 'metadata':{'title':title,'slug':str(prior.get('slug') or fm.get('slug') or slug),
                 'date':str(prior.get('date') or fm.get('date') or datetime.date.today())[:10],
                 'status':prior.get('status') or (fm.get('status') if fm.get('status') in {'draft','publish'} else 'draft'),
-                'categories':fm.get('categories') or prior.get('categories') or ['дев-лог'],
+                'categories':fm.get('categories') or prior.get('categories') or ['Без рубрики'],
                 'tags':fm.get('tags',prior.get('tags',[])) or [],'excerpt':fm.get('excerpt',prior.get('excerpt','')) or ''}}
 
     def path(self,identifier):
@@ -119,18 +142,21 @@ class SitePublisher:
         return sorted(result,key=lambda r:r['created'],reverse=True)
 
     def prepare(self,root,rel,data,document,source_root,values):
+        with self.lock:return self._prepare(root,rel,data,document,source_root,values)
+
+    def _prepare(self,root,rel,data,document,source_root,values):
         import frontmatter
         self.require_config()
         meta=metadata(values);version=data['versions'][-1]
         owners=self.plans(root,rel)
-        published=next((p for p in owners if p['stages'].get('prod',{}).get('status')=='succeeded'),None)
+        published=next((p for p in owners if publication_result(p).get('status')=='succeeded'),None)
         if published and meta['slug']!=published['metadata']['slug']:
             raise ValueError('У опубликованной статьи сохраняется прежний адрес. Переименование с редиректом — отдельная операция.')
         if published and meta['date']!=published['metadata']['date']:
             raise ValueError('Дата опубликованной статьи сохраняется: она может входить в её адрес.')
         pending=editorial_requests(version['text'])
         if pending:raise ValueError('Перед публикацией заполни редакторские вставки: '+pending[0]['quote'][:100])
-        if (self.git('remote','get-url','origin').rstrip('/')!=self.remote.rstrip('/') or
+        if git_enabled(self.config)and(self.git('remote','get-url','origin').rstrip('/')!=self.remote.rstrip('/') or
                 self.git('remote','get-url','--push','origin').rstrip('/')!=self.remote.rstrip('/')):
             raise ValueError('У blog-content другой origin; проверь настройки публикации')
         post=frontmatter.loads(version['text']);body=post.content
@@ -170,16 +196,16 @@ class SitePublisher:
             if not cover:raise ValueError('Для обложки выбери локальный файл в Гранке')
         file='posts/'+meta['date']+'-'+meta['slug']+'.md'
         actual_source=document.with_name(document.name.removesuffix('.granka.json')+'.md').resolve()
-        if actual_source.parent==self.repo.resolve()/'posts':file=actual_source.relative_to(self.repo.resolve()).as_posix()
-        else:
+        if self.repo and git_enabled(self.config)and actual_source.parent==self.repo.resolve()/'posts':file=actual_source.relative_to(self.repo.resolve()).as_posix()
+        elif self.repo and git_enabled(self.config):
             canonical=next((p['file'] for p in owners if p['metadata']['slug']==meta['slug'] and (self.repo/p['file']).is_file()),None)
             if canonical:file=canonical
-        owned=any(p['file']==file for p in owners) or actual_source==self.repo.resolve()/file
-        for other in (self.repo/'posts').glob('*.md'):
+        owned=any(p['file']==file for p in owners)or(self.repo is not None and actual_source==self.repo.resolve()/file)
+        for other in ((self.repo/'posts').glob('*.md')if self.repo and git_enabled(self.config)else[]):
             other_slug=str(frontmatter.load(other).metadata.get('slug') or re.sub(r'^\d{4}-\d{2}-\d{2}-','',other.stem))
             if other_slug==meta['slug'] and (other.relative_to(self.repo).as_posix()!=file or not owned):
                 raise ValueError('Этот адрес уже есть в blog-content. Открой существующую статью для обновления или измени slug.')
-        if (self.repo/file).exists() and not owned:raise ValueError('Файл назначения уже существует и не принадлежит этой статье')
+        if self.repo and git_enabled(self.config)and(self.repo/file).exists()and not owned:raise ValueError('Файл назначения уже существует и не принадлежит этой статье')
         fm={**post.metadata,**meta}
         if cover:fm['featured_image']='../'+cover
         (bundle/'posts').mkdir(exist_ok=True)
@@ -188,20 +214,23 @@ class SitePublisher:
         record={'id':identifier,'root':root,'rel':rel,'version':version['id'],'source_hash':source_hash(data),
                 'created':time.time(),'metadata':meta,'file':file,'assets':list(assets),'cover':cover,'files':files,
                 'engine_hash':hashlib.sha256((directory/'engine.py').read_bytes()).hexdigest(),
-                'baseline_files':{name:hashlib.sha256((self.repo/name).read_bytes()).hexdigest() if (self.repo/name).is_file() else None for name in files},
+                'pipeline':order(self.config),'destination_signature':signature(self.config),
+                'baseline_files':{name:hashlib.sha256((self.repo/name).read_bytes()).hexdigest()if self.repo and(self.repo/name).is_file()else None for name in files},
                 'stages':{}}
         atomic_json(directory/'plan.json',record)
         return record
 
     def gate(self,plan,stage):
         self.require_config()
-        if stage not in STAGES:raise ValueError('Неизвестный контур')
-        previous={'staging':'nas','prod':'staging'}.get(stage)
+        sequence=plan.get('pipeline')or list(STAGES)
+        if sequence!=order(self.config)or(plan.get('destination_signature')and plan['destination_signature']!=signature(self.config)):
+            raise ValueError('Подключение или порядок площадок изменился. Подготовь новый снимок статьи.')
+        previous=previous_stage(plan,stage)
         if previous and plan['stages'].get(previous,{}).get('status')!='succeeded':
             raise ValueError('Сначала заверши предыдущий контур для этого снимка')
 
     def verify_previous(self,plan,stage):
-        previous={'staging':'nas','prod':'staging'}.get(stage)
+        previous=previous_stage(plan,stage)
         if previous:
             state=self.wordpress(previous,self.path(plan['id'])).inspect(plan['metadata']['slug'])
             if fingerprint(state)!=plan['stages'][previous]['fingerprint']:
@@ -213,6 +242,7 @@ class SitePublisher:
             self.verify_previous(plan,stage)
             state=self.wordpress(stage,self.path(identifier)).inspect(plan['metadata']['slug'])
             review={'id':uuid.uuid4().hex,'stage':stage,'fingerprint':fingerprint(state),'created':time.time(),
+                    'previous':previous_stage(plan,stage),'final':stage==final_stage(plan),
                     'existing':{k:state[k] for k in ['id','title','status','url','modified']} if state else None}
             plan['review']=review;atomic_json(self.path(identifier)/'plan.json',plan)
             return review
@@ -256,7 +286,7 @@ class SitePublisher:
             if not review or review['id']!=review_id:raise ValueError('Предпросмотр устарел')
             stage=review['stage'];self.gate(plan,stage)
             self.verify_previous(plan,stage)
-            if stage!='nas' and approved_previous is not True:raise ValueError('Подтверди просмотр предыдущего контура')
+            if previous_stage(plan,stage)and approved_previous is not True:raise ValueError('Подтверди просмотр предыдущего контура')
             if plan['stages'].get(stage,{}).get('status')=='succeeded':return plan['stages'][stage]
             directory=self.path(identifier)
             for name,expected in plan['files'].items():
@@ -267,7 +297,7 @@ class SitePublisher:
             plan['stages'][stage]={'status':'running','started':time.time(),'review_id':review_id,'approved_previous':approved_previous}
             atomic_json(directory/'plan.json',plan)
             try:
-                if stage=='nas':plan['gitea']=self.push_bundle(plan)
+                if stage==(plan.get('pipeline')or list(STAGES))[0]and git_enabled(self.config):plan['gitea']=self.push_bundle(plan)
                 result=remote.deploy(plan,review['fingerprint'])
                 plan['stages'][stage].update(status='succeeded',finished=time.time(),**result)
             except Exception as error:

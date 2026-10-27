@@ -51,6 +51,9 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.server.CALENDAR=PublicationPlan(lambda:self.directory/('calendar-'+self._testMethodName))
         self.state_patch=patch.object(self.server.ai_provider,'STATE',self.directory/'ai-state');self.state_patch.start();self.addCleanup(self.state_patch.stop)
         self.config_patch=patch.object(self.server.ai_provider,'CONFIG',self.directory/(self._testMethodName+'-config.json'));self.config_patch.start();self.addCleanup(self.config_patch.stop)
+        self.machine_patch=patch.object(self.server.environment,'CONFIG_FILE',self.server.ai_provider.CONFIG);self.machine_patch.start();self.addCleanup(self.machine_patch.stop)
+        from tools.site_publish import SitePublisher
+        self.server.SITE=SitePublisher(lambda:self.directory/('site-'+self._testMethodName))
         self.file=self.directory/'fixture.granka.json'
         self.source='# Заголовок 😀\n\nДо **жирного** есть [ссылка](https://example.org/).\n\n## Раздел\n\n- пункт один\n- пункт два\n\n> Цитата автора.\n'
         self.data={'doc':'fixture.md','versions':[{'id':'v1','text':self.source}],'annotations':[]}
@@ -82,6 +85,89 @@ class MarkdownBrowserTests(unittest.TestCase):
     def test_source_mapping_and_safe_rendering(self):
         results=self.page.evaluate((ROOT/'tests/markdown-browser-cases.js').read_text(encoding='utf-8'))
         self.assertEqual(len(results),21)
+
+    def test_fresh_single_wordpress_setup_and_publish_preview_without_git(self):
+        from test_site_publish import FakeWP
+        FakeWP.states={};FakeWP.calls=[]
+        self.page.click('#site-btn');expect(self.page.locator('#site-prepare')).to_be_disabled()
+        self.page.click('#site-open-settings');expect(self.page.locator('#site-empty')).to_be_visible()
+        expect(self.page.locator('.connection-row')).to_have_count(0)
+        self.assertFalse(self.page.locator('#site-config-enabled').is_checked());self.assertFalse(self.page.locator('#site-git-enabled').is_checked())
+        self.page.click('#site-add-destination');row=self.page.locator('.connection-row');identifier=row.get_attribute('data-stage')
+        self.page.fill('[data-site-label]','Мой WordPress');self.page.fill('[data-site-url]','https://blog.example.invalid')
+        self.page.fill('[data-site-host]','host.example.invalid');self.page.fill('[data-site-user]','publisher');self.page.fill('[data-site-wp-path]','/var/www/blog')
+        self.page.check('#site-config-enabled');self.page.click('#settingssave');expect(self.page.locator('#settingsdialog')).not_to_be_visible()
+        saved=json.loads(self.server.ai_provider.CONFIG.read_text(encoding='utf-8'))['site']
+        self.assertEqual(saved['pipeline'],[identifier]);self.assertFalse(saved['git_enabled']);self.assertEqual(saved['environments'][identifier]['ssh'][-1],'publisher@host.example.invalid')
+        self.page.click('button[data-section=settings]');expect(self.page.locator('#settingsdialog')).to_be_visible()
+        expect(self.page.locator('[data-site-label]')).to_have_value('Мой WordPress');self.page.locator('.connection-details').evaluate('(n)=>n.open=true')
+        self.page.set_viewport_size({'width':1440,'height':1600})
+        self.page.locator('.connection-settings').screenshot(path=str(ROOT/'_audit/telegram-update-20261028/single-site-settings.png'))
+        self.page.set_viewport_size({'width':1440,'height':1000})
+        self.page.click('#settingsclose')
+        with patch('tools.site_publish.WordPress',side_effect=lambda stage,directory,environments=None:FakeWP(stage,directory)),patch.object(self.server.SITE,'git',side_effect=AssertionError('Git must not run')):
+            self.page.click('#site-btn');expect(self.page.locator('#site-domain')).to_have_text('https://blog.example.invalid')
+            self.page.click('#site-prepare');expect(self.page.locator('#site-operation')).to_contain_text('Снимок готов')
+            expect(self.page.locator('.site-stage')).to_have_count(1);self.page.locator('.site-stage button').click()
+            expect(self.page.locator('#site-review')).to_be_visible();expect(self.page.locator('#site-approval-row')).not_to_be_visible()
+            expect(self.page.locator('#site-confirm')).to_have_text('Сохранить черновик на сайте')
+            expect(self.page.locator('#site-confirm')).to_be_enabled();self.page.screenshot(path=str(ROOT/'_audit/telegram-update-20261028/single-site-preview.png'),full_page=True)
+            self.page.click('#site-confirm');self.page.locator('.site-stage a').first.wait_for(timeout=15000)
+        self.assertEqual(FakeWP.calls,[identifier]);self.assertEqual(json.loads(self.file.read_text(encoding='utf-8'))['versions'],self.data['versions'])
+
+    def test_site_setup_reorder_disable_remove_and_invalid_draft_preserve_fields(self):
+        self.page.click('button[data-section=settings]');expect(self.page.locator('#site-empty')).to_be_visible()
+        for label in ['Проба','Блог']:
+            self.page.click('#site-add-destination');row=self.page.locator('.connection-row').last
+            row.locator('[data-site-label]').fill(label);row.locator('[data-site-url]').fill('https://'+('review'if label=='Проба'else'blog')+'.example.invalid')
+            row.locator('[data-site-host]').fill('host.example.invalid');row.locator('[data-site-wp-path]').fill('/var/www/'+label)
+        ids=self.page.locator('.connection-row').evaluate_all('(nodes)=>nodes.map(n=>n.dataset.stage)')
+        self.page.locator('.connection-row').last.get_by_role('button',name='↑',exact=True).click()
+        self.assertEqual(self.page.locator('.connection-row').first.get_attribute('data-stage'),ids[1])
+        self.page.locator('.connection-row').last.locator('[data-site-included]').uncheck()
+        self.page.check('#site-config-enabled');self.page.click('#settingssave');expect(self.page.locator('#settingsdialog')).not_to_be_visible()
+        saved=json.loads(self.server.ai_provider.CONFIG.read_text(encoding='utf-8'))['site'];self.assertEqual(saved['pipeline'],[ids[1]]);self.assertEqual(len(saved['environments']),2)
+        self.page.click('button[data-section=settings]');expect(self.page.locator('#settingsdialog')).to_be_visible()
+        self.page.locator('.connection-row').last.get_by_role('button',name='Удалить',exact=True).click();expect(self.page.locator('.connection-row')).to_have_count(1)
+        self.page.locator('.connection-details').evaluate('(n)=>n.open=true');self.page.fill('[data-site-url]','invalid-url');self.page.click('#settingssave')
+        expect(self.page.locator('#connections-error')).to_contain_text('URL WordPress');self.assertEqual(json.loads(self.server.ai_provider.CONFIG.read_text(encoding='utf-8'))['site'],saved)
+
+    def test_connection_settings_save_reopen_and_stale_window(self):
+        config=self.server.ai_provider.CONFIG
+        machine={'site':{'environments':{k:{'url':'https://'+k+'.example.invalid','ssh':['user@host.example.invalid'],'wp':['wp']}for k in ['nas','staging','prod']}},'private_setting':'preserved'}
+        config.write_text(json.dumps(machine),encoding='utf-8')
+        with patch('tools.site_connections.urllib.request.getproxies',return_value={'https':'http://127.0.0.1:10809'}):
+            self.page.click('button[data-section=settings]')
+            expect(self.page.locator('#system-proxy-state')).to_contain_text('http://127.0.0.1:10809')
+            self.page.select_option('[data-connection-mode=staging]','system')
+            self.page.select_option('[data-connection-mode=prod]','custom')
+            self.page.fill('[data-connection-proxy=prod]','socks5://127.0.0.1:1080')
+            expect(self.page.locator('[data-connection-proxy=prod]')).to_be_visible()
+            self.page.click('#settingssave');expect(self.page.locator('#settingsdialog')).not_to_be_visible()
+            saved=json.loads(config.read_text(encoding='utf-8'));self.assertEqual(saved['private_setting'],'preserved')
+            self.assertEqual(saved['site']['environments']['staging']['ssh_proxy'],'system')
+            self.page.click('button[data-section=settings]');expect(self.page.locator('#settingsdialog')).to_be_visible()
+            expect(self.page.locator('[data-connection-mode=prod]')).to_have_value('custom')
+            # A second window changes AI settings after this form was opened.
+            self.server.ai_provider.save_settings({'codex_model':'another-window'})
+            self.page.select_option('[data-connection-mode=prod]','direct');self.page.click('#settingssave')
+            expect(self.page.locator('#connections-error')).to_contain_text('другом окне')
+            saved=json.loads(config.read_text(encoding='utf-8'));self.assertEqual(saved['ai']['codex_model'],'another-window')
+            self.assertEqual(saved['site']['environments']['prod']['ssh_proxy'],'socks5://127.0.0.1:1080')
+
+    def test_connection_settings_layout_desktop_and_mobile(self):
+        config=self.server.ai_provider.CONFIG
+        config.write_text(json.dumps({'site':{'environments':{k:{'url':'https://'+k+'.example.invalid','ssh':['user@host.example.invalid'],'wp':['wp'],'ssh_proxy':'system'if k!='nas'else''}for k in ['nas','staging','prod']}}}),encoding='utf-8')
+        with patch('tools.site_connections.urllib.request.getproxies',return_value={'https':'http://127.0.0.1:10809'}):
+            self.page.click('button[data-section=settings]');self.page.locator('#connections-title').scroll_into_view_if_needed()
+            for width,height in [(1440,1000),(390,844)]:
+                self.page.set_viewport_size({'width':width,'height':height});self.page.locator('#connections-title').scroll_into_view_if_needed()
+                self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
+                for locator in ['#connections-title','[data-connection-mode=nas]','[data-connection-mode=prod]']:
+                    expect(self.page.locator(locator)).to_be_visible()
+                self.page.screenshot(path=str(ROOT/f'_audit/telegram-update-20261028/settings-{width}.png'),full_page=True)
+            self.page.set_viewport_size({'width':1440,'height':1200})
+            self.page.locator('.connection-settings').screenshot(path=str(ROOT/'_audit/telegram-update-20261028/connections-help.png'))
 
     def test_reload_waits_for_delayed_module_initialization(self):
         def delayed_main(route):
@@ -491,11 +577,31 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.assertIn('jokcau123',self.page.locator('#doc p').first.inner_text())
         self.page.keyboard.press('Control+z')
         self.assertNotIn('jokcau123',self.page.locator('#doc p').first.inner_text())
-        # Entering the editor may give the initial space its own native undo step.
-        for _ in range(2):
+        # Native undo grouping depends on Chromium's timing between key events.
+        # Even one group per typed character must restore the original text.
+        for _ in range(len(' jokcau123')):
             if self.page.evaluate('granka.editor.text()')==self.source:break
             self.page.keyboard.press('Control+z')
         self.assertEqual(self.page.evaluate('granka.editor.text()'),self.source)
+
+    def test_telegram_update_new_choice_and_visible_return_preserve_draft(self):
+        def bot(token,method,payload,photo=None,files=None):
+            if method=='getMe':return {'id':123,'username':'fixture_bot'}
+            if method=='getChat':return {'id':-100123456789,'type':'channel','title':'Учебный канал','username':'fixture_channel'}
+            if method=='getChatMember':return {'status':'administrator','can_post_messages':True}
+            return {'message_id':payload.get('message_id',42)}
+        self.server.TELEGRAM.save_settings({'chat_id':'@fixture_channel','token':'123456789:'+('c'*35)})
+        with patch('tools.telegram.bot_call',side_effect=bot)as calls:
+            old=self.server.TELEGRAM.prepare('articles','fixture.granka.json','v1','Old')
+            self.server.TELEGRAM.publish(old['id'])
+            self.page.locator('#announcement-btn').click();expect(self.page.locator('#telegram-close')).to_be_visible();expect(self.page.locator('#telegram-close')).to_contain_text('К статье')
+            expect(self.page.locator('#tg-delivery-action')).to_have_value('update');expect(self.page.locator('#tg-target')).to_have_value(old['id'])
+            self.page.locator('#tg-text').fill('Гранка: не трогай мои скобочки)))\n\nПоправил текст, добавил иллюстрации. Обновляю прежний пост — ссылка останется той же.')
+            self.page.screenshot(path=str(ROOT/'_audit/telegram-update-20261028/telegram-update.png'),full_page=True)
+            self.page.locator('#tg-text').fill('Updated from browser');self.page.locator('#tg-cover').uncheck();self.page.locator('#tg-prepare').click();expect(self.page.locator('#tg-publish')).to_have_text('Обновить опубликованный пост');self.page.locator('#tg-publish').click();expect(self.page.locator('#tg-publish')).to_have_text('Обновлено');expect(self.page.locator('#tg-publish')).to_be_disabled()
+            edits=[c for c in calls.call_args_list if c.args[1].startswith(('send','edit'))];self.assertEqual([c.args[1]for c in edits],['sendMessage','editMessageText']);self.assertEqual(edits[-1].args[2]['message_id'],42)
+            self.page.locator('#tg-edit').click();self.page.locator('#tg-delivery-action').select_option('create');expect(self.page.locator('#tg-delivery-hint')).to_contain_text('ещё один пост');self.page.locator('#tg-text').fill('Unsaved Telegram draft');self.page.locator('#tg-back-article').click();expect(self.page.locator('#telegramdialog')).not_to_be_visible();expect(self.page.locator('#doc')).to_be_visible();self.assertEqual(self.page.evaluate('granka.state.version'),'v1')
+            self.page.locator('#announcement-btn').click();expect(self.page.locator('#tg-text')).to_have_value('Unsaved Telegram draft');expect(self.page.locator('#tg-delivery-action')).to_have_value('update');self.page.locator('#telegram-close').click();self.assertEqual(self.page.evaluate('granka.editor.text()'),self.source)
 
     def test_enter_creates_paragraph_without_changing_other_blocks(self):
         self.select_visible('#doc p',False)
@@ -867,6 +973,36 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.page.click('#telegram-close');self.page.click('#announcement-btn')
         self.assertEqual(self.page.locator('#tg-text').input_value(),'Мой незавершённый анонс')
 
+    def test_telegram_access_check_reports_progress_success_and_failure_in_bot_panel(self):
+        self.page.click('#announcement-btn');self.page.click('[data-tg-tab=bot]')
+        self.page.wait_for_function('document.querySelector("#tg-bot-status").textContent.length > 0')
+        entered=threading.Event();release=threading.Event()
+        def delayed_connection():
+            entered.set();release.wait(10)
+            return {'bot_username':'fixture_bot','title':'Проверочный канал','chat_id':'-10012345678'}
+        try:
+            with patch.object(self.server.TELEGRAM,'connection',side_effect=delayed_connection) as connection:
+                self.page.click('#tg-check');self.assertTrue(entered.wait(2))
+                expect(self.page.locator('#tg-check')).to_be_disabled()
+                expect(self.page.locator('#tg-bot-status')).to_contain_text('Проверяю')
+                release.set()
+                expect(self.page.locator('#tg-bot-status')).to_contain_text('@fixture_bot')
+                expect(self.page.locator('#tg-bot-status')).to_contain_text('-10012345678')
+                expect(self.page.locator('#tg-check')).to_be_enabled()
+                self.assertEqual(connection.call_count,1)
+        finally:release.set()
+        with patch.object(self.server.TELEGRAM,'connection',side_effect=ValueError('У бота нет права публикации')):
+            self.page.click('#tg-check')
+            expect(self.page.locator('#tg-bot-status')).to_contain_text('У бота нет права публикации')
+            expect(self.page.locator('#tg-bot-status')).to_be_visible()
+            expect(self.page.locator('#tg-check')).to_be_enabled()
+            self.assertTrue(self.page.locator('#tg-compose-panel').is_hidden())
+        self.page.locator('#tg-chat-id').fill('@unsaved_channel')
+        with patch.object(self.server.TELEGRAM,'connection') as connection:
+            self.page.click('#tg-check')
+            expect(self.page.locator('#tg-bot-status')).to_contain_text('Сначала сохрани')
+            self.assertEqual(connection.call_count,0)
+
     def test_batch_preview_save_and_undo(self):
         from test_batch_decisions import fixture
         self.data=fixture();self.data['doc']='fixture.md'
@@ -952,7 +1088,7 @@ class MarkdownBrowserTests(unittest.TestCase):
                 self.page.locator('#site-review').wait_for(state='visible')
                 if stage!='nas':
                     self.assertTrue(self.page.locator('#site-confirm').is_disabled());self.page.check('#site-approval')
-                if stage=='prod':self.assertEqual(self.page.locator('#site-confirm').inner_text(),'Сохранить черновик на проде')
+                if stage=='prod':self.assertEqual(self.page.locator('#site-confirm').inner_text(),'Сохранить черновик на сайте')
                 self.page.click('#site-confirm');rows.nth(index).get_by_role('link').first.wait_for(timeout=10000)
             self.page.screenshot(path=str(ROOT/'_audit/site-workflow.png'),full_page=True)
         self.assertEqual(FakeWP.calls,['nas','staging','prod'])

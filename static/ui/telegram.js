@@ -23,9 +23,13 @@ let context = null,
   generating = null,
   displayed = null,
   locked = false,
+  checkingAccess = false,
   attachments = [],
   drafts = {},
-  currentMode = "announcement";
+  currentMode = "announcement",
+  publishedRecords = [],
+  deliveryChoice = false,
+  publicationsReady = false;
 const key = () => `granka.telegram:${S.root}|${S.file}`;
 const payload = () => ({
   text: $("#tg-text").value,
@@ -39,6 +43,46 @@ const payload = () => ({
 const assembled = () =>
   $("#tg-text").value.trim() +
   ($("#tg-url").value.trim() ? "\n\n" + $("#tg-url").value.trim() : "");
+function targets() {
+  const seen = new Set();
+  return publishedRecords.filter(r => {
+    const channel = settings.chat_id;
+    if (r.status !== "sent" || r.is_post_head === false || (r.channel.chat_id !== channel && "@" + r.channel.username !== channel)) return false;
+    const id = r.channel.chat_id + ":" + (r.message_ids || [r.message_id]).join(",");
+    if (seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+}
+function deliveryPayload() {
+  const action = $("#tg-delivery-action").value;
+  const sourceHead = publishedRecords.find(r => r.is_source_head &&
+    (r.channel.chat_id === settings.chat_id || "@" + r.channel.username === settings.chat_id));
+  return {...payload(), action, target_id: action === "update" ? $("#tg-target").value : null, expected_source_id: sourceHead?.id || null};
+}
+function renderDelivery() {
+  const options = targets(), select = $("#tg-target"), previous = select.value;
+  select.replaceChildren();
+  for (const item of options) {
+    const option = el("option", null, new Date((item.finished || item.created) * 1000).toLocaleString("ru-RU") + " · " + item.version);
+    option.value = item.id; select.appendChild(option);
+  }
+  if (options.some(r => r.id === previous)) select.value = previous;
+  $("#tg-delivery-action").querySelector('[value="update"]').disabled = !options.length;
+  if (!deliveryChoice) $("#tg-delivery-action").value = options.length ? "update" : "create";
+  const updating = $("#tg-delivery-action").value === "update";
+  select.hidden = $("#tg-target-label").hidden = !updating;
+  for (const element of [select, $("#tg-delivery-action")]) element.disabled = locked || !!prepared || !publicationsReady;
+  const hint = $("#tg-delivery-hint"); hint.replaceChildren();
+  const target = options.find(r => r.id === select.value);
+  hint.textContent = prepared?.unchanged ? "Изменений нет — этот вариант уже опубликован." : updating
+    ? "Изменится существующий пост. Его ссылка и номер сохранятся."
+    : options.length ? "В канале уже есть публикация этой статьи. Это действие создаст ещё один пост." : "Будет создан первый пост этой статьи в выбранном канале.";
+  const url = prepared?.target_url || target?.url;
+  if (url && (updating || options.length)) {
+    const link = el("a", null, " Открыть прежний пост"); link.href = url; link.target = "_blank"; link.rel = "noreferrer"; hint.appendChild(link);
+  }
+  if (!publicationsReady) hint.textContent = "Проверяю историю публикаций…";
+}
 function tab(name) {
   $("#tg-compose-panel").hidden = name !== "compose";
   $("#tg-bot-panel").hidden = name !== "bot";
@@ -56,6 +100,7 @@ function store() {
   } catch (_) {}
 }
 function render() {
+  renderDelivery();
   const rich = $("#tg-mode").value === "article";
   $("#tg-announcement-options").hidden = rich;
   $("#tg-use-article").hidden = !rich;
@@ -121,12 +166,16 @@ function render() {
     locked || !prepared || !["prepared", "failed"].includes(prepared.status);
   $("#tg-publish").textContent =
     prepared?.status === "sent"
-      ? "Опубликовано"
+      ? prepared.action === "update" ? "Обновлено" : "Опубликовано"
       : prepared?.status === "failed"
-        ? "Повторить отправку"
-        : "Опубликовать в «" + (prepared?.channel.title || "канал") + "»";
-  for (const id of ["#tg-save", "#tg-prepare", "#tg-edit", "#telegram-close"])
+        ? prepared.action === "update" ? "Повторить обновление" : "Повторить отправку"
+        : prepared?.action === "update" ? "Обновить опубликованный пост" : "Создать новый пост в «" + (prepared?.channel.title || "канал") + "»";
+  for (const id of ["#tg-save", "#tg-prepare", "#tg-edit", "#telegram-close", "#tg-back-article", "#tg-check", "#tg-settings-save", "#tg-token-clear"])
     $(id).disabled = locked;
+  $("#tg-prepare").textContent = $("#tg-delivery-action").value === "update" ? "Проверить обновление…" : "К публикации…";
+  $("#tg-prepare").disabled = locked || !publicationsReady;
+  $("#tg-check").textContent = checkingAccess ? "Проверяю…" : "Проверить доступ";
+  document.querySelectorAll("[data-tg-tab]").forEach((b) => b.disabled = locked);
   if (prepared) {
     const status = $("#tg-status");
     status.replaceChildren();
@@ -161,6 +210,8 @@ async function refreshSettings() {
   $("#tg-chat-id").value = settings.chat_id;
   $("#tg-token-file").value = settings.token_file;
   $("#tg-token").value = "";
+  delete $("#tg-bot-status").dataset.state;
+  $("#tg-bot-status").classList.remove("error");
   $("#tg-bot-status").textContent = settings.has_token
     ? "Токен настроен."
     : "Токен ещё не настроен.";
@@ -169,6 +220,8 @@ async function publications() {
   const result = await api("/api/telegram/publications?" + query()),
     list = $("#tg-publications");
   list.replaceChildren();
+  publishedRecords = result.publications;
+  publicationsReady = true;
   for (const record of result.publications) {
     const row = el("p", "fine-print");
     row.textContent =
@@ -176,7 +229,7 @@ async function publications() {
       " · " +
       ({
         prepared: "Подготовлен",
-        sent: "Опубликован",
+        sent: record.action === "update" ? "Обновлён" : "Опубликован",
         failed: "Ошибка",
         sending: "Отправляется",
         unknown: "Проверь канал",
@@ -197,6 +250,9 @@ export async function openTelegram() {
   if (S.editor && !(await editor.save())) return;
   context = { root: S.root, file: S.file, version: S.version };
   prepared = null;
+  deliveryChoice = false;
+  publishedRecords = [];
+  publicationsReady = false;
   displayed = null;
   let draft = S.document.announcement || {};
   try {
@@ -276,6 +332,7 @@ async function action(fn) {
   }
 }
 export function initTelegram() {
+  for (const id of ["#tg-delivery-action", "#tg-target"]) $(id).addEventListener("change", () => { deliveryChoice = true; render(); });
   $("#tg-mode").addEventListener("change",()=>{
     const selected=$("#tg-mode").value;$("#tg-mode").value=currentMode;store();currentMode=selected;$("#tg-mode").value=selected;
     const draft=drafts[selected]||{};$("#tg-text").value=draft.text||"";$("#tg-url").value=draft.url||"";
@@ -297,9 +354,9 @@ export function initTelegram() {
     if(!assets.length)box.textContent="В папке статьи пока нет фото и видео.";
   }));
   $("#announcement-btn").addEventListener("click", openTelegram);
-  $("#telegram-close").addEventListener("click", () =>
-    $("#telegramdialog").close(),
-  );
+  for (const id of ["#telegram-close", "#tg-back-article"]) $(id).addEventListener("click", () => {
+    if (locked) return; store(); $("#telegramdialog").close();
+  });
   $("#telegramdialog").addEventListener("cancel", (e) => {
     if (locked) e.preventDefault();
   });
@@ -352,7 +409,7 @@ export function initTelegram() {
       }
       prepared = await api("/api/telegram/prepare?" + query(), {
         method: "POST",
-        body: payload(),
+        body: deliveryPayload(),
       });
     }),
   );
@@ -398,16 +455,37 @@ export function initTelegram() {
   );
   $("#tg-check").addEventListener("click", () =>
     action(async () => {
-      const result = await api("/api/telegram/check", {
-        method: "POST",
-        body: {},
-      });
-      $("#tg-bot-status").textContent =
-        "@" +
-        result.bot_username +
-        " может публиковать в «" +
-        result.title +
-        "».";
+      const status = $("#tg-bot-status");
+      const controller = new AbortController();
+      let timer;
+      checkingAccess = true;
+      status.classList.remove("error");
+      status.dataset.state = "pending";
+      status.textContent = "Проверяю бота, канал и право публикации…";
+      render();
+      try {
+        if ($("#tg-token").value.trim() ||
+            $("#tg-chat-id").value.trim() !== (settings.chat_id || "") ||
+            $("#tg-token-file").value.trim() !== (settings.token_file || ""))
+          throw new Error("Сначала сохрани изменённые настройки бота, затем проверь доступ.");
+        timer = setTimeout(() => controller.abort(), 45000);
+        const result = await api("/api/telegram/check", {
+          method: "POST", body: {}, signal: controller.signal,
+        });
+        status.dataset.state = "success";
+        status.textContent = "Доступ подтверждён: @" + result.bot_username +
+          " может публиковать в «" + result.title + "». ID канала: " + result.chat_id + ".";
+      } catch (error) {
+        if (error.name === "AbortError")
+          error = new Error("Telegram не ответил за 45 секунд. Проверь соединение и повтори проверку.");
+        status.dataset.state = "error";
+        status.classList.add("error");
+        status.textContent = error.message;
+        throw error;
+      } finally {
+        clearTimeout(timer);
+        checkingAccess = false;
+      }
     }),
   );
   events.addEventListener("jobs", renderGeneration);

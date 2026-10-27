@@ -488,6 +488,21 @@
       >
       <h3>Приправы</h3>
       <div class="settings-grid"><label>Правая панель<select id="spice-view"><option value="jars">Флаконы с приправами</option><option value="text">Текстовая панель</option></select></label><label>Во время обработки<select id="spice-motion"><option value="ripple">Мягкая рябь</option><option value="gleam">Только блик</option><option value="none">Без движения</option></select></label></div>
+      <section class="connection-settings" aria-labelledby="connections-title">
+        <h3 id="connections-title">Публикация на сайт</h3>
+        <p class="fine-print">Подключите один WordPress или несколько площадок по порядку. Последняя включённая площадка — сайт публикации; промежуточные и Git необязательны. Нужен SSH-доступ и WP-CLI на сервере.</p>
+        <label class="setting-row reading-motion"><span><input id="site-config-enabled" type="checkbox" /> Включить публикацию на сайт</span></label>
+        <p id="system-proxy-state" class="connection-system" role="status"></p>
+        <p id="site-empty" class="fine-print">Сайты ещё не подключены. Добавьте свой WordPress; локальная инфраструктура не требуется.</p>
+        <div id="site-connections"></div>
+        <button id="site-add-destination" type="button">＋ Добавить WordPress</button>
+        <details class="connection-git"><summary>Хранение снимков в Git · необязательно</summary>
+          <label class="setting-row reading-motion"><span><input id="site-git-enabled" type="checkbox" /> Сохранять снимок в Git перед первой площадкой</span></label>
+          <div id="site-git-fields" hidden><label class="setting-row">Локальный репозиторий<input id="site-git-repository" placeholder="Каталог репозитория" /></label><label class="setting-row">Адрес remote<input id="site-git-remote" placeholder="https://git.example.invalid/author/articles.git" /></label><label class="setting-row">Ветка<input id="site-git-branch" placeholder="main" /></label><p class="fine-print">Используется существующий репозиторий с origin и настроенным авторством Git. Пароль в URL не поддерживается.</p></div>
+        </details>
+        <p class="fine-print">Сохранение меняет только настройки подключения. Проверка сервера — кнопкой «Подготовить переход» в публикации на сайт.</p>
+        <p id="connections-error" role="alert" hidden></p>
+      </section>
       <p id="settingsnote" class="fine-print"></p>
       <footer>
         <button id="settingssave" class="primary">Сохранить настройки</button>
@@ -505,10 +520,10 @@
         </div>
         <button
           id="telegram-close"
-          class="icon-button"
-          aria-label="Закрыть Telegram"
+          class="quiet workspace-back"
+          aria-label="Вернуться к статье"
         >
-          ✕
+          ← К статье
         </button>
       </header>
       <div class="segmented image-tabs">
@@ -516,6 +531,13 @@
         ><button data-tg-tab="bot">Бот и канал</button>
       </div>
       <section id="tg-compose-panel">
+        <section class="tg-delivery" aria-label="Действие с публикацией">
+          <label for="tg-delivery-action">Публикация в канале</label>
+          <select id="tg-delivery-action"><option value="create">Создать новый пост</option><option value="update">Обновить опубликованный пост</option></select>
+          <label for="tg-target" id="tg-target-label" hidden>Какой пост обновить</label>
+          <select id="tg-target" hidden></select>
+          <p id="tg-delivery-hint" class="fine-print" role="status"></p>
+        </section>
         <div id="tg-compose" class="telegram-layout">
           <section>
             <label class="field-label" for="tg-mode">Формат</label>
@@ -569,6 +591,7 @@
           ><button id="tg-prepare" class="primary">К публикации…</button
           ><button id="tg-edit" hidden>Вернуться к правке</button
           ><button id="tg-publish" class="primary" hidden>Опубликовать</button>
+          <button id="tg-back-article" class="quiet">← К статье</button>
         </div>
         <details class="settings-extra">
           <summary>История публикаций</summary>
@@ -605,7 +628,7 @@
           Токен хранится локально, вне репозитория. Также поддерживается
           переменная GRANKA_TELEGRAM_BOT_TOKEN.
         </p>
-        <p id="tg-bot-status" class="fine-print" role="status"></p>
+        <p id="tg-bot-status" class="fine-print" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="actions">
           <button id="tg-settings-save" class="primary">
             Сохранить настройки бота</button
@@ -635,9 +658,10 @@
         </button>
       </header>
       <p class="fine-print">
-        Сохраняем исходник в Git и смотрим предпросмотр. Затем отдельно
-        проверяем стейдж и переносим тот же снимок на прод.
+        Подготовьте снимок статьи и проверьте выбранную площадку.
+        Отправка потребует отдельного подтверждения. Дополнительные площадки и Git — в настройках.
       </p>
+      <button id="site-open-settings" type="button" class="quiet">Настройки публикации…</button>
       <div class="site-layout">
         <section id="site-fields">
           <label class="setting-row"
@@ -651,7 +675,7 @@
           <div class="settings-grid">
             <label>Дата<input id="site-date" type="date" /></label
             ><label
-              >На проде<select id="site-status">
+              >Статус на сайте<select id="site-status">
                 <option value="draft">Черновик</option>
                 <option value="publish">Опубликованная статья</option>
               </select></label
@@ -660,10 +684,10 @@
           <label class="setting-row"
             >Категории через запятую<input
               id="site-categories"
-              placeholder="дев-лог"
+              placeholder="Заметки"
           /></label>
           <label class="setting-row"
-            >Теги через запятую<input id="site-tags" placeholder="1С, ИИ"
+            >Теги через запятую<input id="site-tags" placeholder="разработка, заметки"
           /></label>
           <label class="setting-row"
             >Короткое описание<textarea
@@ -686,7 +710,7 @@
             >
             <label id="site-approval-row" class="tg-checkbox" hidden
               ><input id="site-approval" type="checkbox" /> Я просмотрел
-              предыдущий контур, можно переносить этот снимок дальше</label
+              предыдущую площадку, можно переносить этот снимок дальше</label
             >
             <button id="site-confirm" class="primary"></button>
           </section>
@@ -875,10 +899,35 @@
 <p>Кнопка <strong>На сайт</strong> в редакторе открывает параметры и снимок статьи:
 заголовок, адрес, дату, рубрики, метки, краткое описание и статус WordPress.
 Для уже выпущенной статьи кнопка называется <strong>Обновить на сайте</strong>.</p>
-<p>Перенос идёт через <strong>предпросмотр → стейдж → прод</strong> с подтверждением
-предыдущего контура. На проде проверьте выбранный статус: <strong>Черновик</strong>
-ещё не означает публикацию для читателей. Ошибка или внешняя правка
-в WordPress останавливает перенос. Статья и её изображения/видео входят в снимок.</p>
+<p>Откройте <strong>Настройки → Публикация на сайт → Добавить WordPress</strong>. Укажите
+название и адрес сайта, SSH-сервер и пользователя, каталог WordPress.
+Если используется отдельный SSH-ключ, укажите путь к его файлу. Пустой путь
+использует обычную настройку SSH/ssh-agent. На сервере должен быть установлен
+WP-CLI; это подключение по SSH, не пароль администратора WordPress.</p>
+<p>Для одного сайта NAS, стейдж и Git не нужны. Включите публикацию, сохраните
+настройки и вернитесь к статье. Подготовка снимка сохраняет текст,
+обложку, картинки и видео локально; <strong>Подготовить переход</strong> только проверяет
+сайт и показывает, будет создан новый пост или обновлён существующий.
+Отправка начинается отдельной кнопкой подтверждения. Статус <strong>Черновик</strong>
+сохраняет черновик WordPress, <strong>Опубликовано</strong> делает статью доступной читателям.</p>
+<p>Если нужны промежуточные проверки, добавьте ещё площадки и расположите их
+стрелками. Последняя включённая площадка — основной сайт, остальные —
+предварительные. Их страницы доступны на соответствующих серверах;
+после просмотра подтвердите переход к следующей. Галочка <strong>Использовать
+в маршруте</strong> позволяет пропустить площадку, сохранив её настройки.
+На любой площадке внешняя правка WordPress останавливает перенос.
+Изменение адреса или порядка после подготовки требует нового снимка.</p>
+<p>Если внешнему серверу нужен прокси, откройте <strong>Настройки → Публикация на сайт</strong>.
+Для каждого сайта выберите <strong>Напрямую</strong>, <strong>Системный прокси</strong> или <strong>Указать прокси</strong>.
+Там же показан адрес, найденный в системе. Локальная площадка обычно использует
+прямое подключение. Сохранение настроек ничего не публикует; кнопка
+<strong>Подготовить переход</strong> проверяет сервер и показывает предстоящую операцию.</p>
+<p><img alt="Подключение одного WordPress без NAS, стейджа и Git" src="/static/help/connections.png" /></p>
+<p>В <strong>Хранение снимков в Git</strong> можно включить дополнительную копию в своём
+репозитории. Он должен быть уже создан, с origin, нужной веткой и авторством.
+Git включается отдельно; Гранка не создаёт его автоматически и не требует
+GitHub или Gitea для обычной отправки в WordPress.</p>
+<p><img alt="Предпросмотр отправки на один подключённый сайт" src="/static/help/site-preview.png" /></p>
 <h3>Подключить Telegram</h3>
 <p>В разделе <strong>Telegram → Бот и канал</strong> сохраните токен своего бота и
 <code>@имя_канала</code>, затем нажмите <strong>Проверить подключение</strong>.
@@ -899,16 +948,33 @@ Bot API не предоставляет загрузку всей прежней
 абзацами. Добавляйте каждое медиа отдельным блоком. Отображение зависит
 от поддержки Rich Messages клиентом Telegram. Обычная подпись к ролику
 не требует этого формата.</p>
-<p><strong>Подготовить</strong> фиксирует текст, файлы и канал. Проверьте снимок, затем
-нажмите кнопку публикации. При неизвестном исходе отправка не повторяется:
-сначала посмотрите канал, чтобы не получить дубликат.</p>
+<p>В поле <strong>Публикация в канале</strong> выберите действие. Если Гранка уже отправляла
+эту статью в выбранный канал, по умолчанию стоит <strong>Обновить опубликованный пост</strong>.
+Укажите прежнюю публикацию: её ссылка и номер сохранятся, а текст и медиа
+заменятся проверенным снимком. Для альбома сохраняется число вложений;
+изменение его состава требует отдельного нового поста.</p>
+<p><strong>Создать новый</strong> явно создаёт ещё одну публикацию. Рядом появляется
+предупреждение, если статья уже выходила в этом канале. История доступна
+только для отправок, выполненных Гранкой в том же профиле; произвольный
+старый пост из Telegram автоматически не загружается.</p>
+<p>Кнопка <strong>К публикации…</strong> или <strong>Проверить обновление…</strong> фиксирует текст,
+файлы, канал и выбранное действие. Сначала проверьте снимок, затем нажмите
+кнопку отправки или обновления. При неизвестном исходе повтор блокируется:
+сначала посмотрите канал. Ошибка обновления не создаёт новый пост.</p>
+<p>Два окна одного профиля не могут одновременно отправить снимки этой статьи:
+работает межпроцессная блокировка и проверка актуальности истории.
+После отправки из другого окна устаревший снимок потребуется подготовить заново.
+Кнопки <strong>← К статье</strong> в шапке и внизу формы возвращают в редактор;
+незавершённый текст анонса остаётся в этом браузере.</p>
 <p>Сайт и Telegram — отдельные внешние операции. Подготовьте обе версии заранее,
 проверьте итоговую ссылку сайта и наличие бота. Успешный выпуск в один канал
 не означает успех второго.</p>
 <h3>Настроить рабочее место</h3>
 <p>В <strong>Настройках → Оформление</strong> выбираются шрифт и размер чтения, можно
 отключить движение. Оформление сохраняется в текущем браузере.
-Здесь же настраиваются ИИ-исполнители. Для расширенного подключения путей,
+Здесь же настраиваются ИИ-исполнители и маршруты подключения к сайту.
+Маршруты и параметры ИИ сохраняются вместе с проверкой ревизии: чужие изменения
+из второго окна не перезаписываются. Для расширенного подключения путей,
 WordPress и голоса есть <a href="https://github.com/andromanpro/granka/blob/main/docs/CONFIGURATION.md">описание конфигурации</a>.</p>
 <p><img alt="Настройки рабочей мастерской" src="/static/help/settings.png" /></p>
 <p>Установка, переносимая версия, обновление и удаление описаны в

@@ -28,6 +28,7 @@ from tools.editorial_workflow import apply_decisions, add_analysis, analysis_pro
 from tools.editorial_requests import editorial_requests, request_prompt, REQUEST_SCHEMA
 from tools.covers import cover_prompt, validate_cover
 from tools import announcements, telegram
+from tools.site_connections import SettingsConflict
 from tools import telegram_media
 from tools.site_publish import SitePublisher, source_hash
 from tools.publication_plan import PublicationPlan, PlanConflict
@@ -708,7 +709,11 @@ class H(BaseHTTPRequestHandler):
                             out.update(source_written=False, warning='Новая версия сохранена, но Markdown изменился снаружи и не был перезаписан.')
                 self._send(code, out)
             elif url.path == '/api/settings':
-                self._send(200,{'ok':True,'settings':ai_provider.save_settings(b.get('settings',{}))})
+                if not SITE.lock.acquire(blocking=False):raise ValueError('Дождись завершения проверки или публикации на сайт, затем сохрани настройки.')
+                try:
+                    values=ai_provider.save_settings(b.get('settings',{}),connections=b.get('connections'),expected_revision=b.get('config_revision'),site=b.get('site'))
+                    self._send(200,{'ok':True,'settings':values,'connections':ai_provider.site_connections.snapshot(ai_provider.CONFIG)})
+                finally:SITE.lock.release()
 
             elif url.path == '/api/quit':
                 from tools.desktop_runtime import active_jobs
@@ -772,7 +777,8 @@ class H(BaseHTTPRequestHandler):
                 review=plan.get('review')
                 if not review or review['id']!=b.get('review_id'):raise ValueError('Предпросмотр устарел')
                 SITE.gate(plan,review['stage'])
-                if review['stage']!='nas' and b.get('approved_previous') is not True:raise ValueError('Подтверди просмотр предыдущего контура')
+                from tools.site_topology import previous_stage
+                if previous_stage(plan,review['stage'])and b.get('approved_previous')is not True:raise ValueError('Подтверди просмотр предыдущего контура')
                 def work(directory):
                     current_site_plan(root,rel,plan['id'])
                     return SITE.deploy(plan['id'],review['id'],b.get('approved_previous'))
@@ -812,7 +818,8 @@ class H(BaseHTTPRequestHandler):
                         if not assets.is_relative_to(ROOTS[q.get('root',[''])[0]].resolve()) or not photo.is_relative_to(assets):
                             raise PermissionError('Обложка вне каталога статьи')
                         if not photo.is_file():raise LookupError('Обложка не найдена')
-                record=TELEGRAM.prepare(q.get('root',[''])[0],q.get('f',[''])[0],version['id'],text,photo,media=media,rich_message=rich,rich_files=rich_files)
+                source_guard={'expected_source_id':b['expected_source_id']}if'expected_source_id'in b else{}
+                record=TELEGRAM.prepare(q.get('root',[''])[0],q.get('f',[''])[0],version['id'],text,photo,media=media,rich_message=rich,rich_files=rich_files,action=b.get('action'),target_id=b.get('target_id'),**source_guard)
                 self._send(200,record)
             elif url.path == '/api/telegram/publish':
                 self._doc_path(q)
@@ -1161,7 +1168,7 @@ class H(BaseHTTPRequestHandler):
                 self._send(502, {'error':str(e)})
             else:
                 self._send(500, {'error':'internal'})
-        except (PlanConflict, LocationsConflict) as e:
+        except (PlanConflict, LocationsConflict, SettingsConflict) as e:
             self._send(409, {'error': str(e)})
         except ValueError as e:
             self._send(400, {"error": str(e)})

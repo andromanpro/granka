@@ -8,9 +8,13 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
+import sys
 import time
+import urllib.request
 import uuid
 from . import config as environment
+from .ssh_tunnel import parse_proxy
+from .site_topology import final_stage
 
 STAGES = {'nas':'Предпросмотр','staging':'Стейдж','prod':'Прод'}
 
@@ -30,7 +34,7 @@ def fingerprint(state):
 class WordPress:
     def __init__(self,stage,directory,environments=None):
         environments=environment.load()['site']['environments'] if environments is None else environments
-        if stage not in STAGES or stage not in environments:raise ValueError('Настрой контуры site.environments в конфигурации')
+        if stage not in environments:raise ValueError('Добавь площадку в Настройках → Публикация на сайт')
         self.stage=stage;self.env=environments[stage];self.directory=Path(directory)
         for key in ['ssh','wp']:
             if not isinstance(self.env.get(key),list) or not self.env[key] or not all(isinstance(v,str) and v for v in self.env[key]):
@@ -38,7 +42,18 @@ class WordPress:
         if not self.env.get('url','').startswith(('https://','http://')):raise ValueError('Укажи URL контура')
 
     def ssh(self,command,input=None):
-        cmd=['ssh','-o','BatchMode=yes','-o','ConnectTimeout=12',*(os.path.expanduser(arg) for arg in self.env['ssh']),command]
+        proxy=self.env.get('ssh_proxy')
+        if proxy=='system':
+            proxies=urllib.request.getproxies();proxy=proxies.get('https')or proxies.get('http')or proxies.get('all')
+            if not proxy:raise ValueError('Для этого контура выбран системный прокси, но он не настроен. Включи прокси или выбери прямое SSH-подключение.')
+        extra=[]
+        if proxy:
+            if not isinstance(proxy,str):raise ValueError('Некорректная настройка ssh_proxy')
+            parse_proxy(proxy)
+            parts=[sys.executable,'-B',str(Path(__file__).with_name('ssh_tunnel.py')),'--proxy',proxy,'--host','%h','--port','%p']
+            helper=subprocess.list2cmdline(parts)if os.name=='nt'else shlex.join(parts)
+            extra=['-o','ProxyCommand='+helper]
+        cmd=['ssh','-o','BatchMode=yes','-o','ConnectTimeout=12',*extra,*(os.path.expanduser(arg) for arg in self.env['ssh']),command]
         for attempt in range(3):
             try:
                 result=subprocess.run(cmd,input=input,capture_output=True,timeout=180,
@@ -52,7 +67,11 @@ class WordPress:
             preconnect=re.search(rb'^ssh: connect to host .+ port \d+: (Connection timed out|Connection refused|No route to host)\s*$',result.stderr)
             if result.returncode==255 and preconnect and attempt<2:time.sleep(attempt+1);continue
             break
-        if result.returncode:raise RuntimeError('Команда WordPress завершилась ошибкой. Подробности в журнале задания.')
+        if result.returncode:
+            if result.returncode==255:
+                route='через системный прокси'if self.env.get('ssh_proxy')=='system'else'через настроенный прокси'if proxy else'напрямую'
+                raise RuntimeError('Не удалось выполнить SSH-подключение '+route+'. Проверь доступность сервера, прокси и ключ. Подробности в журнале задания.')
+            raise RuntimeError('Команда WordPress завершилась ошибкой. Подробности в журнале задания.')
         return result.stdout.decode('utf-8').strip()
 
     def wp(self,args,content=None):
@@ -127,7 +146,7 @@ class WordPress:
         html=engine.render_markdown(content)
         categories=[str(engine.ensure_term('category',term,'')) for term in meta['categories']]
         tags=[str(engine.ensure_term('post_tag',term,'')) for term in meta['tags']]
-        desired_status=meta['status'] if self.stage=='prod' else 'publish'
+        desired_status=meta['status'] if self.stage==final_stage(bundle) else 'publish'
         server_date=self.wp(['eval',"echo current_time('Y-m-d');"])
         if desired_status=='publish' and meta['date']>server_date:
             raise ValueError('Дата статьи ещё не наступила в часовом поясе сайта')

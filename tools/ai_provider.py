@@ -14,6 +14,7 @@ import urllib.request
 import urllib.error
 import uuid
 from . import config as environment
+from . import site_connections
 
 HERE = Path(__file__).resolve().parents[1]
 CONFIG = environment.CONFIG_FILE
@@ -35,8 +36,8 @@ def settings():
     return {key:stored.get('ai',{}).get(key,value) for key,value in DEFAULTS.items()}
 
 
-def save_settings(values):
-    new = settings()
+def validated_settings(values, stored):
+    new = {key:stored.get('ai',{}).get(key,value)for key,value in DEFAULTS.items()}
     for key in DEFAULTS:
         if key in values:
             if not isinstance(values[key], str) or len(values[key]) > 200:
@@ -48,9 +49,13 @@ def save_settings(values):
         raise ValueError('Неизвестный формат картинки')
     if new['spice_view'] not in {'jars','text'} or new['spice_motion'] not in {'ripple','gleam','none'}:
         raise ValueError('Неизвестное оформление приправ')
-    stored = json.loads(CONFIG.read_text(encoding='utf-8')) if CONFIG.exists() else {}
-    stored['ai'] = new; atomic_json(CONFIG, stored)
     return new
+
+
+def save_settings(values, *, connections=None, expected_revision=None, site=None):
+    def mutate(stored):
+        new=validated_settings(values,stored);stored['ai']=new;return new
+    return site_connections.update(CONFIG,mutate,routes=connections,expected_revision=expected_revision,site=site)
 
 
 def codex_binary():
@@ -91,7 +96,7 @@ def capabilities():
     except RuntimeError: binary = None
     try: openrouter_key(); has_key = True
     except RuntimeError: has_key = False
-    return {'settings':settings(), 'codex_available':bool(binary), 'openrouter_available':has_key,
+    return {'settings':settings(), 'connections':site_connections.snapshot(CONFIG), 'codex_available':bool(binary), 'openrouter_available':has_key,
             'codex_default_model':codex_config().get('model','')}
 
 

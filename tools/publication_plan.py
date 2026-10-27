@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 import uuid
 
 from .ai_provider import atomic_json
+from .site_topology import publication_result
 
 
 class PlanConflict(ValueError):
@@ -105,7 +106,7 @@ class PublicationPlan:
         latest = {}
         for path in (Path(self.state()) / 'site-publications').glob('*/plan.json'):
             record = json.loads(path.read_text(encoding='utf-8'))
-            prod = record.get('stages', {}).get('prod', {})
+            prod = publication_result(record)
             if prod.get('status') != 'succeeded':
                 continue
             key = (record['root'], record['rel'])
@@ -113,7 +114,7 @@ class PublicationPlan:
                 latest[key] = record
         results = []
         for record in latest.values():
-            prod = record['stages']['prod']
+            prod = publication_result(record)
             if prod.get('post_status') != 'publish':
                 continue
             meta = record['metadata']
