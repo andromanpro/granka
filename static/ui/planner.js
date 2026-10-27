@@ -1,6 +1,7 @@
 import { $, S, api, el, button, loadDocument, toast, emit, allowNavigation } from "./core.js";
 import { editor } from "./editor.js";
 
+import { showWorkspacePage } from './workspace.js';
 const statusNames = { idea: "Идея", draft: "Черновик", ready: "Готово", published: "Опубликовано" };
 const channelNames = { article: "Статья", telegram: "Telegram" };
 const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
@@ -153,25 +154,18 @@ function scheduleOptions() {
 export async function openPlanner() {
   await operation(async () => {
     state = await api("/api/publication-plan"); month = new Date(); invalidate(); render();
-    if (!$("#plannerdialog").open) $("#plannerdialog").showModal();
+    showWorkspacePage("#plannerdialog", "calendar");
     $("#planner-btn").setAttribute("aria-expanded", "true");
-    if (location.hash !== "#calendar") history.pushState(null, "", "#calendar");
+
   });
 }
 export function initPlanner() {
   $('#planner-library').addEventListener('click', () => { $('#plannerdialog').close(); emit('sources'); });
-  $("#planner-btn").addEventListener("click", openPlanner);
   $("#plannerdialog").addEventListener("close", () => {
     $("#planner-btn").setAttribute("aria-expanded", "false");
-    if (location.hash === "#calendar") history.replaceState(null, "", location.pathname + location.search);
+
   });
-  window.addEventListener("hashchange", () => {
-    if (location.hash === "#calendar") openPlanner();
-    else {
-      $("#planner-entry-dialog").close();
-      $("#plannerdialog").close();
-    }
-  });
+
   $("#planner-close").addEventListener("click", () => $("#plannerdialog").close());
   $("#planner-entry-close").addEventListener("click", () => $("#planner-entry-dialog").close());
   for (const [id, delta] of [["prev", -1], ["next", 1]]) $("#planner-" + id).addEventListener("click", () => { month = new Date(month.getFullYear(), month.getMonth() + delta, 1); render(); });
@@ -230,5 +224,5 @@ export function initPlanner() {
     month = new Date(proposal.options.start + "T12:00:00");
     invalidate(); render(); toast("Даты сохранены в плане");
   }));
-  if (location.hash === "#calendar") openPlanner();
+
 }

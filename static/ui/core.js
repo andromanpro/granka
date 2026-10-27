@@ -36,6 +36,7 @@ export const S = {
   editor: null,
   meter: null,
   jobs: [],
+  publication: null,
   editorialRequests: {},
   loadedAt: 0,
   settings: {
@@ -132,6 +133,7 @@ export async function loadDocument(
       root,
       file,
       document: result.data,
+      publication: null,
       editorialRequests: result.editorial_requests || {},
       contractErrors: result.contract_errors || [],
       revision: result.revision,

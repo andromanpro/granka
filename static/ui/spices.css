@@ -11,7 +11,7 @@
 .spice-vessel-button:active { cursor:grabbing; }
 .spice-name { font-size:13px; color:var(--text); }
 .spice-flavour { font-size:11px; color:var(--muted); white-space:normal; }
-.spice-vessel { position:relative; display:block; width:62px; height:67px; margin-top:14px; border:1px solid #6c8a7a; border-radius:18px 18px 22px 22px; background:linear-gradient(100deg,#314a4199,#182822cc 42%,#425c4b99); box-shadow:inset 4px 0 7px #d9f3dd22,inset -5px 0 8px #020d0777,0 5px 9px #050d1355; transition:transform .18s; }
+.spice-vessel { position:relative; display:block; width:62px; height:67px; margin-top:14px; border:1px solid #6c8a7a; border-radius:18px 18px 22px 22px; background:linear-gradient(100deg,#314a4199,#182822cc 42%,#425c4b99); box-shadow:inset 4px 0 7px #d9f3dd22,inset -5px 0 8px #020d0777,0 5px 9px #0c0d0b55; transition:transform .18s; }
 .spice-vessel::after { content:""; position:absolute; left:7px; top:14px; width:4px; height:36%; border-radius:6px; background:#e8fff02e; }
 .spice-vessel-button[aria-pressed=true] .spice-vessel { transform:rotate(-4deg) translateY(-2px); }
 .spice-lid { position:absolute; z-index:2; top:-12px; left:0; right:0; height:19px; border-radius:10px 10px 3px 3px; background:repeating-linear-gradient(90deg,#8c9b86 0 4px,#667a69 4px 5px); box-shadow:0 3px 3px #020c0755; }
@@ -31,7 +31,7 @@
 .spice-metaphor .spice-label { top:9px; left:17px; right:15px; background:#dce7bd; transform:rotate(-3deg); }
 .spice-metaphor .spice-powder { background:repeating-linear-gradient(130deg,transparent 0 4px,#99b86777 4px 7px,transparent 7px 10px),#4e6e3c99; }
 .spice-allegory .spice-vessel { width:60px; height:58px; margin-top:38px; border-radius:17px 17px 12px 12px; border-color:#957599; background:linear-gradient(100deg,#9d7bae55,#33223a99,#80648d88); }
-.spice-allegory .spice-lid { left:19px; right:19px; top:-26px; height:31px; border-radius:7px 7px 3px 3px; background:repeating-linear-gradient(90deg,#30323c 0 3px,#484a55 3px 4px); }
+.spice-allegory .spice-lid { left:19px; right:19px; top:-26px; height:31px; border-radius:7px 7px 3px 3px; background:repeating-linear-gradient(90deg,#373c30 0 3px,#515746 3px 4px); }
 .spice-allegory .spice-lid::after { left:4px; top:-13px; width:14px; height:23px; border-radius:50% 50% 3px 3px; background:linear-gradient(90deg,#41404c,#665d70,#26232f); }
 .spice-allegory .spice-label { top:11px; left:6px; right:6px; background:#ead4ed; color:#66426e; transform:rotate(4deg); }
 .spice-allegory .spice-label small { color:#66426e; }

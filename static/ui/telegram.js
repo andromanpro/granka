@@ -7,6 +7,7 @@ import {
   version,
   latest,
   events,
+  emit,
   el,
   button,
   toast,
@@ -15,6 +16,7 @@ import {
 import { editor } from "./editor.js";
 import { startJob } from "./jobs.js";
 
+import { showWorkspacePage } from './workspace.js';
 let context = null,
   prepared = null,
   settings = {},
@@ -218,7 +220,7 @@ export async function openTelegram() {
   $("#tg-variants").replaceChildren();
   tab("compose");
   render();
-  $("#telegramdialog").showModal();
+  showWorkspacePage("#telegramdialog", "telegram");
   try {
     await Promise.all([refreshSettings(), publications()]);
     render();
@@ -258,6 +260,8 @@ function renderGeneration() {
 async function action(fn) {
   if (locked) return;
   locked = true;
+  S.workspaceLocked = true;
+  events.dispatchEvent(new Event("workspace-lock"));
   render();
   try {
     await fn();
@@ -266,6 +270,8 @@ async function action(fn) {
     $("#tg-status").textContent = error.message;
   } finally {
     locked = false;
+    S.workspaceLocked = false;
+    events.dispatchEvent(new Event("workspace-lock"));
     render();
   }
 }
@@ -362,6 +368,7 @@ export function initTelegram() {
         body: { id: prepared.id, confirmed: true },
       });
       await publications();
+      emit('publication-sent');
     }),
   );
   $("#tg-settings-save").addEventListener("click", () =>
