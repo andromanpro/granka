@@ -55,12 +55,17 @@ class SpiceBrowserTests(unittest.TestCase):
             entered.set(); release.wait(8)
             return {'summary': 'Щепотка иронии', 'changes': [{'quote': 'Второй абзац.', 'occurrence': 0, 'variants': ['Второй абзац тоже участвует.'], 'why': 'Ирония'}]}, {'provider': 'codex'}
         with patch.object(self.server.ai_provider, 'text_result', side_effect=respond):
-            self.page.locator('.spice-vessel-button').first.drag_to(self.page.locator('#doc > p').nth(1))
-            self.assertTrue(entered.wait(3))
-            self.assertEqual(self.page.locator('#doc .spice-working').count(), 1)
-            self.assertIn('Второй', self.page.locator('#doc .spice-working').inner_text())
-            self.assertEqual(len(json.loads(self.file.read_text(encoding="utf-8"))['versions']), 1)
-            release.set(); self.page.locator('#spice-changes textarea').wait_for(timeout=10000)
+            try:
+                self.page.locator('.spice-vessel-button').first.drag_to(self.page.locator('#doc > p').nth(1))
+                self.assertTrue(entered.wait(3))
+                # The worker can start before its POST response reaches the UI.
+                # Keep it held and wait for the actual browser state as well.
+                expect(self.page.locator('#doc .spice-working')).to_have_count(1)
+                expect(self.page.locator('#doc .spice-working')).to_contain_text('Второй')
+                self.assertEqual(len(json.loads(self.file.read_text(encoding="utf-8"))['versions']), 1)
+            finally:
+                release.set()
+            self.page.locator('#spice-changes textarea').wait_for(timeout=10000)
         self.assertEqual(len(json.loads(self.file.read_text(encoding="utf-8"))['versions']), 1)
         self.page.screenshot(path=str(ROOT/'_audit/spices-2026-10-24/preview.png'))
         self.page.click('#spice-apply'); self.page.wait_for_function('granka.state.version === "v2" && !granka.state.busy')
