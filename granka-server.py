@@ -44,6 +44,36 @@ class ThreadingHTTPServer(_ThreadingHTTPServer):
     # A page imports many local ES modules in parallel. The stdlib backlog of
     # five can refuse connections during a reload while old requests drain.
     request_queue_size = 128
+    # Idle browser keep-alive sockets must not delay a confirmed shutdown.
+    # Active handlers are protected separately by prepare_shutdown().
+    daemon_threads = True
+
+    def __init__(self, *args, **kwargs):
+        self.activity_lock = threading.Lock()
+        self.active_requests = 0
+        self.stopping = False
+        super().__init__(*args, **kwargs)
+
+    def begin_request(self):
+        with self.activity_lock:
+            if self.stopping:
+                return False
+            self.active_requests += 1
+            return True
+
+    def end_request(self):
+        with self.activity_lock:
+            self.active_requests -= 1
+
+    def prepare_shutdown(self, busy=None):
+        with self.activity_lock:
+            # Only the /api/quit handler itself may remain. Setting stopping
+            # atomically also prevents a new write from racing the check.
+            if self.active_requests != 1:
+                raise ValueError('Дождись завершения запросов Гранки, затем повтори остановку.')
+            if busy is not None and busy():
+                raise ValueError('Дождись завершения заданий Гранки, затем повтори остановку.')
+            self.stopping = True
 
 
 TELEGRAM = telegram.Telegram(lambda: ai_provider.STATE)
@@ -407,17 +437,40 @@ def transcribe_webm(raw: bytes) -> dict:
 
 
 class H(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+
+    def handle(self):
+        try:
+            super().handle()
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+            pass  # Closing a browser tab can interrupt an idle keep-alive read.
+
+    def _dispatch(self, method):
+        if not self.server.begin_request():
+            self._send(503, {'error': 'Гранка останавливается.'})
+            return
+        try:
+            method()
+        finally:
+            self.server.end_request()
+
+    def do_GET(self):
+        self._dispatch(self._do_GET)
+
+    def do_POST(self):
+        self._dispatch(self._do_POST)
+
     def _media_file(self,path):
         size=path.stat().st_size;start=0;end=size-1;status=200
         request=self.headers.get('Range')
         if request:
             match=re.fullmatch(r'bytes=(\d*)-(\d*)',request)
             if not match or not any(match.groups()):
-                self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.end_headers();return
+                self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
             if match[1]:start=int(match[1]);end=int(match[2])if match[2]else end
             else:start=max(0,size-int(match[2]))
             if start>=size or end<start:
-                self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.end_headers();return
+                self.send_response(416);self.send_header('Content-Range',f'bytes */{size}');self.send_header('Content-Length','0');self.end_headers();return
             end=min(end,size-1);status=206
         self.send_response(status);self.send_header('Content-Type',telegram_media.MIME.get(path.suffix.lower(),'application/octet-stream'))
         self.send_header('Accept-Ranges','bytes');self.send_header('Content-Length',str(end-start+1));self.send_header('X-Content-Type-Options','nosniff')
@@ -440,6 +493,11 @@ class H(BaseHTTPRequestHandler):
             self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(raw)))
             self.send_header("Cache-Control", "no-store")
+            if code >= 400:
+                # Guard/body failures can leave unread request bytes. They
+                # must never become another request on the same connection.
+                self.close_connection = True
+                self.send_header('Connection', 'close')
             self.end_headers()
             self.wfile.write(raw)
         except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):
@@ -462,14 +520,14 @@ class H(BaseHTTPRequestHandler):
 
     def _body(self):
         n = int(self.headers.get("Content-Length", 0))
-        if n > MAX_BODY:
+        if n < 0 or n > MAX_BODY:
             raise ValueError("body too large")
         return json.loads(self.rfile.read(n).decode("utf-8")) if n else {}
 
     def _doc_path(self, q):
         return safe_resolve(q.get("root", [""])[0], q.get("f", [""])[0])
 
-    def do_GET(self):
+    def _do_GET(self):
         url = urllib.parse.urlparse(self.path)
         if not self._guard(False):
             return
@@ -602,7 +660,7 @@ class H(BaseHTTPRequestHandler):
             print(f"[granka] GET error: {e!r}")
             self._send(500, {"error": "internal"})
 
-    def do_POST(self):
+    def _do_POST(self):
         url = urllib.parse.urlparse(self.path)
         if url.path == '/api/telegram/upload':
             if not self._guard(False):return
@@ -719,8 +777,7 @@ class H(BaseHTTPRequestHandler):
                 from tools.desktop_runtime import active_jobs
                 if os.environ.get('GRANKA_PACKAGED') != '1' or b.get('installation') != str(HERE):
                     raise ValueError('Остановка доступна только для своей установленной копии Гранки.')
-                if active_jobs(ai_provider.STATE / 'jobs'):
-                    raise ValueError('Дождись завершения заданий Гранки, затем повтори остановку.')
+                self.server.prepare_shutdown(lambda: active_jobs(ai_provider.STATE / 'jobs'))
                 self._send(200, {'ok': True})
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
 
