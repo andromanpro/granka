@@ -13,6 +13,7 @@ class PublicationStatusBrowserTests(unittest.TestCase):
     reload_ready=workspace.WorkspaceBrowserTests.reload_ready
     go=workspace.WorkspaceBrowserTests.go
     def test_publication_view_evidence_and_partial_channels(self):
+        self.assertEqual(self.page.locator('.sidebar-bottom button[data-section="help"]').count(),1)
         result=self.page.evaluate('''async () => {
           const {publicationView:view}=await import('/static/ui/publication-state.js');
           const base={root:'articles',file:'fixture.granka.json',version:'v2'};
