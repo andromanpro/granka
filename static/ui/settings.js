@@ -1,4 +1,5 @@
 import { $, S, api, emit, toast, providerName } from "./core.js";
+import { showWorkspacePage, readAppearance, applyAppearance } from './workspace.js';
 const fields = {
   "analysis-provider": "analysis_provider",
   "image-provider": "image_provider",
@@ -28,17 +29,20 @@ export async function openSettings() {
     (info?.codex_default_model ? " · " + info.codex_default_model : "") +
     ". OpenRouter — отдельные платные запросы. Ключ " +
     (info?.openrouter_available ? "найден." : "не найден.");
-  if (!$("#settingsdialog").open) $("#settingsdialog").showModal();
+  const appearance = readAppearance();
+  $("#reading-font").value = appearance.font;
+  $("#reading-size").value = String(appearance.size);
+  $("#reading-motion").checked = appearance.motion;
+  showWorkspacePage("#settingsdialog", "settings");
 }
 export function initSettings() {
-  $("#settingsbtn").addEventListener("click", openSettings);
   $("#generation-settings").addEventListener("click", openSettings);
   $("#settingsclose").addEventListener("click", () =>
     $("#settingsdialog").close(),
   );
   for (const id of ["analysis-provider", "image-provider"])
     $("#" + id).addEventListener("change", () => {
-      if ($("#" + id).value === "openrouter") $(".settings-extra").open = true;
+      if ($("#" + id).value === "openrouter") $("#settingsdialog .settings-extra").open = true;
     });
   $("#settingssave").addEventListener("click", async () => {
     const values = {};
@@ -51,6 +55,7 @@ export function initSettings() {
           body: { settings: values },
         })
       ).settings;
+      applyAppearance({font: $("#reading-font").value, size: Number($("#reading-size").value), motion: $("#reading-motion").checked}, {persist: true});
       emit("settings");
       $("#settingsdialog").close();
       toast("Настройки сохранены");

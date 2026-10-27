@@ -19,7 +19,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools.public_audit import scan
 
-ROOT_FILES = ['VERSION', 'LICENSE', 'README.md', 'docs/WINDOWS.md', 'start-granka.py', 'launch-granka.py', 'granka-server.py']
+ROOT_FILES = ['VERSION', 'LICENSE', 'README.md', 'docs/WINDOWS.md', 'docs/USER-GUIDE.md',
+             'docs/CONFIGURATION.md', 'docs/DEEP-REVIEW.md',
+             'start-granka.py', 'launch-granka.py', 'granka-server.py']
 RUNTIME_EXCLUDE = {'public_audit.py', 'public_export.py', 'release.py', 'build-brand.py', 'import-voice-archive.py'}
 
 
@@ -89,6 +91,7 @@ def app_files(root):
     files = [root / name for name in ROOT_FILES]
     files += [p for p in (root / 'tools').glob('*.py') if p.name not in RUNTIME_EXCLUDE]
     files += [p for p in (root / 'static').rglob('*') if p.is_file()]
+    files += [p for p in (root / 'docs/images').glob('*.png') if p.is_file()]
     files += [root / 'examples' / name for name in ['review.md', 'review.granka.json', 'Начало работы.md']]
     return sorted(files)
 

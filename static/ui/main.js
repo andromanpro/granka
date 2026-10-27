@@ -19,20 +19,24 @@ import { initReview } from "./review.js";
 import { initDeepReview } from "./deep-review.js";
 import { initDiff } from "./diff.js";
 import { initImages, openImages } from "./images.js";
-import { initSettings } from "./settings.js";
+import { openSettings, initSettings } from "./settings.js";
 import { initJobs, startJob, workingJob } from "./jobs.js";
 import { initVoice } from "./voice.js";
 import { initCover } from "./cover.js";
-import { initTelegram } from "./telegram.js";
+import { openTelegram, initTelegram } from "./telegram.js";
 import { initSite } from "./site.js";
-import { initPlanner } from "./planner.js";
+import { openPlanner, initPlanner } from "./planner.js";
 import { initBatch } from "./batch.js";
 import { initPreferences } from "./preferences.js";
 import { initSpices } from "./spices.js";
 import { initHistory, selectVersion } from "./history.js";
+import { initPublicationState } from './publication-state.js';
+import { initWorkspace, restoreWorkspace, navigateWorkspace, showWorkspacePage, applyAppearance, readAppearance } from './workspace.js';
+const requestedSection = location.hash.slice(1);
 let sources = [], sourceFilter = "draft";
 function pane(name) {
   S.pane = name;
+  emit("pane-selected");
   $("#meterwidget").hidden = name === "spices";
   document
     .querySelectorAll("[data-pane]")
@@ -120,7 +124,7 @@ async function documents() {
   await loadDocument(root, file);
 }
 async function openSources() {
-  if (!$("#source-dialog").open) $("#source-dialog").showModal();
+  showWorkspacePage("#source-dialog", "library");
   $("#source-search").value = "";
   $("#source-list").textContent = "Загружаю статьи…";
   try {
@@ -128,6 +132,7 @@ async function openSources() {
     drawSources();
     await sourceLocations();
   } catch (error) {
+    $("#source-list").textContent = "Не удалось загрузить библиотеку. Проверь подключённые источники и попробуй открыть раздел ещё раз.";
     toast(error.message, true);
   }
 }
@@ -204,6 +209,11 @@ function drawSources() {
   $("#source-summary").textContent = `Найдено: ${matches.length} · доступны и в календаре`;
   for (const source of matches) {
     const row = el('article', 'source-item');
+    row.dataset.state = source.state;
+    row.style.setProperty('--tile-index', list.children.length % 3);
+    const motif = el('div', 'source-motif', source.state === 'published' ? 'В печать.' : ')))');
+    motif.setAttribute('aria-hidden', 'true');
+    row.append(motif);
     const main = source.external ? el('a', 'source-open') : button('', () => openSource(source), 'source-open');
     if (source.external) { main.href = source.url; main.target = '_blank'; main.rel = 'noopener noreferrer'; }
     const label = source.state === 'published' ? 'Опубликовано' + (source.published_date ? ' · ' + source.published_date : '') : source.planning_state === 'excluded' ? 'Исключено из плана' :
@@ -287,6 +297,7 @@ initSpices();
 initSettings();
 initVoice();
 initJobs();
+initPublicationState();
 events.addEventListener("document", () => {
   documentHeader();
   gitStatus();
@@ -349,5 +360,11 @@ window.granka = {
   openImages,
 };
 pane("review");
-documents().catch(() => {});
+applyAppearance(readAppearance());
+initWorkspace({ library: openSources, calendar: openPlanner, telegram: openTelegram, settings: openSettings,
+  help: () => showWorkspacePage('#helpdialog', 'help'), pane, setView });
+$("#reader-history").addEventListener("click", () => navigateWorkspace("history"));
+documents().then(() => restoreWorkspace(requestedSection)).catch(() => {});
 setInterval(gitStatus, 60000);
+
+$("#help-close").addEventListener("click", () => $("#helpdialog").close());

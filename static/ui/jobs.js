@@ -116,8 +116,11 @@ export function renderJobStatus() {
     ready: "Решения приняты · можно применить",
     applied: "Новая версия готова · проверь изменения",
   };
-  $("#stage-label").textContent = titles[state] || state;
-  $("#stage-dot").className = "stage-dot " + state;
+  const publication = S.publication;
+  const changed = publication?.changed || !!S.editor;
+  $("#stage-label").textContent = publication ? publication.label + (S.editor && !publication.changed ? ' · есть правки' : '') : titles[state] || state;
+  $("#stage-label").title = publication ? publication.title + (S.editor ? '\nЕсть несохранённые изменения' : '') + '\n' + (titles[state] || state) : '';
+  $("#stage-dot").className = "stage-dot " + (publication ? changed ? 'published changed' : 'published' : state);
   banner.hidden =
     !current ||
     (!current.result?.warning &&
@@ -168,5 +171,6 @@ export function initJobs() {
   });
   events.addEventListener("jobs", renderJobStatus);
   events.addEventListener("version", renderJobStatus);
+  events.addEventListener('publication', renderJobStatus);
   setInterval(pollJobs, 1500);
 }

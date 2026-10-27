@@ -57,6 +57,19 @@ class WindowsDistributionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'audit rejected'):
             builder.copy_app(app, self.root / 'payload')
 
+    def test_offline_guide_and_its_images_survive_packaging(self):
+        app = self.fixture_app()
+        guide = app / 'docs/USER-GUIDE.md'
+        guide.write_text('![Редактор](images/editor.png)', encoding='utf-8')
+        image = app / 'docs/images/editor.png'
+        image.parent.mkdir(parents=True)
+        image.write_bytes(b'public guide image fixture')
+        destination = self.root / 'payload'
+        builder.copy_app(app, destination)
+        self.assertEqual((destination / 'docs/USER-GUIDE.md').read_text(encoding='utf-8'),
+                         guide.read_text(encoding='utf-8'))
+        self.assertEqual((destination / 'docs/images/editor.png').read_bytes(), image.read_bytes())
+
     def test_download_rejects_wrong_hash_and_never_promotes_partial_file(self):
         item = {'url': 'https://download.example.invalid/python.zip', 'sha256': '0' * 64}
         with patch.object(builder.urllib.request, 'urlopen', return_value=io.BytesIO(b'corrupt download')):

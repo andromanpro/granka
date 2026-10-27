@@ -5,35 +5,55 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="granka-token" content="__GRANKA_TOKEN__" />
     <meta name="application-version" content="__GRANKA_VERSION__" />
-    <meta name="theme-color" content="#14242d" />
+    <meta name="theme-color" content="#181b18" />
     <title>Гранка</title>
-    <link rel="icon" type="image/svg+xml" href="/static/brand/mark.svg" />
+    <link rel="icon" type="image/svg+xml" href="/static/brand/favicon.svg?v=brackets-1" />
     <link
       rel="icon"
       type="image/png"
       sizes="32x32"
-      href="/static/brand/favicon-32.png"
+      href="/static/brand/favicon-32.png?v=brackets-1"
     />
-    <link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/static/brand/apple-touch-icon.png?v=brackets-1" />
     <link rel="stylesheet" href="/static/ui/workbench.css" />
     <link rel="stylesheet" href="/static/ui/planner.css" />
     <link rel="stylesheet" href="/static/ui/spices.css" />
+    <link rel="stylesheet" href="/static/ui/atelier.css?v=atelier-1" />
   </head>
   <body>
-    <header class="app-header">
+    <a class="skip-workspace" href="#reader-shell">К тексту статьи</a>
+    <aside class="app-sidebar" aria-label="Разделы Гранки">
       <div class="brand">
         <img
           class="brand-mark"
-          src="/static/brand/mark.svg"
+          src="/static/brand/mark.svg?v=brackets-1"
           alt=""
           width="40"
           height="40"
         />
-        <img class="brand-word" src="/static/brand/logo.svg" alt="Гранка" />
+        <img class="brand-word" src="/static/brand/logo.svg?v=brackets-1" alt="Гранка" />
         <span class="app-version" title="Версия Гранки"
           >__GRANKA_VERSION__</span
         >
       </div>
+      <small class="nav-caption">МАСТЕРСКАЯ</small>
+      <nav aria-label="Основная навигация">
+<button data-section="library" title="Статьи"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4h6l2 2h8v14H4z"/><path d="M8 10h8m-8 4h8"/></svg><span>Статьи</span></button>
+<button data-section="editor" title="Редактор"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 4l6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15z"/></svg><span>Редактор</span></button>
+<button data-section="spices" title="Приправы"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3h8v4H8zM7 9h10l1 11H6zM9 14h6m-3-2v4"/></svg><span>Приправы</span></button>
+<button data-section="diff" title="Изменения"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 3v18m10-18v18M3 7l4-4 4 4m2 10l4 4 4-4"/></svg><span>Изменения</span></button>
+<button data-section="history" title="История"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-5v7l4 2"/></svg><span>История</span></button>
+<button id="planner-btn" data-section="calendar" title="Календарь"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18m-13 4h2m4 0h2"/></svg><span>Календарь</span></button>
+<button data-section="telegram" title="Telegram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 10l18-7-4 18-6-6-4 3 1-6zM8 12l9-6-6 9"/></svg><span>Telegram</span></button>
+      </nav>
+      <nav class="sidebar-bottom" aria-label="Настройки Гранки">
+<button id="settingsbtn" data-section="settings" title="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg><span>Настройки</span></button>
+      </nav>
+<button data-section="help" title="Справка"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3v1"/></svg><span>Справка</span></button>
+      <p class="sidebar-local"><i></i> Локальный редактор</p>
+    </aside>
+    <div class="app-frame">
+    <header class="app-header">
       <div class="document-switch">
         <select id="docsel" aria-label="Статья"></select
         ><button id="opensrc" class="icon-button" title="Открыть другую статью">
@@ -41,20 +61,9 @@
         </button>
       </div>
       <div class="header-actions">
-        <button id="planner-btn" class="calendar-entry" title="Календарь и план публикаций" aria-haspopup="dialog" aria-controls="plannerdialog" aria-expanded="false">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18m-13 4h2m4 0h2m-8 3h2"/></svg>
-          Календарь
-        </button>
-        <button id="analysisbtn">Проверить текст</button
-        ><button id="savebtn" class="primary" disabled>Сохранить</button
-        ><button
-          id="settingsbtn"
-          class="icon-button"
-          title="Настройки"
-          aria-label="Настройки"
-        >
-          ⚙</button
-        ><button
+        <button id="analysisbtn">Проверить текст</button>
+        <button id="savebtn" class="primary" disabled>Сохранить</button>
+        <button
           id="inspector-toggle"
           class="mobile-only"
           aria-label="Открыть инспектор"
@@ -72,12 +81,13 @@
       </div>
     </div>
     <main class="workspace">
-      <section id="reader-shell" class="reader-shell">
+      <section id="reader-shell" class="reader-shell" tabindex="-1" aria-label="Редактор статьи">
         <nav class="reader-nav">
           <div class="segmented">
             <button data-view="article" class="selected">Статья</button
             ><button data-view="source">Исходник</button
-            ><button data-view="diff">Изменения</button>
+            ><button data-view="diff">Изменения</button
+            ><button id="reader-history">История</button>
           </div>
           <div class="reader-actions">
             <button id="cancel-edit" class="quiet" hidden>
@@ -274,6 +284,7 @@
         </section>
       </aside>
     </main>
+    </div>
     <div id="selpop" class="context-menu selection-menu" hidden>
       <button id="addann">Пометка</button
       ><button id="addimg">Вставить картинку</button
@@ -295,11 +306,11 @@
         <button id="unsaved-save" type="button" class="primary">Сохранить и перейти</button>
       </footer>
     </dialog>
-    <dialog id="source-dialog" class="dialog source-dialog">
+    <dialog id="source-dialog" class="dialog source-dialog" aria-labelledby="library-title">
       <header>
         <div>
           <small>Библиотека</small>
-          <h2>Открыть статью</h2>
+          <h2 id="library-title">Статьи</h2>
         </div>
         <button id="source-close" class="icon-button" aria-label="Закрыть">
           ✕
@@ -419,6 +430,13 @@
           ✕
         </button>
       </header>
+      <section class="appearance-settings" aria-labelledby="appearance-title">
+        <h3 id="appearance-title">Оформление</h3>
+        <div class="theme-swatch"><div class="mini-atelier" aria-hidden="true"><i></i><i></i><i></i></div><div><strong>Тёмная мастерская</strong><p>Графит, тёплая бумага и коралловый акцент.</p></div><span>Выбрана</span></div>
+        <div class="settings-grid"><label>Шрифт статьи<select id="reading-font"><option value="serif">Georgia — с засечками</option><option value="sans">Segoe UI — без засечек</option></select></label><label>Размер текста<select id="reading-size"><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label></div>
+        <label class="setting-row reading-motion"><span><input id="reading-motion" type="checkbox" /> Анимация интерфейса</span><small class="fine-print">Системное ограничение движения имеет приоритет.</small></label>
+      </section>
+      <h3>Исполнители ИИ</h3>
       <p class="fine-print">
         Для анализа и картинок можно выбрать разных исполнителей. По умолчанию —
         Codex.
@@ -796,6 +814,106 @@
         <footer class="planner-entry-footer"><button id="planner-entry-save" class="primary" type="submit">Сохранить</button><button id="planner-entry-unschedule" type="button">Вернуть без даты</button><button id="planner-entry-exclude" type="button" class="quiet danger">Исключить из планирования</button><button id="planner-entry-delete" type="button" class="quiet danger">Удалить карточку</button></footer>
       </form>
     </dialog>
+<dialog id="helpdialog" class="dialog" aria-labelledby="help-title"><header class="dialog-header"><h2 id="help-title">Справка</h2><button id="help-close" type="button">К статье</button></header><article class="help-guide">
+<p>Справка для Гранки 1.3.0 с тёмной мастерской и знаком со скобочками.
+На снимках — учебная статья. Это оформление входит и в Windows-поставку.</p>
+<h3>Открыть статью</h3>
+<p>В меню <strong>Статьи</strong> выберите <strong>Открыть файл…</strong> или <strong>Добавить папку…</strong>.
+Гранка работает с Markdown. Рядом с исходником появляется файл
+<code>.granka.json</code>: в нём хранятся версии, замечания и решения.
+Подключённые источники запоминаются локально.</p>
+<p><img alt="Библиотека статей в тёмной мастерской" src="/static/help/library.png" /></p>
+<p>Фильтры <strong>В работе</strong> и <strong>Опубликовано</strong> относятся к факту выпуска.
+Подтверждение берётся из квитанции публикации, метаданных или настроенной
+связи с адресом статьи. Сходство названий и папка <code>_ready</code> этого не подтверждают.
+У опубликованного материала можно открыть готовую страницу.</p>
+<h3>Написать и сохранить</h3>
+<p>В меню <strong>Редактор</strong> доступны оформленный текст и <strong>Исходник</strong>.
+Пишите прямо в статье; <strong>Сохранить</strong> или <code>Ctrl+S</code> создаёт новую версию.
+Переход к другой статье с незавершённой правкой предложит сохранить её,
+отказаться от ввода или остаться. Переход в справку сохраняет черновик в редакторе.</p>
+<p><img alt="Редактор: учебная статья и инструменты" src="/static/help/editor.png" /></p>
+<p><strong>Проверить текст</strong> запускает выбранного ИИ-исполнителя. Прочитайте замечание
+к точной цитате и выберите замену, свой вариант или отказ с пояснением.
+Команда <strong>Применить решения</strong> собирает новую версию. До неё принятая карточка
+не переписывает абзац. Кодекс требует входа в свой аккаунт, OpenRouter —
+своего ключа; запросы могут расходовать подписку или средства выбранного сервиса.</p>
+<h3>Добавить приправу</h3>
+<p>Откройте <strong>Приправы</strong>. Ирония, пошлые шутки, метафоры и аллегории имеют
+отдельную дозировку. Можно перетащить флакон на абзац, выбрать абзац кнопкой,
+использовать выделение или всю статью. Кнопка <strong>Приправить</strong> использует
+всю выбранную смесь. Свободное пожелание работает без готового рецепта.</p>
+<p><img alt="Флаконы и дозировка приправ" src="/static/help/spices.png" /></p>
+<p>Сначала появляются предложения. Выберите подходящие, поправьте формулировки
+при необходимости и нажмите <strong>Применить выбранное</strong>. Исходник останется
+в истории. <strong>Сохранить свой рецепт</strong> запоминает смесь; общие авторские
+правила от этого не меняются. При несохранённом вводе сначала сохраните статью.</p>
+<h3>Сравнить и вернуть</h3>
+<p>В <strong>Изменениях</strong> выберите левую и правую версии. Можно поменять их местами.
+Само сравнение ничего не записывает в статью.</p>
+<p><img alt="Сравнение двух сохранённых версий" src="/static/help/diff.png" /></p>
+<p>В <strong>Истории</strong> откройте нужное сохранение и нажмите <strong>Вернуть в работу</strong>.
+Гранка создаст новую вершину истории с прежним текстом; более поздние
+сохранения тоже останутся. Здесь «в работе» означает текущую редакцию,
+а не отсутствие опубликованной статьи.</p>
+<p><img alt="История и возврат прежнего текста" src="/static/help/history.png" /></p>
+<h3>Разобраться со статусом</h3>
+<p>Верхняя строка показывает <strong>Опубликовано на сайте</strong>, <strong>Опубликовано в Telegram</strong>
+или оба канала, когда есть подтверждение. Выпуск на предпросмотре или стейдже,
+сохранённый черновик WordPress и подготовленный Telegram-пост публикацией
+не считаются. Неоднозначная отправка тоже не становится успешной автоматически.</p>
+<p>Если после выпуска внесены изменения, появляется <strong>есть правки</strong>.
+Адрес и известная опубликованная версия доступны в подсказке строки.
+Ранее опубликованный материал остаётся опубликованным, пока вы готовите
+его следующую редакцию. Отдельные редакторские состояния не переписываются.</p>
+<h3>Разложить по датам</h3>
+<p><strong>Календарь</strong> показывает рабочие материалы и подтверждённые публикации.
+Откройте карточку, назначьте дату и сохраните. Планирование само не запускает
+ИИ и не отправляет посты. Предпросмотр распределения дат можно изучить до применения.</p>
+<p><img alt="Календарь на учебных материалах" src="/static/help/calendar.png" /></p>
+<h3>Подготовить сайт</h3>
+<p>Кнопка <strong>На сайт</strong> в редакторе открывает параметры и снимок статьи:
+заголовок, адрес, дату, рубрики, метки, краткое описание и статус WordPress.
+Для уже выпущенной статьи кнопка называется <strong>Обновить на сайте</strong>.</p>
+<p>Перенос идёт через <strong>предпросмотр → стейдж → прод</strong> с подтверждением
+предыдущего контура. На проде проверьте выбранный статус: <strong>Черновик</strong>
+ещё не означает публикацию для читателей. Ошибка или внешняя правка
+в WordPress останавливает перенос. Статья и её изображения/видео входят в снимок.</p>
+<h3>Подключить Telegram</h3>
+<p>В разделе <strong>Telegram → Бот и канал</strong> сохраните токен своего бота и
+<code>@имя_канала</code>, затем нажмите <strong>Проверить подключение</strong>.
+Для закрытого канала нужен числовой идентификатор. Проверка соединения
+не отправляет сообщения. Токен хранится в личных настройках или отдельном
+файле; не вставляйте его в статью, снимки экрана или переписку.</p>
+<p>Создайте бота командой <code>/newbot</code> у официального <a href="https://t.me/BotFather">BotFather</a>,
+затем добавьте его администратором своего канала с правом публикации сообщений.
+Право удаления постов для нынешней отправки не нужно.
+Историю оформления старых постов можно изучить по публичной ленте или
+<a href="https://telegram.org/blog/export-and-more">экспорту Telegram Desktop</a>.
+Bot API не предоставляет загрузку всей прежней истории канала.</p>
+<p><img alt="Черновик Telegram: текст и предпросмотр" src="/static/help/telegram.png" /></p>
+<p><strong>Анонс с вложениями</strong> — короткая подпись и фотографии/MP4. Ссылка считается
+вместе с подписью: до 1024 символов с медиа, до 4096 без него. Ролик ограничен
+50 МБ; общий размер одной отправки тоже 50 МБ, в альбоме до 10 файлов.</p>
+<p><strong>Статья с медиа</strong> — отдельный черновик с изображениями и видео между
+абзацами. Добавляйте каждое медиа отдельным блоком. Отображение зависит
+от поддержки Rich Messages клиентом Telegram. Обычная подпись к ролику
+не требует этого формата.</p>
+<p><strong>Подготовить</strong> фиксирует текст, файлы и канал. Проверьте снимок, затем
+нажмите кнопку публикации. При неизвестном исходе отправка не повторяется:
+сначала посмотрите канал, чтобы не получить дубликат.</p>
+<p>Сайт и Telegram — отдельные внешние операции. Подготовьте обе версии заранее,
+проверьте итоговую ссылку сайта и наличие бота. Успешный выпуск в один канал
+не означает успех второго.</p>
+<h3>Настроить рабочее место</h3>
+<p>В <strong>Настройках → Оформление</strong> выбираются шрифт и размер чтения, можно
+отключить движение. Оформление сохраняется в текущем браузере.
+Здесь же настраиваются ИИ-исполнители. Для расширенного подключения путей,
+WordPress и голоса есть <a href="https://github.com/andromanpro/granka/blob/main/docs/CONFIGURATION.md">описание конфигурации</a>.</p>
+<p><img alt="Настройки рабочей мастерской" src="/static/help/settings.png" /></p>
+<p>Установка, переносимая версия, обновление и удаление описаны в
+<a href="https://github.com/andromanpro/granka/blob/main/docs/WINDOWS.md">руководстве Windows</a>. Разбор статьи целиком — в
+<a href="https://github.com/andromanpro/granka/blob/main/docs/DEEP-REVIEW.md">описании глубокого разбора</a>.</p></article></dialog>
     <script type="module" src="/static/ui/main.js"></script>
   </body>
 </html>

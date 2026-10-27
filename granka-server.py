@@ -13,7 +13,7 @@ import time
 import urllib.parse
 import uuid
 import webbrowser
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer as _ThreadingHTTPServer
 from pathlib import Path
 from tools.text_edit import edit_text, restore_version
 from tools import iimeter
@@ -37,6 +37,14 @@ from tools.batch_decisions import decide_batch, undo_batch
 from tools.rule_learning import SCHEMA as RULE_PROPOSAL_SCHEMA
 from tools.library_locations import LibraryLocations, LocationsConflict
 from tools.file_dialog import choose_local_path
+
+
+class ThreadingHTTPServer(_ThreadingHTTPServer):
+    # A page imports many local ES modules in parallel. The stdlib backlog of
+    # five can refuse connections during a reload while old requests drain.
+    request_queue_size = 128
+
+
 TELEGRAM = telegram.Telegram(lambda: ai_provider.STATE)
 SITE = SitePublisher(lambda: ai_provider.STATE)
 CALENDAR = PublicationPlan(lambda: ai_provider.STATE, lambda: library_sources())
