@@ -7,6 +7,7 @@ const pages = {
 const sections = ['library', 'editor', 'spices', 'diff', 'history', 'calendar', 'telegram', 'settings', 'help'];
 let articleSection = 'editor', returnSection = 'editor', handlers, routing = false;
 let sequence = 0;
+let activeRoute = null, pendingRoute = null;
 
 function articleRoute() {
   return S.view === 'diff' ? 'diff' : S.pane === 'history' ? 'history' : S.pane === 'spices' ? 'spices' : 'editor';
@@ -40,6 +41,7 @@ function controls() {
 // (unsaved edits, image choice, confirmation) can still be opened over them.
 export function showWorkspacePage(selector, section) {
   if (S.workspaceLocked) return false;
+  if (activeRoute?.section === section && activeRoute.own !== sequence) return false;
   const page = $(selector);
   const parentModal = document.querySelector('dialog:modal');
   if (!openPage()) returnSection = articleRoute();
@@ -55,14 +57,22 @@ export function showWorkspacePage(selector, section) {
     $('.app-frame').hidden = true;
     if (!page.open) page.show();
   }
-  highlight(section, { push: !routing, updateHash: !routing });
+  // Commit the visible page before its ancillary requests finish. Otherwise a
+  // quick Back traverses the previous entry while the UI already shows this one.
+  const route = activeRoute?.section === section ? activeRoute : null;
+  highlight(section, { push: route ? route.push : !routing, updateHash: !!route || !routing });
   page.querySelector('h2')?.focus({ preventScroll: true });
   return true;
 }
 
 export async function navigateWorkspace(section, { push = true } = {}) {
   if (!sections.includes(section) || !handlers) return;
-  if (S.workspaceLocked || S.recording || S.busy || routing) {
+  if (routing) {
+    if (!push) { ++sequence; pendingRoute = { section, push }; }
+    else toast('Дождись завершения текущего действия');
+    return;
+  }
+  if (S.workspaceLocked || S.recording || S.busy) {
     toast('Дождись завершения текущего действия');
     return;
   }
@@ -75,6 +85,7 @@ export async function navigateWorkspace(section, { push = true } = {}) {
     return;
   }
   routing = true;
+  activeRoute = { section, push, own };
   controls();
   try {
     if (pages[section]) {
@@ -103,8 +114,13 @@ export async function navigateWorkspace(section, { push = true } = {}) {
     toast(error.message, true);
     highlight(previous);
   } finally {
+    activeRoute = null;
     routing = false;
     controls();
+    if (pendingRoute) {
+      const next = pendingRoute; pendingRoute = null;
+      await navigateWorkspace(next.section, { push: next.push });
+    }
   }
 }
 

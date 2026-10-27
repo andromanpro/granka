@@ -136,6 +136,24 @@ class WorkspaceBrowserTests(unittest.TestCase):
         self.page.go_back()
         expect(self.page.locator('body')).to_have_attribute('data-section', 'library')
 
+    def test_back_while_telegram_settings_pending_preserves_history(self):
+        held=[]
+        self.page.route('**/api/telegram/settings',lambda route:held.append(route))
+        try:
+            self.go('library')
+            with self.page.expect_request('**/api/telegram/settings'):self.go('telegram')
+            self.assertEqual(self.page.evaluate('location.hash'),'#telegram');self.assertTrue(held)
+            self.page.go_back();self.assertEqual(self.page.evaluate('location.hash'),'#library')
+            held.pop(0).continue_()
+            expect(self.page.locator('body')).to_have_attribute('data-section','library')
+            with self.page.expect_request('**/api/telegram/settings'):self.page.go_forward()
+            expect(self.page.locator('body')).to_have_attribute('data-section','telegram')
+            while held:held.pop(0).continue_()
+            expect(self.page.locator('button[data-section=library]')).to_be_enabled()
+            self.page.go_back();expect(self.page.locator('body')).to_have_attribute('data-section','library')
+        finally:
+            while held:held.pop(0).continue_()
+
     def test_missing_exact_document_stays_visible_without_automatic_library(self):
         self.page.goto(self.base+'/?root=articles&source_file=missing.md')
         expect(self.page.locator('#doc')).to_contain_text('по этой ссылке не найдена')
