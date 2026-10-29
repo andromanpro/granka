@@ -74,12 +74,25 @@ class ArticleTrashTests(unittest.TestCase):
         self.assertTrue(self.put()['ok'])
 
     def test_unlink_failure_restores_already_removed_files(self):
+        self.assert_unlink_failure_rolls_back()
+
+    def test_unlink_failure_with_aliased_fixture_path_still_exercises_rollback(self):
+        alias = self.root / 'alias'; alias.mkdir()
+        self.doc = alias / '..' / self.doc.name
+        self.assert_unlink_failure_rolls_back()
+
+    def assert_unlink_failure_rolls_back(self):
         original = Path.unlink
+        target = self.doc.resolve(); denied = []
         def fail(path, *args, **kwargs):
-            if path == self.doc: raise PermissionError('read only')
+            if path.resolve() == target:
+                denied.append(path.resolve())
+                self.assertFalse(self.md.exists(), 'The first original must be removed before the injected failure')
+                raise PermissionError('read only')
             return original(path, *args, **kwargs)
         with patch.object(Path, 'unlink', fail):
             with self.assertRaises(PermissionError): self.put()
+        self.assertEqual(denied, [target], 'The failure injection must actually run once')
         self.assert_originals(); self.assertEqual(self.trash.read()['entries'], [])
 
     def test_final_receipt_failure_rolls_back_without_false_success(self):
