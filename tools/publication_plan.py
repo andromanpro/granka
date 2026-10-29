@@ -92,9 +92,10 @@ def distribute(entries, options):
 
 
 class PublicationPlan:
-    def __init__(self, state, library=None):
+    def __init__(self, state, library=None, hidden=None):
         self.state = state
         self.library = library or (lambda: [])
+        self.hidden = hidden or (lambda value: False)
         self.lock = threading.RLock()
 
     @property
@@ -127,8 +128,8 @@ class PublicationPlan:
     def read(self):
         with self.lock:
             saved = json.loads(self.path.read_text(encoding='utf-8')) if self.path.exists() else {'entries': []}
-            entries = deepcopy(saved['entries'])
-            library = self.library()
+            entries = [value for value in deepcopy(saved['entries']) if not self.hidden(value)]
+            library = [value for value in self.library() if not self.hidden(value)]
             available = {(s['root'], s['file'], s['channel']) for s in library}
             for value in entries:
                 if value.get('origin') == 'library' and (value['root'], value['file'], value['channel']) not in available:
@@ -150,6 +151,7 @@ class PublicationPlan:
                 else:
                     entries.append(source)
             for receipt in self.receipts():
+                if self.hidden(receipt): continue
                 linked = next((i for i in entries if i['channel'] == 'article' and i.get('root') == receipt['root'] and i.get('file') == receipt['file']), None)
                 if linked:
                     # Keep its stable calendar ID and private notes.

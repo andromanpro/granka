@@ -145,7 +145,7 @@ def style_vector(text: str) -> dict:
     }
 
 
-def build_profile(profile_id="blog", inputs=None, fingerprint=None) -> dict:
+def build_profile(profile_id="blog", inputs=None, fingerprint=None, *, destination=None) -> dict:
     if inputs is None:
         inputs, fingerprint = corpus_inputs(profile_id)
     texts = [text for _, text in inputs]
@@ -162,7 +162,7 @@ def build_profile(profile_id="blog", inputs=None, fingerprint=None) -> dict:
             calibration.append({"source": name, "words": result["words"], "score": result["score"]})
     v["calibration"] = {"method": "leave-one-document-out", "samples": calibration,
                         "authorship_accuracy": None}
-    dest = profile_path(profile_id)
+    dest = Path(destination) if destination is not None else profile_path(profile_id)
     dest.parent.mkdir(parents=True,exist_ok=True)
     tmp = dest.with_name("." + dest.name + "." + uuid.uuid4().hex + ".tmp")
     try:

@@ -20,11 +20,22 @@ export function clearMeter() {
   clearTimeout(timer);
   cancelAnimationFrame(animation);
   S.meter = null;
+  $("#meterwidget").classList.remove("measuring");
+  $("#meterwidget").setAttribute("aria-busy", "false");
+  $("#meterrefresh").disabled = false;
+  $("#meter-error").textContent = '';
+  $("#meter-retry").hidden = true;
   highlights = false;
   drawHighlightButton();
   $("#meter-number").textContent = "—";
   $("#meter-orbit").style.setProperty("--value", 0);
-  $("#meter-status").textContent = "Измеряю текущую версию";
+  $("#meter-status").textContent = S.document ? "Готовлю замер текущей версии" : "Открой статью для локального разбора";
+  for (const name of ['voice', 'structure', 'markers']) {
+    $('#axis-' + name + '-number').textContent = '—';
+    $('#axis-' + name).style.width = '0%';
+  }
+  $('#meterflags').replaceChildren();
+  $('#meterscale').textContent = '';
   $("#mobile-meter").textContent = "ИИМетр";
 }
 export function scheduleMeter() {
@@ -38,6 +49,10 @@ export async function measure() {
     vid = S.version,
     profile = $("#meterprofile").value;
   $("#meterwidget").classList.add("measuring");
+  $("#meterwidget").setAttribute("aria-busy", "true");
+  $("#meterrefresh").disabled = true;
+  $("#meter-error").textContent = '';
+  $("#meter-retry").hidden = true;
   $("#meter-status").textContent = "Локальный замер…";
   try {
     const result = await api(
@@ -48,15 +63,29 @@ export async function measure() {
         "&profile=" +
         profile,
     );
-    if (seq !== sequence || key !== query() || vid !== S.version) return;
+    if (seq !== sequence || key !== query() || vid !== S.version || profile !== $('#meterprofile').value || S.editor) return;
     S.meter = result;
     drawMeter(result);
     if (highlights) emit("reader");
   } catch (error) {
+    if (seq !== sequence || key !== query() || vid !== S.version || profile !== $('#meterprofile').value || S.editor) return;
+    S.meter = null;
+    $('#meter-number').textContent = '—';
+    $('#meter-orbit').style.setProperty('--value', 0);
+    for (const name of ['voice', 'structure', 'markers']) {
+      $('#axis-' + name + '-number').textContent = '—'; $('#axis-' + name).style.width = '0%';
+    }
+    $('#meterflags').replaceChildren(); $('#meterscale').textContent = '';
+    $('#meter-error').textContent = error.message;
+    $('#meter-retry').hidden = false;
     $("#meter-status").textContent = "Не удалось измерить";
     toast(error.message, true);
   } finally {
-    if (seq === sequence) $("#meterwidget").classList.remove("measuring");
+    if (seq === sequence) {
+      $("#meterwidget").classList.remove("measuring");
+      $("#meterwidget").setAttribute("aria-busy", "false");
+      $("#meterrefresh").disabled = false;
+    }
   }
 }
 function drawMeter(meter) {
@@ -66,7 +95,7 @@ function drawMeter(meter) {
     orbit = $("#meter-orbit");
   orbit.style.setProperty("--tone", tone);
   cancelAnimationFrame(animation);
-  if (n == null) $("#meter-number").textContent = "—";
+  if (n == null) { $("#meter-number").textContent = "—"; orbit.style.setProperty('--value', 0); }
   else {
     const start = performance.now(),
       duration = matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -84,9 +113,9 @@ function drawMeter(meter) {
   $("#meter-status").textContent =
     n == null
       ? meter.status === "uncalibrated"
-        ? "Добавь свой корпус текстов"
+        ? (meter.corpus_state?.reason || "Сравнение голоса не настроено")
         : "Недостаточно текста"
-      : meter.profile_label + " · " + meter.words + " слов";
+      : meter.profile_label + " · " + meter.words + " слов" + (meter.sample_warning ? ' · короткий текст' : '');
   $("#mobile-meter").textContent = "ИИМетр " + (n ?? "—");
   for (const [key, id] of [
     ["голос", "voice"],
@@ -102,7 +131,7 @@ function drawMeter(meter) {
   notes.replaceChildren();
   const texts = [
     ...(meter.status === "uncalibrated"
-      ? ["Добавь свои тексты в voice.corpus_dir для сравнения голоса. Словарные обороты и структура проверяются и без корпуса."]
+      ? [meter.corpus_state?.reason || "Сравнение голоса не настроено. Выбери папку своих текстов кнопкой ниже.", "Словарные обороты и структура доступны без корпуса."]
       : meter.status === "insufficient_text" ? ["Для измерения нужна проза."] : []),
     ...(meter.sample_warning ? [meter.sample_warning] : []),
     ...(meter.status !== "insufficient_text" ? meter.axes["структура"].flags : []),
@@ -135,12 +164,14 @@ function drawMeter(meter) {
     " слов. Это отклонение от выбранного корпуса, не вероятность участия ИИ.";
 }
 export function initMeter() {
+  initCorpusSettings();
   const profile = localStorage.getItem("granka.voice-profile");
   if (profile === "talks" || profile === "blog")
     $("#meterprofile").value = profile;
   $("#meterrefresh").addEventListener("click", measure);
   $("#meterprofile").addEventListener("change", () => {
     localStorage.setItem("granka.voice-profile", $("#meterprofile").value);
+    clearMeter();
     measure();
   });
   $("#meterhl").addEventListener("click", () => {
@@ -161,10 +192,47 @@ export function initMeter() {
     scheduleMeter();
   });
   events.addEventListener("dirty", () => {
+    ++sequence; clearTimeout(timer); cancelAnimationFrame(animation);
+    $('#meterwidget').classList.remove('measuring'); $('#meterwidget').setAttribute('aria-busy', 'false');
+    $('#meterrefresh').disabled = false;
     $("#meter-status").textContent =
       "Показатели сохранённой версии · есть правки";
     highlights = false;
     drawHighlightButton();
   });
   drawHighlightButton();
+}
+
+function initCorpusSettings() {
+  let revision = null, pending = false;
+  const status = $('#meter-corpus-status');
+  const load = async () => {
+    status.textContent = 'Читаю настройки корпуса…';
+    try {
+      const value = await api('/api/voice-corpus?profile=' + $('#meterprofile').value);
+      revision = value.revision; $('#meter-corpus-path').value = value.directory;
+      status.textContent = value.status === 'ok' ? `${value.profile_label}: ${value.files} текстов, ${value.words} слов.` : value.reason;
+    } catch (error) { status.textContent = error.message; }
+  };
+  $('#meter-configure').addEventListener('click', () => { if ($('#meter-corpus-settings').open) load(); else $('#meter-corpus-settings').open = true; });
+  $('#meter-corpus-settings').addEventListener('toggle', () => { if ($('#meter-corpus-settings').open) load(); });
+  $('#meter-retry').addEventListener('click', measure);
+  $('#meter-corpus-pick').addEventListener('click', async () => {
+    if (pending) return; pending = true; $('#meter-corpus-pick').disabled = true;
+    try {
+      const value = await api('/api/voice-corpus/pick', {method: 'POST', body: {}});
+      if (value.directory) $('#meter-corpus-path').value = value.directory;
+    } catch (error) { status.textContent = error.message; }
+    finally { pending = false; $('#meter-corpus-pick').disabled = false; }
+  });
+  $('#meter-corpus-save').addEventListener('click', async () => {
+    if (pending) return; pending = true; $('#meter-corpus-save').disabled = true;
+    try {
+      if (!revision) throw Error('Сначала открой настройку сравнения голоса');
+      const value = await api('/api/voice-corpus', {method: 'POST', body: {directory: $('#meter-corpus-path').value, expected_revision: revision}});
+      revision = value.revision; clearMeter(); await measure();
+      status.textContent = S.meter?.corpus_state?.reason || 'Корпус подключён. Сравнение пересчитано локально.';
+    } catch (error) { status.textContent = error.message; }
+    finally { pending = false; $('#meter-corpus-save').disabled = false; }
+  });
 }

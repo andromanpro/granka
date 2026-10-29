@@ -11,6 +11,7 @@ from tools import config
 from tools.planning_library import catalog_sources, scan_library
 from tools.publication_plan import PublicationPlan
 from tools.library_locations import LibraryLocations
+from tools.article_trash import ArticleTrash
 
 
 def export_plan(roots=None, state=None, settings=None):
@@ -27,7 +28,8 @@ def export_plan(roots=None, state=None, settings=None):
                      publications=settings.get('planning',{}).get('publications',[]),
                      excluded_sources=settings.get('planning',{}).get('excluded_sources',{})),
         [], state / 'site-publications', repository, roots)
-    plan = PublicationPlan(lambda: state, lambda: sources).read()
+    trash = ArticleTrash(lambda: state, lambda: roots)
+    plan = PublicationPlan(lambda: state, lambda: sources, hidden=trash.hidden_entry).read()
     allowed = ('id', 'title', 'root', 'file', 'source_rel', 'source_revision', 'channel',
                'date', 'status', 'url', 'excluded', 'notes', 'readiness', 'source_error', 'readonly', 'has_granka')
     entries = []

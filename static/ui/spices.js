@@ -14,6 +14,7 @@ const MIME = 'application/x-granka-spice';
 let catalog = { builtins: [], recipes: [], revision: null };
 let mix = [2, 0, 0, 0], target = null, lastSelection = null, picking = false;
 let resultJob = null, shown = '', ignored = new Set(), pending = false;
+let focusResult = false;
 
 function allRecipes() { return [...catalog.builtins, ...catalog.recipes]; }
 function recipe() {
@@ -105,6 +106,7 @@ function paragraph(node) { const p = node?.closest?.('#doc > p[data-md-block]');
 function stopPicking() { picking = false; $('#spice-pick').classList.remove('selected'); $('#doc').classList.remove('spice-picking'); }
 async function run(single = null) {
   if (!ready() || !currentTarget()) { toast('Сохрани текст и выбери абзац или выделение в последней версии'); return; }
+  focusResult = document.activeElement?.id === 'spice-run';
   const selected = recipe();
   if (single != null) {
     selected.doses = mix.map((n, i) => i === single ? Math.max(1, n) : 0);
@@ -160,6 +162,14 @@ function showResult(result) {
   });
   if (!result.changes.length) $('#spice-summary').textContent = result.summary || 'Уместных изменений не нашлось. Можно изменить рецепт.';
   controls();
+  if (S.pane === 'spices') {
+    $('#spice-result').scrollIntoView({ block: 'nearest' });
+    if (focusResult && (document.activeElement === document.body || document.activeElement?.id === 'spice-run')) {
+      $('#spice-summary').tabIndex = -1;
+      $('#spice-summary').focus({ preventScroll: true });
+    }
+  }
+  focusResult = false;
 }
 function controls() {
   if (!$('#spice-run')) return;
@@ -181,6 +191,7 @@ async function apply() {
   else toast(out.unchanged ? 'Текст остался прежним' : 'Правки сохранены в новой версии');
 }
 function reset() {
+  focusResult = false;
   target = lastSelection = resultJob = null; shown = ''; stopPicking(); clearDrop();
   $('#spice-target').textContent = 'Выбери область обработки'; $('#spice-result').hidden = true; $('#spice-status').textContent = '';
   controls(); jobs();

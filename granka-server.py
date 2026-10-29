@@ -38,6 +38,10 @@ from tools.batch_decisions import decide_batch, undo_batch
 from tools.rule_learning import SCHEMA as RULE_PROPOSAL_SCHEMA
 from tools.library_locations import LibraryLocations, LocationsConflict
 from tools.file_dialog import choose_local_path
+from tools.article_creation import ArticleCreator, CreationConflict
+from tools.voice_corpus import VoiceCorpus
+from tools import article_draft
+from tools.article_trash import ArticleTrash, TrashConflict
 
 
 class ThreadingHTTPServer(_ThreadingHTTPServer):
@@ -78,7 +82,7 @@ class ThreadingHTTPServer(_ThreadingHTTPServer):
 
 TELEGRAM = telegram.Telegram(lambda: ai_provider.STATE)
 SITE = SitePublisher(lambda: ai_provider.STATE)
-CALENDAR = PublicationPlan(lambda: ai_provider.STATE, lambda: library_sources())
+CALENDAR = PublicationPlan(lambda: ai_provider.STATE, lambda: library_sources(), hidden=lambda item: TRASH.hidden_entry(item))
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -88,6 +92,11 @@ HERE = Path(__file__).resolve().parent
 STATIC = HERE / "static"
 LOCATIONS = LibraryLocations(lambda: ai_provider.STATE)
 ROOTS = {**environment.roots(), **LOCATIONS.roots()}
+CREATOR = ArticleCreator(lambda: ai_provider.STATE, lambda: ROOTS)
+TRASH = ArticleTrash(lambda: ai_provider.STATE, lambda: ROOTS,
+                     busy=lambda paths: trash_jobs_busy(paths),
+                     external=lambda ident: next((item for item in CALENDAR.read()['entries'] if item['id'] == ident and not item.get('file')), None))
+VOICE_CORPUS = VoiceCorpus(lambda: ai_provider.STATE)
 CORRECTIONS = environment.path(SETTINGS['corrections_file'])
 PREFERENCES = AuthorPreferences(lambda: ai_provider.STATE, lambda: ROOTS, lambda: CORRECTIONS)
 SPICE_RECIPES = spices.Recipes(lambda: ai_provider.STATE)
@@ -95,7 +104,7 @@ TOKEN = secrets.token_hex(16)
 ALLOWED_HOSTS = {f"127.0.0.1:{PORT}", f"localhost:{PORT}"}
 MAX_BODY = 512 * 1024
 MAX_AUDIO = 12 * 1024 * 1024
-LOCK = threading.Lock()
+LOCK = threading.RLock()
 STORE = DocumentStore(lambda: ROOTS, LOCK)
 revision_of = STORE.revision
 safe_resolve = STORE.resolve
@@ -132,6 +141,16 @@ def job_service():
     global JOBS
     if JOBS is None: JOBS = Jobs(ai_provider.STATE/'jobs')
     return JOBS
+
+
+def trash_jobs_busy(paths):
+    paths = {p.resolve() for p in paths}
+    for file in job_service().directory.glob('*/job.json'):
+        job = json.loads(file.read_text(encoding='utf-8'))
+        if job.get('status') in {'queued', 'running'} and job.get('root') in ROOTS:
+            if safe_resolve(job['root'], job['rel']).resolve() in paths:
+                return True
+    return False
 
 
 def source_document(path, root_id, data):
@@ -296,16 +315,8 @@ git_state = HISTORY.state
 git_sync = HISTORY.sync
 
 def run_iimeter(text: str, cache_key: str, profile_id="blog"):
-    """A corpus change invalidates both the profile and cached measurements."""
-    profile = iimeter.load_profile(profile_id)
-    cache_key = (cache_key, profile.get("fingerprint") if profile else "uncalibrated")
-    if cache_key in _meter_cache:
-        return _meter_cache[cache_key]
-    res = iimeter.measure(text, profile_id, profile=profile)
-    if len(_meter_cache) > 40:
-        _meter_cache.clear()
-    _meter_cache[cache_key] = res
-    return res
+    """Inspect current corpus contents on every request, including after errors."""
+    return VOICE_CORPUS.measure(text, profile_id)
 
 
 def clean_line(s, cap):
@@ -332,9 +343,13 @@ def library_sources(calendar=None):
     planning = environment.load()['planning']
     selectors = dict(planning['source_dirs'] or {key: ['.'] for key in ROOTS})
     selectors.update(LOCATIONS.selectors())
+    for key, files in CREATOR.selectors().items():
+        if selectors.get(key) != ['.']:
+            selectors[key] = list(dict.fromkeys(selectors.get(key, []) + files))
     sources = scan_library(ROOTS, selectors, include_published=True,
                            publications=planning.get('publications',[]), excluded_sources=planning.get('excluded_sources',{}))
-    return catalog_sources(sources, calendar or [], SITE.directory, SITE.repo, ROOTS)
+    return [item for item in catalog_sources(sources, calendar or [], SITE.directory, SITE.repo, ROOTS)
+            if not TRASH.hidden_entry(item)]
 
 
 def list_sources():
@@ -358,6 +373,8 @@ def list_docs():
         if not root.exists():
             continue
         selected = LOCATIONS.selectors().get(root_id, ['.'])
+        if selected != ['.']:
+            selected = list(dict.fromkeys(selected + CREATOR.selectors().get(root_id, [])))
         paths = root.rglob("*.granka.json") if selected == ['.'] else (
             root / Path(name).with_suffix('.granka.json') for name in selected)
         for p in paths:
@@ -609,6 +626,17 @@ class H(BaseHTTPRequestHandler):
                 self._send(200, SPICE_RECIPES.read())
             elif url.path == '/api/settings':
                 self._send(200, ai_provider.capabilities())
+            elif url.path == '/api/article-creation':
+                self._send(200, {'targets': CREATOR.targets()})
+            elif url.path == '/api/article-trash':
+                self._send(200, TRASH.read())
+            elif url.path == '/api/article-draft/context':
+                q = urllib.parse.parse_qs(url.query)
+                self._send(200, article_draft.context(PREFERENCES, VOICE_CORPUS, q.get('profile', ['blog'])[0]))
+            elif url.path == '/api/voice-corpus':
+                q = urllib.parse.parse_qs(url.query)
+                value, _ = VOICE_CORPUS.inspect(q.get('profile', ['blog'])[0])
+                self._send(200, value)
             elif url.path == '/api/models':
                 self._send(200, ai_provider.model_catalog())
             elif url.path == '/api/jobs':
@@ -707,7 +735,28 @@ class H(BaseHTTPRequestHandler):
             b = self._body()
             op_id = clean_line(b.get("operation_id", ""), 64) or uuid.uuid4().hex
 
-            if url.path == '/api/restore-version':
+            if url.path in {'/api/article-trash/preview', '/api/article-trash', '/api/article-trash/restore', '/api/article-trash/empty'}:
+                with LOCK:
+                    try:
+                        action = {'/api/article-trash/preview': TRASH.preview, '/api/article-trash': TRASH.put,
+                                  '/api/article-trash/restore': TRASH.restore, '/api/article-trash/empty': TRASH.empty}[url.path]
+                        self._send(200, action(b))
+                    except OSError as error:
+                        self._send(400, {'error': 'Операция с корзиной не завершена: ' + str(error)})
+            elif url.path in {'/api/article-creation/preview', '/api/article-creation'}:
+                try:
+                    generation = article_draft.creation_metadata(b, job_service()) if b.get('mode') == 'ai' else None
+                    value = CREATOR.preview(b) if url.path.endswith('/preview') else CREATOR.create(b, generation=generation)
+                    self._send(200, value)
+                except OSError as error:
+                    self._send(400, {'error': 'Не удалось создать файлы. Проверь права и свободное место: ' + str(error)})
+            elif url.path == '/api/article-draft':
+                self._send(202, {'job': article_draft.enqueue(b, job_service(), PREFERENCES, VOICE_CORPUS)})
+            elif url.path == '/api/voice-corpus/pick':
+                self._send(200, {'directory': choose_local_path('folder')})
+            elif url.path == '/api/voice-corpus':
+                self._send(200, VOICE_CORPUS.save(b))
+            elif url.path == '/api/restore-version':
                 path = self._doc_path(q)
                 with LOCK:
                     current, _ = STORE.read(path)
@@ -886,7 +935,8 @@ class H(BaseHTTPRequestHandler):
                     raise LookupError('Публикация не найдена для этой статьи')
                 self._send(200,TELEGRAM.publish(record['id']))
             elif url.path == '/api/jobs':
-                code,out=enqueue_job(q.get('root',[''])[0],q.get('f',[''])[0],b)
+                with LOCK:
+                    code,out=enqueue_job(q.get('root',[''])[0],q.get('f',[''])[0],b)
                 self._send(code,out)
 
             elif url.path == "/api/prepare-image":
@@ -1225,7 +1275,7 @@ class H(BaseHTTPRequestHandler):
                 self._send(502, {'error':str(e)})
             else:
                 self._send(500, {'error':'internal'})
-        except (PlanConflict, LocationsConflict, SettingsConflict) as e:
+        except (PlanConflict, LocationsConflict, SettingsConflict, CreationConflict, TrashConflict) as e:
             self._send(409, {'error': str(e)})
         except ValueError as e:
             self._send(400, {"error": str(e)})

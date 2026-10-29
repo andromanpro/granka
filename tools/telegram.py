@@ -85,11 +85,25 @@ class Telegram:
         try:self.token(config);available=True
         except ValueError:available=False
         return {'chat_id':config.get('chat_id',''),'token_file':config.get('token_file',''),
+                'publication_mode':self.publication_mode(config),
                 'has_token':available,'token_source':'file' if config.get('token_file') else 'local' if config.get('token') else 'environment'}
+
+    def publication_mode(self,config=None):
+        config=self.config() if config is None else config
+        mode=config.get('publication_mode','channel')
+        if not isinstance(mode,str) or mode not in {'channel','manual'}:
+            raise ValueError('Выбери публикацию от имени канала или вручную в Telegram')
+        return mode
+
+    def require_channel_publication(self):
+        if self.publication_mode()!='channel':
+            raise ValueError('Выбрана ручная публикация. Для отправки через бота выбери «От имени канала» в настройках Telegram.')
 
     def save_settings(self,values):
         with self.lock,delivery_lock(self.directory):
             config=self.config()
+            if 'publication_mode'in values:config['publication_mode']=values['publication_mode']
+            config['publication_mode']=self.publication_mode(config)
             chat=values.get('chat_id',config.get('chat_id',''))
             if not isinstance(chat,str) or (chat and not re.fullmatch(r'@[A-Za-z][A-Za-z0-9_]{3,31}|-100\d{5,20}',chat.strip())):
                 raise ValueError('Укажи @имя канала или его числовой ID -100…')
@@ -119,7 +133,10 @@ class Telegram:
 
     def fingerprint(self):
         config=self.config()
-        return hashlib.sha256((config.get('chat_id','')+'|'+self.token(config)).encode()).hexdigest()
+        mode=self.publication_mode(config)
+        # Keep old reviewed channel snapshots valid; manual mode blocks delivery.
+        suffix='|manual' if mode=='manual' else ''
+        return hashlib.sha256((config.get('chat_id','')+'|'+self.token(config)+suffix).encode()).hexdigest()
 
     def record_path(self,identifier):
         if not re.fullmatch(r'[a-f0-9]{32}',identifier):raise LookupError('Публикация не найдена')
@@ -168,6 +185,7 @@ class Telegram:
     def prepare(self,root,rel,version,text,photo=None,media=None,rich_message=None,rich_files=None,action=None,target_id=None,expected_source_id=_UNSET):
         if action not in {None,'create','update'}:raise ValueError('Выбери создание или обновление публикации')
         with self.lock,delivery_lock(self.directory):
+            self.require_channel_publication()
             raw=photo.read_bytes() if photo else b''
             if photo and (len(raw)>10*1024*1024 or photo.suffix.lower() not in {'.jpg','.jpeg','.png'}):
                 raise ValueError('Для Telegram нужна обложка PNG/JPEG до 10 МБ')
@@ -211,6 +229,7 @@ class Telegram:
             if action is None and latest:raise ValueError('Статья уже опубликована. Выбери «Обновить опубликованный пост» или явно «Создать новый».')
             if any(v['status']in {'unknown','sending'}for v in records):raise ValueError('Есть отправка с неизвестным результатом. Проверь канал; новая отправка заблокирована.')
             record={'id':identifier,'root':root,'rel':rel,'version':version,'text':text,'channel':channel,
+                    'sender_mode':'channel',
                     'status':'prepared','created':time.time(),'config_fingerprint':fingerprint,'with_cover':bool(photo),
                     'mode':'article' if rich_message else 'announcement','attachments':descriptors,'action':action or 'create',
                     'content_id':content_id,'base_source_id':latest['id']if latest else None}
@@ -233,6 +252,9 @@ class Telegram:
         with self.lock,delivery_lock(self.directory):
             record=self.read(identifier)
             if record['status'] in {'sent','sending','unknown'}:return self.public(record)
+            self.require_channel_publication()
+            if record.get('sender_mode','channel')!='channel':
+                raise ValueError('Отправитель публикации изменился. Подготовь предпросмотр заново.')
             if record['config_fingerprint']!=self.fingerprint():
                 raise ValueError('Настройки бота изменились. Подготовь предпросмотр заново.')
             path=self.record_path(identifier)

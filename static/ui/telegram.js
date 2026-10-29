@@ -29,8 +29,18 @@ let context = null,
   currentMode = "announcement",
   publishedRecords = [],
   deliveryChoice = false,
-  publicationsReady = false;
+  publicationsReady = false,
+  actionError = "";
 const key = () => `granka.telegram:${S.root}|${S.file}`;
+const manualPublication = () => settings.publication_mode === "manual";
+function renderPublicationMode() {
+  const manual = $("#tg-publication-mode").value === "manual";
+  $("#tg-bot-credentials").hidden = manual;
+  $("#tg-check").hidden = $("#tg-token-clear").hidden = manual;
+  $("#tg-publication-mode-help").textContent = manual
+    ? "Гранка не отправляет посты. Скопируй текст и добавь медиа в Telegram; отправителя выберешь там."
+    : "Пост отправит бот в указанный канал. Твой личный профиль не используется. Подписи авторов настраиваются в Telegram.";
+}
 const payload = () => ({
   text: $("#tg-text").value,
   url: $("#tg-url").value.trim(),
@@ -82,6 +92,10 @@ function renderDelivery() {
     const link = el("a", null, " Открыть прежний пост"); link.href = url; link.target = "_blank"; link.rel = "noreferrer"; hint.appendChild(link);
   }
   if (!publicationsReady) hint.textContent = "Проверяю историю публикаций…";
+  if (manualPublication()) {
+    hint.textContent = "Отправка из Гранки выключена. Текст можно сохранить и скопировать; фото и видео добавь в Telegram.";
+    select.disabled = $("#tg-delivery-action").disabled = true;
+  }
 }
 function tab(name) {
   $("#tg-compose-panel").hidden = name !== "compose";
@@ -157,23 +171,37 @@ function render() {
     : settings.chat_id
       ? "Канал: " + settings.chat_id
       : "Предпросмотр · канал ещё не настроен";
+  $("#tg-sender").textContent = manualPublication()
+    ? "Отправителя выберешь в Telegram. Гранка ничего не отправляет."
+    : "От имени канала" + (prepared ? " «" + prepared.channel.title + "»" : settings.chat_id ? " · " + settings.chat_id : " · укажи канал в настройках") + " — через бота";
   $("#tg-compose").inert = !!prepared || locked;
   for (const id of ["#tg-save", "#tg-copy", "#tg-prepare"])
     $(id).hidden = !!prepared;
   $("#tg-edit").hidden = !prepared;
   $("#tg-publish").hidden = !prepared;
   $("#tg-publish").disabled =
-    locked || !prepared || !["prepared", "failed"].includes(prepared.status);
+    locked || manualPublication() || !prepared || !["prepared", "failed"].includes(prepared.status);
   $("#tg-publish").textContent =
     prepared?.status === "sent"
       ? prepared.action === "update" ? "Обновлено" : "Опубликовано"
       : prepared?.status === "failed"
         ? prepared.action === "update" ? "Повторить обновление" : "Повторить отправку"
-        : prepared?.action === "update" ? "Обновить опубликованный пост" : "Создать новый пост в «" + (prepared?.channel.title || "канал") + "»";
+        : prepared?.action === "update" ? "Обновить опубликованный пост" : "Опубликовать в «" + (prepared?.channel.title || "канал") + "»";
   for (const id of ["#tg-save", "#tg-prepare", "#tg-edit", "#telegram-close", "#tg-back-article", "#tg-check", "#tg-settings-save", "#tg-token-clear"])
     $(id).disabled = locked;
-  $("#tg-prepare").textContent = $("#tg-delivery-action").value === "update" ? "Проверить обновление…" : "К публикации…";
-  $("#tg-prepare").disabled = locked || !publicationsReady;
+  $("#tg-prepare").textContent = "Проверить перед отправкой";
+  $("#tg-prepare").disabled = locked || manualPublication() || !publicationsReady;
+  $("#tg-publication-mode").disabled = locked;
+  const step = $("#tg-publish-step"), channel = prepared?.channel.title || "канал";
+  if (!prepared && manualPublication()) step.textContent = "Ручная публикация: скопируй текст и перенеси его вместе с медиа в Telegram.";
+  else if (!prepared) step.textContent = "Шаг 1 из 2. Сначала проверь пост, затем подтверди отправку отдельной кнопкой.";
+  else if (prepared.status === "sent") step.textContent = prepared.action === "update"
+    ? "Пост в «" + channel + "» обновлён. Ссылка ниже."
+    : "Пост опубликован в «" + channel + "». Ссылка ниже.";
+  else if (prepared.status === "sending") step.textContent = "Отправка в «" + channel + "» выполняется. Дождись результата.";
+  else if (prepared.status === "unknown") step.textContent = "Результат отправки неизвестен. Проверь канал перед дальнейшими действиями.";
+  else step.textContent = "Шаг 2 из 2. " + (prepared.action === "update" ? "Изменения ещё не отправлены. " : "Пост ещё не отправлен. ") +
+    "Отправитель — канал «" + channel + "». Проверь предпросмотр и подтверди отправку кнопкой ниже.";
   $("#tg-check").textContent = checkingAccess ? "Проверяю…" : "Проверить доступ";
   document.querySelectorAll("[data-tg-tab]").forEach((b) => b.disabled = locked);
   if (prepared) {
@@ -187,10 +215,10 @@ function render() {
       status.appendChild(a);
     } else
       status.textContent =
-        prepared.error ||
+        actionError || prepared.error ||
         (prepared.status === "sending"
           ? "Отправка выполняется."
-          : "Проверь текст, вложения и канал. Кнопка ниже отправит сохранённый снимок этого поста.");
+          : "В канал будет отправлен показанный текст с выбранными вложениями.");
   }
 }
 const mediaURL=src=>"/api/article-image?"+query()+"&src="+encodeURIComponent(src);
@@ -210,9 +238,13 @@ async function refreshSettings() {
   $("#tg-chat-id").value = settings.chat_id;
   $("#tg-token-file").value = settings.token_file;
   $("#tg-token").value = "";
+  $("#tg-publication-mode").value = settings.publication_mode || "channel";
+  renderPublicationMode();
   delete $("#tg-bot-status").dataset.state;
   $("#tg-bot-status").classList.remove("error");
-  $("#tg-bot-status").textContent = settings.has_token
+  $("#tg-bot-status").textContent = manualPublication()
+    ? "Ручная публикация. Отправка через бота выключена."
+    : settings.has_token
     ? "Токен настроен."
     : "Токен ещё не настроен.";
 }
@@ -254,6 +286,7 @@ export async function openTelegram() {
   publishedRecords = [];
   publicationsReady = false;
   displayed = null;
+  actionError = "";
   let draft = S.document.announcement || {};
   try {
     draft = JSON.parse(localStorage.getItem(key())) || draft;
@@ -315,6 +348,7 @@ function renderGeneration() {
 }
 async function action(fn) {
   if (locked) return;
+  actionError = "";
   locked = true;
   S.workspaceLocked = true;
   events.dispatchEvent(new Event("workspace-lock"));
@@ -322,6 +356,7 @@ async function action(fn) {
   try {
     await fn();
   } catch (error) {
+    actionError = error.message;
     toast(error.message, true);
     $("#tg-status").textContent = error.message;
   } finally {
@@ -332,6 +367,10 @@ async function action(fn) {
   }
 }
 export function initTelegram() {
+  $("#tg-publication-mode").addEventListener("change", () => {
+    renderPublicationMode();
+    $("#tg-bot-status").textContent = "Режим изменён. Сохрани настройки.";
+  });
   for (const id of ["#tg-delivery-action", "#tg-target"]) $(id).addEventListener("change", () => { deliveryChoice = true; render(); });
   $("#tg-mode").addEventListener("change",()=>{
     const selected=$("#tg-mode").value;$("#tg-mode").value=currentMode;store();currentMode=selected;$("#tg-mode").value=selected;
@@ -400,8 +439,9 @@ export function initTelegram() {
       toast("Выдели и скопируй текст анонса вручную");
     }
   });
-  $("#tg-prepare").addEventListener("click", () =>
-    action(async () => {
+  $("#tg-prepare").addEventListener("click", async () => {
+    await action(async () => {
+      if (manualPublication()) throw new Error("Отправка из Гранки выключена в настройках Telegram.");
       if (!settings.has_token || !settings.chat_id) {
         tab("bot");
         toast("Сначала настрой бота и канал");
@@ -411,8 +451,9 @@ export function initTelegram() {
         method: "POST",
         body: deliveryPayload(),
       });
-    }),
-  );
+    });
+    if (prepared) $("#tg-publish-step").focus();
+  });
   $("#tg-edit").addEventListener("click", () => {
     prepared = null;
     $("#tg-status").textContent = "";
@@ -436,6 +477,7 @@ export function initTelegram() {
           chat_id: $("#tg-chat-id").value,
           token: $("#tg-token").value,
           token_file: $("#tg-token-file").value,
+          publication_mode: $("#tg-publication-mode").value,
         },
       });
       prepared = null;
@@ -466,6 +508,7 @@ export function initTelegram() {
       try {
         if ($("#tg-token").value.trim() ||
             $("#tg-chat-id").value.trim() !== (settings.chat_id || "") ||
+            $("#tg-publication-mode").value !== (settings.publication_mode || "channel") ||
             $("#tg-token-file").value.trim() !== (settings.token_file || ""))
           throw new Error("Сначала сохрани изменённые настройки бота, затем проверь доступ.");
         timer = setTimeout(() => controller.abort(), 45000);

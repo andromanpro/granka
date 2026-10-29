@@ -464,7 +464,8 @@ class MarkdownBrowserTests(unittest.TestCase):
             external=self.page.locator('.source-item').filter(has_text='Старая публикация')
             expect(external.locator('a.source-open')).to_have_attribute('href','https://example.invalid/historical/')
             self.assertIn('Опубликовано · 2019-07-28',external.inner_text())
-            self.assertEqual(external.locator('button').count(),0)
+            self.assertEqual(external.locator('button.source-open').count(),0)
+            self.assertEqual(external.locator('button.source-trash').count(),1)
             with self.page.expect_popup() as opened:
                 external.locator('a.source-open').click()
             popup=opened.value;popup.wait_for_load_state()

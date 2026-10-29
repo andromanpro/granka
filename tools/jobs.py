@@ -2,11 +2,13 @@
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import threading
 import time
 from .ai_provider import atomic_json
+_WINDOWS = os.name == 'nt'
 
 
 class JobConflict(RuntimeError): pass
@@ -27,8 +29,19 @@ class Jobs:
     def get(self,job_id):
         if not re.fullmatch(r'[a-f0-9]{24}',job_id):raise LookupError('job not found')
         path=self.directory/job_id/'job.json'
-        if not path.is_file():raise LookupError('job not found')
-        data=json.loads(path.read_text(encoding='utf-8'))
+        for attempt in range(8):
+            try:
+                raw = path.read_text(encoding='utf-8')
+                break
+            except FileNotFoundError:
+                raise LookupError('job not found') from None
+            except PermissionError as error:
+                if not _WINDOWS or getattr(error, 'winerror', None) not in {5, 32, 33} or attempt == 7:
+                    raise
+                # Windows may briefly deny reads while the atomic status file
+                # is being replaced. This never retries the job or its provider.
+                time.sleep(min(.02 * 2 ** attempt, .25))
+        data=json.loads(raw)
         if data.get('kind')=='deep-analysis' and data.get('status')=='running':
             try:
                 stage=json.loads((path.parent/'progress.json').read_text(encoding='utf-8'))['stage']
@@ -66,7 +79,7 @@ class Jobs:
             return job
 
     def _run(self,job,work,directory):
-        job={**job,'status':'running','message':{'apply':'Применяю решения','analysis':'Анализирую статью','deep-analysis':'Разбираю статью: карта, замечания и перепроверка','image':'Генерирую картинку','editorial':'Выполняю редакторское поручение','announcement':'Готовлю анонс для Telegram','site':'Публикую статью на сайте','benchmark':'Проверяю модель на авторских решениях','rules':'Предлагаю уточнения личных правил','spice':'Готовлю предложения по рецепту'}[job['kind']]}
+        job={**job,'status':'running','message':{'apply':'Применяю решения','analysis':'Анализирую статью','deep-analysis':'Разбираю статью: карта, замечания и перепроверка','image':'Генерирую картинку','editorial':'Выполняю редакторское поручение','announcement':'Готовлю анонс для Telegram','site':'Публикую статью на сайте','benchmark':'Проверяю модель на авторских решениях','rules':'Предлагаю уточнения личных правил','spice':'Готовлю предложения по рецепту','article-draft':'Пишу первую заготовку статьи'}[job['kind']]}
         atomic_json(directory/'job.json',job)
         try:
             result=work(directory)

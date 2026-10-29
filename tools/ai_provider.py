@@ -19,6 +19,7 @@ from . import site_connections
 HERE = Path(__file__).resolve().parents[1]
 CONFIG = environment.CONFIG_FILE
 STATE = environment.STATE
+_WINDOWS = os.name == 'nt'
 DEFAULTS = {'analysis_provider':'codex', 'image_provider':'codex', 'codex_model':'',
             'openrouter_text_model':'', 'openrouter_image_model':'', 'image_aspect':'16:9',
             'spice_view':'jars', 'spice_motion':'ripple'}
@@ -27,8 +28,20 @@ DEFAULTS = {'analysis_provider':'codex', 'image_provider':'codex', 'codex_model'
 def atomic_json(path, data):
     path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name('.' + path.name + '.' + uuid.uuid4().hex + '.tmp')
-    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8', newline='\n')
-    os.replace(temporary, path)
+    try:
+        temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8', newline='\n')
+        # A reader/virus scanner can briefly deny FILE_SHARE_DELETE on Windows.
+        # Retry only the local rename, never the work or the model request.
+        for attempt in range(8):
+            try:
+                os.replace(temporary, path)
+                break
+            except PermissionError as error:
+                if not _WINDOWS or getattr(error, 'winerror', None) not in {5, 32, 33} or attempt == 7:
+                    raise
+                time.sleep(min(.02 * 2 ** attempt, .25))
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def settings():

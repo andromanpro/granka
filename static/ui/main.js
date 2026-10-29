@@ -15,6 +15,8 @@ import {
 } from "./core.js";
 import { editor, initEditor, save, setView } from "./editor.js";
 import { initMeter, measure } from "./meter.js";
+import { initNewArticle } from './new-article.js';
+import { initTrash, trashArticle, refreshTrashCount } from './trash.js';
 import { initReview } from "./review.js";
 import { initDeepReview } from "./deep-review.js";
 import { initDiff } from "./diff.js";
@@ -131,6 +133,7 @@ async function openSources() {
     sources = (await api("/api/sources")).sources || [];
     drawSources();
     await sourceLocations();
+    await refreshTrashCount();
   } catch (error) {
     $("#source-list").textContent = "Не удалось загрузить библиотеку. Проверь подключённые источники и попробуй открыть раздел ещё раз.";
     toast(error.message, true);
@@ -221,6 +224,7 @@ function drawSources() {
     const location = source.dir === '.' ? (source.root === 'blog' ? 'Блог' : 'Рабочая папка') : source.dir;
     main.append(el('strong', null, source.name), el('small', null, (source.channel === 'telegram' ? 'Telegram · ' : '') + location), el('span', 'tag', label));
     row.append(main);
+    row.append(button('В корзину', () => trashArticle(source), 'source-trash quiet'));
     if (source.url && source.state === 'published' && !source.external) {
       const link = el('a', 'source-publication', 'Читать публикацию');
       link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
@@ -237,7 +241,12 @@ function drawSources() {
     }, 'source-plan quiet'));
     if (source.copies?.length) {
       const copies = el('details', 'source-copies'); copies.append(el('summary', null, 'Другие исходники · ' + source.copies.length));
-      for (const copy of source.copies) copies.append(button(copy.copy_label + ': ' + copy.rel, () => openSource(copy), 'quiet'));
+      for (const copy of source.copies) {
+        const item = el('div', 'source-copy-row');
+        item.append(button(copy.copy_label + ': ' + copy.rel, () => openSource(copy), 'quiet'),
+          button('В корзину', () => trashArticle(copy), 'source-trash quiet'));
+        copies.append(item);
+      }
       row.append(copies);
     }
     list.append(row);
@@ -337,6 +346,10 @@ $("#source-close").addEventListener("click", () => $("#source-dialog").close());
 $("#source-search").addEventListener("input", drawSources);
 document.querySelectorAll('[data-source-filter]').forEach(b => b.addEventListener('click', () => { sourceFilter = b.dataset.sourceFilter; drawSources(); }));
 events.addEventListener('sources', openSources);
+events.addEventListener('trash-changed', async () => {
+  try { sources = (await api('/api/sources')).sources || []; drawSources(); await refreshTrashCount(); }
+  catch (error) { toast(error.message, true); }
+});
 $("#syncbtn").addEventListener("click", sync);
 $("#inspector-toggle").addEventListener("click", () =>
   $("#inspector").classList.toggle("mobile-open"),
@@ -359,6 +372,8 @@ window.granka = {
   pane,
   openImages,
 };
+initNewArticle();
+initTrash();
 pane("review");
 applyAppearance(readAppearance());
 initWorkspace({ library: openSources, calendar: openPlanner, telegram: openTelegram, settings: openSettings,

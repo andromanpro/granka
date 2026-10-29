@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="/static/ui/planner.css" />
     <link rel="stylesheet" href="/static/ui/spices.css" />
     <link rel="stylesheet" href="/static/ui/atelier.css?v=atelier-1" />
+    <link rel="stylesheet" href="/static/ui/new-article.css" />
   </head>
   <body>
     <a class="skip-workspace" href="#reader-shell">К тексту статьи</a>
@@ -61,6 +62,7 @@
         </button>
       </div>
       <div class="header-actions">
+        <button id="newarticle-main" data-new-article>Новая статья</button>
         <button id="analysisbtn">Проверить текст</button>
         <button id="savebtn" class="primary" disabled>Сохранить</button>
         <button
@@ -261,6 +263,14 @@
           <div id="meterflags" class="meter-flags"></div>
           <button id="meterhl" class="full-width">Подсветить обороты</button>
           <p id="meterscale" class="fine-print"></p>
+          <p id="meter-error" role="status"></p><button id="meter-retry" hidden>Повторить расчёт</button>
+          <button id="meter-configure" class="full-width">Настроить сравнение голоса</button>
+          <details id="meter-corpus-settings" class="voice-corpus-settings"><summary>Папка собственных текстов</summary>
+            <p class="fine-print">Сравнение выполняется локально. Исходники корпуса не меняются и не отправляются в ИИ. Нужны собственные Markdown-тексты (.md); README, код и пустые файлы не подходят. Для профиля «Доклады» используется подпапка talks.</p>
+            <label class="field-label" for="meter-corpus-path">Полный путь к папке</label><input id="meter-corpus-path" placeholder="Папка собственных Markdown-текстов" />
+            <div class="actions"><button id="meter-corpus-pick">Выбрать папку…</button><button id="meter-corpus-save">Подключить и пересчитать</button></div>
+            <p id="meter-corpus-status" class="fine-print" role="status"></p>
+          </details>
         </section>
         <section id="spice-panel" data-panel="spices" class="inspector-panel" hidden>
           <div class="spice-heading"><h2 class="panel-title">Приправы</h2><button id="spice-settings" class="quiet" aria-label="Настройки приправ">⚙</button></div>
@@ -317,8 +327,10 @@
         </button>
       </header>
       <div class="source-add-actions">
+        <button id="newarticle-library" class="primary" data-new-article>Новая статья</button>
         <button id="source-file" class="primary">Открыть файл…</button>
         <button id="source-folder">Добавить папку…</button>
+        <button id="source-trash">Корзина</button>
       </div>
       <p id="source-location-status" class="fine-print" role="status"></p>
       <details class="source-locations">
@@ -341,6 +353,61 @@
       <div class="segmented source-filters"><button data-source-filter="draft" class="selected">Черновики <span></span></button><button data-source-filter="published">Опубликовано <span></span></button><button data-source-filter="all">Все <span></span></button></div>
       <p id="source-summary" class="fine-print" role="status"></p>
       <div id="source-list"></div>
+    </dialog>
+    <dialog id="trash-dialog" class="dialog trash-dialog" aria-labelledby="trash-title">
+      <header><h2 id="trash-title">Корзина статей</h2><button id="trash-close" aria-label="Закрыть корзину">✕</button></header>
+      <p class="fine-print">Восстановление вернёт статью с историей и материалами в прежнюю папку. Занятые имена не перезаписываются.</p>
+      <button id="trash-empty" class="danger">Очистить корзину</button><p id="trash-status" role="status" aria-live="polite"></p><div id="trash-list"></div>
+    </dialog>
+    <dialog id="trash-confirm" class="dialog trash-dialog" aria-labelledby="trash-confirm-title">
+      <h2 id="trash-confirm-title"></h2><div id="trash-confirm-detail"></div><p id="trash-confirm-status" role="status" aria-live="polite"></p>
+      <div class="actions"><button id="trash-confirm-cancel">Отмена</button><button id="trash-confirm-apply" class="danger"></button></div>
+    </dialog>
+    <dialog id="newarticle-dialog" class="dialog new-article-dialog" aria-labelledby="newarticle-heading">
+      <header><div><small id="newarticle-progress">Шаг 1 из 3 · Тема</small><h2 id="newarticle-heading">Новая статья</h2></div><button id="newarticle-close" type="button" aria-label="Закрыть мастер">✕</button></header>
+      <form id="newarticle-form" novalidate>
+        <fieldset data-newarticle-step="1"><legend class="sr-only">Тема</legend>
+          <label for="newarticle-title">Название · обязательно</label><input id="newarticle-title" maxlength="180" required />
+          <label for="newarticle-audience">Для кого пишем · необязательно</label><input id="newarticle-audience" maxlength="500" />
+          <label for="newarticle-purpose">Зачем пишем · необязательно</label><input id="newarticle-purpose" maxlength="1000" />
+          <p class="fine-print">Аудитория и цель сохранятся как заметки к статье. В публикуемый текст они не попадут.</p>
+        </fieldset>
+        <fieldset data-newarticle-step="2" hidden><legend class="sr-only">Начало текста</legend>
+          <label for="newarticle-mode">С чего начнём?</label><select id="newarticle-mode"><option value="blank">Пустой черновик</option><option value="outline">Заготовка с разделами</option><option value="notes">Свои заметки</option><option value="ai">Заготовка с ИИ</option></select>
+          <div id="newarticle-notes-row" hidden><label for="newarticle-notes">Заметки</label><textarea id="newarticle-notes" maxlength="100000"></textarea></div>
+          <p id="newarticle-local-note" class="fine-print">Это локальное создание файла. Запрос к ИИ не выполняется.</p>
+          <section id="newarticle-ai" hidden aria-label="Заготовка с ИИ">
+            <label for="newarticle-brief">Факты, заметки и что обязательно раскрыть</label><textarea id="newarticle-brief" data-draft-parameter maxlength="16000" placeholder="Что произошло, что ты сделал, какой вывод хочешь донести…"></textarea>
+            <div class="draft-options"><div><label for="newarticle-length">Объём</label><select id="newarticle-length" data-draft-parameter><option value="short">Коротко · 150–300 слов</option><option value="medium" selected>Статья · 500–800 слов</option><option value="long">Подробно · 1000–1500 слов</option></select></div><div><label for="newarticle-profile">Авторский профиль</label><select id="newarticle-profile" data-draft-parameter><option value="blog">Статьи и блог</option><option value="talks">Доклады</option></select></div></div>
+            <label class="draft-check"><input id="newarticle-style" data-draft-parameter type="checkbox" checked />Писать в моём стиле</label>
+            <p id="newarticle-style-info" class="fine-print" role="status"></p>
+            <label class="draft-check"><input id="newarticle-season" data-draft-parameter type="checkbox" />Приправить перед написанием</label>
+            <div id="newarticle-spice-fields" hidden>
+              <label for="newarticle-recipe">Рецепт</label><select id="newarticle-recipe" data-draft-parameter><option value="">Своя смесь</option></select>
+              <div class="draft-spice-shelf">
+                <label>🧂 Ирония<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Ирония: дозировка" /><output>Без добавок</output></label>
+                <label>🌶 Пошлые шутки<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Пошлые шутки: дозировка" /><output>Без добавок</output></label>
+                <label>🌿 Метафоры<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Метафоры: дозировка" /><output>Без добавок</output></label>
+                <label>🧪 Аллегории<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Аллегории: дозировка" /><output>Без добавок</output></label>
+              </div>
+              <div class="draft-options"><div><label for="newarticle-spice-mode">Действие</label><select id="newarticle-spice-mode" data-draft-parameter><option value="add">Добавить</option><option value="reduce">Убавить пафос и приёмы</option></select></div><div><label for="newarticle-density">Как часто</label><select id="newarticle-density" data-draft-parameter><option value="rare">Редкие акценты</option><option value="some">Несколько мест</option><option value="rich">Насыщенно</option></select></div></div>
+              <label for="newarticle-spice-prompt">Как приправы повлияют на статью</label><textarea id="newarticle-spice-prompt" data-draft-parameter maxlength="2000" placeholder="Например: построить объяснение на одной бытовой метафоре, добавить сухой самоиронии…"></textarea>
+              <p class="fine-print">Эта смесь действует только на текущую заготовку. Авторские правила и рецепты не изменятся.</p>
+            </div>
+            <p class="fine-print">По кнопке выбранному ИИ отправятся тема, аудитория, цель и заметки, а при включённом авторском стиле — личные правила, примеры решений и до трёх фрагментов корпуса. Действуют тарифы выбранного подключения. Файлы статьи появятся после отдельного «Создать статью».</p>
+            <button id="newarticle-generate" type="button" class="primary">Написать заготовку</button>
+            <p id="newarticle-ai-status" role="status" aria-live="polite"></p>
+            <div id="newarticle-ai-result" hidden><p id="newarticle-ai-stale" hidden>Тема или смесь изменились. Для этих параметров нужна новая заготовка.</p><label for="newarticle-draft-text">Заготовка · можно редактировать</label><textarea id="newarticle-draft-text" maxlength="100000"></textarea></div>
+          </section>
+        </fieldset>
+        <fieldset data-newarticle-step="3" hidden><legend class="sr-only">Сохранение</legend>
+          <label for="newarticle-root">Папка статей</label><select id="newarticle-root"></select>
+          <label for="newarticle-folder">Подпапка · необязательно</label><input id="newarticle-folder" placeholder="Например: черновики" />
+          <p class="fine-print">Выбери подключённую папку или существующую подпапку внутри неё. Другой источник можно подключить в библиотеке.</p>
+          <div id="newarticle-files" aria-live="polite"></div><p class="fine-print">Дата публикации не назначается. Статья появится в библиотеке и календаре.</p>
+        </fieldset>
+        <p id="newarticle-status" role="status"></p><div class="actions"><button id="newarticle-back" type="button" hidden>Назад</button><button id="newarticle-next" class="primary" type="submit">Дальше</button></div>
+      </form>
     </dialog>
     <dialog
       id="imagegallery"
@@ -576,6 +643,7 @@
           </section>
           <section>
             <p id="tg-channel" class="field-label">Предпросмотр</p>
+            <p id="tg-sender" class="fine-print" role="status"></p>
             <div class="telegram-preview">
               <img id="tg-photo" alt="Обложка анонса" hidden />
               <div id="tg-media-preview"></div>
@@ -584,11 +652,12 @@
             </div>
           </section>
         </div>
+        <p id="tg-publish-step" class="field-label" role="status" tabindex="-1">Шаг 1 из 2. Сначала проверь пост, затем подтверди отправку отдельной кнопкой.</p>
         <p id="tg-status" class="fine-print" role="status"></p>
         <div class="actions telegram-actions">
           <button id="tg-save">Сохранить черновик</button
           ><button id="tg-copy">Копировать</button
-          ><button id="tg-prepare" class="primary">К публикации…</button
+          ><button id="tg-prepare" class="primary">Проверить перед отправкой</button
           ><button id="tg-edit" hidden>Вернуться к правке</button
           ><button id="tg-publish" class="primary" hidden>Опубликовать</button>
           <button id="tg-back-article" class="quiet">← К статье</button>
@@ -599,6 +668,14 @@
         </details>
       </section>
       <section id="tg-bot-panel" hidden>
+        <label class="setting-row" for="tg-publication-mode">Публикация
+          <select id="tg-publication-mode" aria-describedby="tg-publication-mode-help">
+            <option value="channel">От имени канала — через бота</option>
+            <option value="manual">Вручную в Telegram</option>
+          </select>
+        </label>
+        <p id="tg-publication-mode-help" class="fine-print"></p>
+        <div id="tg-bot-credentials">
         <p class="fine-print">
           Создай бота через
           <a href="https://t.me/BotFather" target="_blank" rel="noreferrer"
@@ -628,10 +705,11 @@
           Токен хранится локально, вне репозитория. Также поддерживается
           переменная GRANKA_TELEGRAM_BOT_TOKEN.
         </p>
+        </div>
         <p id="tg-bot-status" class="fine-print" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="actions">
           <button id="tg-settings-save" class="primary">
-            Сохранить настройки бота</button
+            Сохранить настройки Telegram</button
           ><button id="tg-check">Проверить доступ</button
           ><button id="tg-token-clear" class="quiet">
             Удалить сохранённый токен
