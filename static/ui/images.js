@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -15,7 +16,7 @@ import { saveCover } from "./cover.js";
 let purpose = "inline";
 const promptDrafts = {
   inline: "",
-  cover: "Выразительная иллюстрация главной идеи статьи. Без надписей.",
+  cover: t("ui.26ed27627308"),
 };
 let images = [],
   target = null,
@@ -31,8 +32,7 @@ function showSelectionMenu(rect, figures) {
   pop.hidden = false;
   $("#addann").disabled = !!S.editor || !editor.selection();
   remove.hidden = !figures.length;
-  remove.textContent =
-    figures.length > 1 ? "Убрать картинки" : "Убрать картинку";
+  localize(remove,"textContent",()=>figures.length > 1 ? t("ui.efb6ecf854b5") : t("ui.7810e52f6b53"));
   pop.style.left =
     Math.max(8, Math.min(rect.left, innerWidth - pop.offsetWidth - 8)) + "px";
   pop.style.top =
@@ -51,8 +51,7 @@ function choose(item) {
   selected = item;
   $("#imagepreview").src = preview(item.path);
   $("#imagepreview").hidden = false;
-  $("#imageinfo").textContent =
-    item.name + (item.kb ? " · " + item.kb + " КБ" : "");
+  localize($("#imageinfo"),"textContent",()=>item.name + (item.kb ? " · " + item.kb + t("ui.69a96a534531") : ""));
   $("#imagealt").value = item.name.replace(/\.[^.]+$/, "");
   $("#imageinsert").disabled = false;
   document
@@ -79,7 +78,7 @@ function grid() {
   }
   if (!box.children.length)
     box.appendChild(
-      el("p", "empty", "Картинки не найдены. Можно сгенерировать новую."),
+      el("p", "empty", ()=>t("ui.c8a822726a07")),
     );
 }
 function tab(name) {
@@ -93,19 +92,19 @@ function tab(name) {
 }
 export async function openImages(context) {
   if (S.busy || !latest() || S.view !== "article") {
-    toast("Открой последнюю версию статьи");
+    toast(t("ui.34732ae19082"));
     return;
   }
   target = context || editor.context();
   purpose = context?.purpose || "inline";
   const cover = purpose === "cover";
-  $("#image-title").textContent = cover ? "Обложка статьи" : "Выбрать картинку";
-  $("#image-kicker").textContent = cover
-    ? "Первое впечатление · 16:9"
-    : "Иллюстрация для статьи";
-  $("#imageinsert").textContent = cover
-    ? "Сделать обложкой"
-    : "Вставить в статью";
+  localize($("#image-title"),"textContent",()=>cover ? t("ui.3b855468a0eb") : t("ui.c7f44282f28f"));
+  localize($("#image-kicker"),"textContent",()=>cover
+    ? t("ui.a23502d3db49")
+    : t("ui.5d9db05a58f9"));
+  localize($("#imageinsert"),"textContent",()=>cover
+    ? t("ui.1fd9890efb8e")
+    : t("ui.d244a9d025b1"));
   $("#generation-prompt").value = promptDrafts[purpose];
   selected = null;
   shownJob = null;
@@ -114,29 +113,28 @@ export async function openImages(context) {
   $("#imagefilter").value = "";
   $("#imagepreview").hidden = true;
   $("#imageinsert").disabled = true;
-  $("#imageinfo").textContent = "Выбери картинку слева";
+  localize($("#imageinfo"),"textContent",()=>t("ui.e9b3ab2e6c75"));
   $("#imagealt").value = "";
-  $("#imagewhere").textContent = cover
-    ? "Отдельная обложка этой статьи. Сохранится новой версией."
-    : "Вставка на месте курсора, после выделенного текста.";
+  localize($("#imagewhere"),"textContent",()=>cover
+    ? t("ui.d8c32b08f7e5")
+    : t("ui.454d1623ef5c"));
   tab(cover ? "generate" : "library");
   if (!$("#imagegallery").open) $("#imagegallery").showModal();
-  $("#imagegrid").textContent = "Загружаю…";
+  localize($("#imagegrid"),"textContent",()=>t("ui.1679ed866916"));
   await loadImages();
   grid();
   renderGeneration();
 }
 function renderGeneration() {
   const provider = S.settings.image_provider;
-  $("#generation-note").textContent =
-    provider === "codex"
-      ? "Исполнитель: Codex · текущий вход в аккаунт"
+  localize($("#generation-note"),"textContent",()=>provider === "codex"
+      ? t("ui.d4b4e9ba6cbf")
       : "OpenRouter · " +
-        (S.settings.openrouter_image_model || "выбери модель в настройках") +
-        " · платный запрос";
+        (S.settings.openrouter_image_model || t("ui.83cb676e0941")) +
+        t("ui.c4ad09218770"));
   if (purpose === "cover")
     $("#generation-note").textContent +=
-      " · Обложка 16:9, с учётом сохранённого текста статьи";
+      t("ui.3fbaedc749ff");
   const job = S.jobs.find(
       (j) => j.kind === "image" && (j.purpose || "inline") === purpose,
     ),
@@ -149,16 +147,14 @@ function renderGeneration() {
   const running = ["queued", "running"].includes(job.status);
   $("#generate-image").disabled = running;
   label.classList.toggle("running", running);
-  label.textContent =
-    providerName(job.provider) +
+  localize(label,"textContent",()=>providerName(job.provider) +
     " · " +
     job.message +
-    (running ? " · " + Math.floor(Date.now() / 1000 - job.created) + " с" : "");
+    (running ? " · " + Math.floor(Date.now() / 1000 - job.created) + t("ui.ddae8eb8bf21") : ""));
   if (job.status === "succeeded" && job.result) {
-    label.textContent =
-      purpose === "cover"
-        ? "Обложка готова. Проверь её и нажми «Сделать обложкой»."
-        : "Готово. Проверь изображение и нажми «Вставить в статью».";
+    localize(label,"textContent",()=>purpose === "cover"
+        ? t("ui.f5161511ad57")
+        : t("ui.39729aeff52e"));
     if (
       $("#imagegallery").open &&
       shownJob !== job.id &&
@@ -166,7 +162,7 @@ function renderGeneration() {
     ) {
       shownJob = job.id;
       choose({ path: job.result.path, name: job.result.name });
-      $("#imagealt").value = (job.result.prompt || "Иллюстрация").slice(0, 140);
+      $("#imagealt").value = (job.result.prompt || t("ui.524c2d2663e6")).slice(0, 140);
       loadImages();
     }
   }
@@ -209,11 +205,11 @@ export function initImages() {
   $("#generate-image").addEventListener("click", async () => {
     const prompt = $("#generation-prompt").value.trim();
     if (!prompt) {
-      toast("Опиши картинку");
+      toast(t("ui.561ede0afd47"));
       return;
     }
     if (purpose === "cover" && target.version !== S.version) {
-      toast("Версия изменилась. Открой обложку заново.", true);
+      toast(t("ui.ff815face1c2"), true);
       return;
     }
     const job = await startJob("image", { prompt, purpose });
@@ -222,7 +218,7 @@ export function initImages() {
       selected = null;
       $("#imagepreview").hidden = true;
       $("#imageinsert").disabled = true;
-      $("#imageinfo").textContent = "Готовлю новый вариант";
+      localize($("#imageinfo"),"textContent",()=>t("ui.72ba5818afce"));
       renderGeneration();
     }
   });

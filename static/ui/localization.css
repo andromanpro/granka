@@ -1,0 +1,26 @@
+.scheduled-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 18rem;
+  overflow: auto;
+  padding: 1rem;
+  background: var(--surface, #202225);
+  border: 1px solid var(--border, #46484d);
+  border-radius: .6rem;
+  font: inherit;
+}
+.scheduled-post {padding: .8rem 0; border-bottom: 1px solid #45464c;}
+.scheduled-post summary {cursor: pointer; overflow-wrap: anywhere; line-height: 1.6;}
+.scheduled-post button {margin: .4rem .5rem .2rem 0;}
+#schedule-dialog {width: min(48rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto;}
+#schedule-dialog label {white-space: normal; overflow-wrap: anywhere;}
+#schedule-dialog .setting-row {display: flex; align-items: flex-start; gap: .8rem;}
+#schedule-dialog .setting-row input {width: auto; flex: 0 0 auto; margin-top: .3rem;}
+#schedule-dialog details {padding: 1rem 0;}
+#schedule-dialog .actions label {display: flex; gap: .35rem; align-items: center;}
+#schedule-dialog .actions input {width: auto;}
+@media (max-width: 600px) {
+  #schedule-dialog .settings-grid {grid-template-columns: 1fr;}
+  #plannerdialog>header {flex-wrap: wrap;}
+  #planner-scheduled-open {max-width: 100%; white-space: normal;}
+}

@@ -1,10 +1,12 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
+import {uiText} from './i18n.js';
 import { $, S, api, el, button, loadDocument, toast, emit, allowNavigation } from "./core.js";
 import { editor } from "./editor.js";
 
 import { showWorkspacePage } from './workspace.js';
-const statusNames = { idea: "Идея", draft: "Черновик", ready: "Готово", published: "Опубликовано" };
-const channelNames = { article: "Статья", telegram: "Telegram" };
-const weekdays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const statusNames = { idea: t("ui.da0ae5cf7773"), draft: t("ui.65fd24f1cb37"), ready: t("ui.ef05d57959cf"), published: t("ui.382ded9c6877") };
+const channelNames = { article: t("ui.4f0548d13284"), telegram: "Telegram" };
+const weekdays = [t("ui.31a8ee2fb6b7"), t("ui.839b2d5c5aa3"), t("ui.7ec16b9e41ff"), t("ui.956618723dd8"), t("ui.4ca114c23be8"), t("ui.95dab017a4da"), t("ui.7971972c7cbb")];
 let state = { entries: [], revision: "" }, month = new Date(), editing = null, proposal = null, busy = false;
 const iso = (value) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 const visible = (entry) => $("#planner-channel").value === "all" || entry.channel === $("#planner-channel").value;
@@ -43,24 +45,24 @@ async function changeEntry(item, action) {
 }
 function readinessLabel(item) {
   const readiness = item.readiness;
-  if (item.source_error) return "Источник недоступен";
+  if (item.source_error) return t("ui.ea45c29c3aa3");
   if (!readiness) return statusNames[item.status];
-  return `${readiness.percent}% · ` + ({steps:"по этапам", author:"оценка автора", published:"опубликовано", status:"по состоянию"}[readiness.basis] || "готовность");
+  return `${readiness.percent}% · ` + ({steps:t("ui.705567f4dbb2"), author:t("ui.2617469c14af"), published:t("ui.c2c5d71c798d"), status:t("ui.d320a44d0a9e")}[readiness.basis] || t("ui.d5715e612274"));
 }
 function card(item) {
   const node = el("article", `planner-card channel-${item.channel} status-${item.status}`);
   node.title = item.title + " · " + readinessLabel(item);
   node.dataset.id = item.id;
   const main = button("", () => openEntry(item), "planner-card-main");
-  main.append(el("small", null, channelNames[item.channel] + (item.pinned ? " · закреплено" : "")), el("strong", null, item.title), el("span", "planner-status", statusNames[item.status]));
+  main.append(el("small", null, ()=>channelNames[item.channel] + (item.pinned ? t("ui.075a31004053") : "")), el("strong", null, item.title), el("span", "planner-status", statusNames[item.status]));
   const progress = el("progress", "planner-progress"); progress.max = 100; progress.value = item.readiness?.percent || 0;
-  progress.setAttribute("aria-label", "Готовность: " + readinessLabel(item));
+  progress.setAttribute("aria-label", t("ui.85f3a836ee37") + readinessLabel(item));
   main.append(progress, el("small", "planner-readiness-label", readinessLabel(item)));
   node.append(main);
   if (!item.readonly && item.status !== "published") {
     const actions = el("div", "planner-card-actions");
-    if (item.date) actions.append(button("Без даты", () => operation(() => changeEntry(item, "unschedule")), "quiet"));
-    actions.append(button(item.excluded ? "Вернуть в план" : "Исключить", () => operation(() => changeEntry(item, item.excluded ? "include" : "exclude")), "quiet"));
+    if (item.date) actions.append(button(()=>t("ui.c3c76d85861e"), () => operation(() => changeEntry(item, "unschedule")), "quiet"));
+    actions.append(button(()=>item.excluded ? t("ui.c44c4bb3f45d") : t("ui.970575549a13"), () => operation(() => changeEntry(item, item.excluded ? "include" : "exclude")), "quiet"));
     node.append(actions);
   }
   node.draggable = !item.excluded && !item.pinned && !item.readonly && !item.source_error && item.status !== "published";
@@ -83,7 +85,7 @@ function dropTarget(node, date) {
   });
 }
 function render() {
-  $("#planner-month").textContent = month.toLocaleDateString("ru", { month: "long", year: "numeric" });
+  localize($("#planner-month"),'textContent',()=>month.toLocaleDateString(locale(), { month: "long", year: "numeric" }));
   const queue = $("#planner-queue"), grid = $("#planner-calendar"), filtered = state.entries.filter(visible), entries = filtered.filter(e => !e.excluded);
   const excluded = $("#planner-excluded"), excludedEntries = filtered.filter(e => e.excluded);
   excluded.replaceChildren();
@@ -93,7 +95,7 @@ function render() {
   const undated = entries.filter((e) => !e.date);
   $("#planner-queue-count").textContent = undated.length;
   for (const item of undated) queue.append(card(item));
-  if (!undated.length) queue.append(el("p", "planner-empty", "Здесь появятся идеи и материалы без даты."));
+  if (!undated.length) queue.append(el("p", "planner-empty", ()=>t("ui.98a0e176a2d8")));
   for (const name of weekdays) grid.append(el("div", "planner-weekday", name));
   const first = new Date(month.getFullYear(), month.getMonth(), 1, 12);
   first.setDate(first.getDate() - (first.getDay() + 6) % 7);
@@ -105,16 +107,16 @@ function render() {
     if (current.getMonth() !== month.getMonth()) node.classList.add("outside-month");
     if (date === today) node.classList.add("is-today");
     const head = button(String(current.getDate()), () => openEntry(null, date), "planner-day-number");
-    head.setAttribute("aria-label", "Добавить материал на " + current.toLocaleDateString("ru"));
+    localize(head,'ariaLabel',()=>t("ui.ff2ba50e90c6") + current.toLocaleDateString(locale()));
     node.append(head);
     for (const item of entries.filter((e) => e.date === date)) node.append(card(item));
     dropTarget(node, date); grid.append(node);
   }
   const prefix = iso(new Date(month.getFullYear(), month.getMonth(), 1)).slice(0, 7), inMonth = entries.filter((e) => e.date?.startsWith(prefix));
-  $("#planner-summary").textContent = `${inMonth.length} в этом месяце · ${inMonth.filter((e) => e.status === "published").length} опубликовано · ${undated.length} без даты · ${excludedEntries.length} исключено`;
+  localize($("#planner-summary"),"textContent",()=>t("ui.99026e48759d",inMonth.length,inMonth.filter((e) => e.status === "published").length,undated.length,excludedEntries.length));
 }
 function sourceControls() {
-  $("#planner-entry-source").textContent = editing.file ? "Связано: " + editing.file.split(/[\\/]/).pop() : "Можно сохранить идею без статьи.";
+  localize($("#planner-entry-source"),"textContent",()=>editing.file ? t("ui.aaaab05fd4bf") + editing.file.split(/[\\/]/).pop() : t("ui.320ac14f351d"));
   $("#planner-entry-link").hidden = !!editing.readonly || editing.origin === "library" || !S.document;
   $("#planner-entry-unlink").hidden = !!editing.readonly || editing.origin === "library" || !editing.file;
   $("#planner-entry-open").hidden = !editing.file;
@@ -124,7 +126,7 @@ function sourceControls() {
 function openEntry(item = null, date = "") {
   if (busy) return;
   editing = item ? { ...item } : { title: "", channel: $("#planner-channel").value === "telegram" ? "telegram" : "article", status: "idea", date, root: "", file: "", url: "", notes: "", pinned: false };
-  $("#planner-entry-heading").textContent = editing.readonly ? "Опубликованный материал" : item ? "Материал" : "Новый материал";
+  localize($("#planner-entry-heading"),"textContent",()=>editing.readonly ? t("ui.a850d8e574f7") : item ? t("ui.7e00703fc124") : t("ui.f441e43014ab"));
   for (const key of ["title", "channel", "status", "date", "url", "notes"]) {
     const input = $("#planner-entry-" + key); input.value = editing[key] || ""; input.disabled = !!editing.readonly;
   }
@@ -137,11 +139,11 @@ function openEntry(item = null, date = "") {
   $("#planner-entry-delete").hidden = !editing.id || !!editing.readonly || editing.origin === "library";
   $("#planner-entry-unschedule").hidden = !editing.date || !!editing.readonly || editing.status === "published";
   $("#planner-entry-exclude").hidden = !editing.id || !!editing.readonly || editing.status === "published";
-  $("#planner-entry-exclude").textContent = editing.excluded ? "Вернуть в план" : "Исключить из планирования";
+  localize($("#planner-entry-exclude"),"textContent",()=>editing.excluded ? t("ui.c44c4bb3f45d") : t("ui.15c157781c40"));
   const detail = $("#planner-entry-readiness"); detail.replaceChildren();
   if (editing.readiness) {
-    detail.append(el("strong", null, "Готовность: " + readinessLabel(editing)));
-    for (const check of editing.readiness.checks || []) detail.append(el("div", check.done ? "step-done" : "step-pending", (check.done ? "✓ " : "○ ") + check.label));
+    detail.append(el("strong", null, ()=>t("ui.85f3a836ee37") + readinessLabel(editing)));
+    for (const check of editing.readiness.checks || []) detail.append(el("div", check.done ? "step-done" : "step-pending", ()=>(check.done ? "✓ " : "○ ") + uiText(check.label)));
     for (const text of editing.readiness.details || []) detail.append(el("p", "fine-print", text));
   }
   $("#planner-entry-error").textContent = "";
@@ -215,14 +217,14 @@ export function initPlanner() {
     for (const item of result.assignments) {
       const row = el("div", "planner-proposed-row"); row.append(el("time", null, item.date), el("span", null, channelNames[item.channel]), el("strong", null, item.title)); box.append(row);
     }
-    if (!result.assignments.length) box.textContent = "Нет подходящих материалов без даты. Можно включить идеи или добавить черновик.";
+    if (!result.assignments.length) localize(box,"textContent",()=>t("ui.1b673059705d"));
     $("#planner-apply").disabled = !result.assignments.length;
   }));
   $("#planner-apply").addEventListener("click", () => operation(async () => {
     if (!proposal) return;
     state = await api("/api/publication-plan/apply", { method: "POST", body: { expected_revision: proposal.revision, options: proposal.options } });
     month = new Date(proposal.options.start + "T12:00:00");
-    invalidate(); render(); toast("Даты сохранены в плане");
+    invalidate(); render(); toast(t("ui.4fe0b9bf1ab8"));
   }));
 
 }

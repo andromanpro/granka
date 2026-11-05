@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -27,10 +28,10 @@ async function microphones() {
       ),
       select = $("#micsel"),
       saved = localStorage.getItem("granka.mic") || "";
-    select.replaceChildren(new Option("Микрофон по умолчанию", ""));
+    select.replaceChildren(localizedOption(()=>t("ui.c49696c42500"),""));
     devices.forEach((d, i) =>
       select.appendChild(
-        new Option(d.label || "Микрофон " + (i + 1), d.deviceId),
+        localizedOption(()=>d.label || t("ui.7748aadb79bb") + (i + 1),d.deviceId),
       ),
     );
     if (devices.some((d) => d.deviceId === saved)) select.value = saved;
@@ -79,8 +80,7 @@ function pin() {
     quote: [...version().text].slice(off.start, off.end).join(""),
   });
   getSelection().removeAllRanges();
-  $("#voice-status").textContent =
-    "Запись · закреплено фрагментов: " + pins.length;
+  localize($("#voice-status"),"textContent",()=>t("ui.dfabb7cf03aa") + pins.length);
 }
 function showReview(result) {
   const box = $("#voice-review");
@@ -121,7 +121,7 @@ function showReview(result) {
     );
     if (skip)
       row.appendChild(
-        el("small", "muted", "Пересекается с пометкой — пропущено"),
+        el("small", "muted", ()=>t("ui.fd548c98198f")),
       );
     review.pairs.push({ pin, ta, skip });
     box.appendChild(row);
@@ -129,11 +129,11 @@ function showReview(result) {
   if (general.length) {
     const ta = el("textarea");
     ta.value = general.join(" ");
-    box.append(el("p", "muted", "Общий комментарий"), ta);
+    box.append(el("p", "muted", ()=>t("ui.3dc9b324562e")), ta);
     review.general = ta;
   }
   $("#voice-actions").hidden = false;
-  $("#voice-status").textContent = "Проверь распознанный текст";
+  localize($("#voice-status"),"textContent",()=>t("ui.d8840f92695f"));
 }
 async function record() {
   if (S.recording) {
@@ -141,7 +141,7 @@ async function record() {
     return;
   }
   if (S.editor) {
-    toast("Сначала сохрани текст");
+    toast(t("ui.7eb00c7c509f"));
     return;
   }
   try {
@@ -166,10 +166,10 @@ async function record() {
       stream.getTracks().forEach((t) => t.stop());
       stopLevel();
       S.recording = false;
-      $("#recbtn").textContent = "Записать голос";
+      localize($("#recbtn"),"textContent",()=>t("ui.395472d82ca8"));
       emit("controls");
       const blob = new Blob(chunks, { type: "audio/webm" });
-      $("#voice-status").textContent = "Распознаю локально…";
+      localize($("#voice-status"),"textContent",()=>t("ui.e4054de3c4b2"));
       $("#recbtn").disabled = true;
       try {
         const result = await api("/api/transcribe", {
@@ -181,9 +181,9 @@ async function record() {
         else {
           $("#fbtext").value +=
             ($("#fbtext").value ? " " : "") + (result.text || "");
-          $("#voice-status").textContent = result.text
-            ? "Распознано. Можно отправить комментарий."
-            : "Речь не распознана.";
+          localize($("#voice-status"),"textContent",()=>result.text
+            ? t("ui.dbac3a757979")
+            : t("ui.61cca35b6333"));
         }
       } catch (error) {
         $("#voice-status").textContent = error.message;
@@ -194,13 +194,13 @@ async function record() {
     };
     recorder.start();
     level();
-    $("#recbtn").textContent = "Остановить";
-    $("#voice-status").textContent = "Говори и выделяй фрагменты в статье.";
+    localize($("#recbtn"),"textContent",()=>t("ui.3396400da0c4"));
+    localize($("#voice-status"),"textContent",()=>t("ui.c368fcde3156"));
   } catch (error) {
     stream?.getTracks().forEach((t) => t.stop());
     S.recording = false;
     emit("controls");
-    toast("Микрофон недоступен: " + error.message, true);
+    toast(t("ui.a69234e6e9e4") + error.message, true);
   }
 }
 export function initVoice() {
@@ -216,7 +216,7 @@ export function initVoice() {
     if (!text) return;
     if (await operation("/api/feedback", { text, context: S.active || "" })) {
       $("#fbtext").value = "";
-      toast("Комментарий сохранён для анализа");
+      toast(t("ui.dd29dd1a4d78"));
     }
   });
   $("#voice-apply").addEventListener("click", async () => {
@@ -232,12 +232,12 @@ export function initVoice() {
       if (review.general?.value.trim())
         await operation("/api/feedback", {
           text: review.general.value.trim(),
-          context: "Голос",
+          context: t("ui.24a0d703afd4"),
         });
       $("#voice-review").replaceChildren();
       $("#voice-actions").hidden = true;
       review = null;
-      toast("Голосовые пометки сохранены");
+      toast(t("ui.6cfc8935a546"));
     }
   });
   $("#voice-cancel").addEventListener("click", () => {

@@ -1,15 +1,17 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
+import {recipeLabel} from './i18n.js';
 import { $, S, api, el, button, events, emit, version, latest, query, operation, toast } from './core.js';
 import { editor, setView } from './editor.js';
 import { startJob, workingJob } from './jobs.js';
 import { openSettings } from './settings.js';
 
 const spices = [
-  { id: 'irony', name: 'Ирония', letter: 'И', hint: 'Сухая, по вкусу' },
-  { id: 'vulgar', name: 'Пошлые шутки', letter: 'П', hint: 'Осторожно, острая' },
-  { id: 'metaphor', name: 'Метафоры', letter: 'М', hint: 'Букет образов' },
-  { id: 'allegory', name: 'Аллегории', letter: 'А', hint: 'Смысл в каплях' },
+  { id: 'irony', name: t("ui.9548c851a916"), letter: t("ui.ac6c565d9c26"), hint: t("ui.3d94916197ee") },
+  { id: 'vulgar', name: t("ui.611ddd260e65"), letter: t("ui.1a37f2acd5e6"), hint: t("ui.e25b9508af31") },
+  { id: 'metaphor', name: t("ui.8fe62f10223b"), letter: t("ui.c2a2f05cd614"), hint: t("ui.b090b9e7e446") },
+  { id: 'allegory', name: t("ui.7b59bd4c5741"), letter: t("ui.1d15dbf70d12"), hint: t("ui.1150d1ddbba2") },
 ];
-const doses = ['Нет', 'Щепотка', 'Заметно', 'От души'];
+const doses = [t("ui.43e5ab70f691"), t("ui.2dc88854ded6"), t("ui.7aa8497cba9c"), t("ui.5f3a7c53428a")];
 const MIME = 'application/x-granka-spice';
 let catalog = { builtins: [], recipes: [], revision: null };
 let mix = [2, 0, 0, 0], target = null, lastSelection = null, picking = false;
@@ -18,14 +20,14 @@ let focusResult = false;
 
 function allRecipes() { return [...catalog.builtins, ...catalog.recipes]; }
 function recipe() {
-  return { name: $('#spice-recipe-name').value.trim() || allRecipes().find(r => r.id === $('#spice-recipe').value)?.name || 'Своя смесь',
+  return { name: $('#spice-recipe-name').value.trim() || allRecipes().find(r => r.id === $('#spice-recipe').value)?.name || t("ui.c4729808c35f"),
     doses: [...mix], mode: $('#spice-mode').value, density: $('#spice-density').value, prompt: $('#spice-prompt').value };
 }
 async function recipes() {
   const selected = $('#spice-recipe').value;
   catalog = await api('/api/spice-recipes');
-  $('#spice-recipe').replaceChildren(new Option('Своя смесь', 'mix'));
-  allRecipes().forEach(r => $('#spice-recipe').append(new Option(r.name, r.id)));
+  $('#spice-recipe').replaceChildren(localizedOption(()=>t("ui.c4729808c35f"),'mix'));
+  allRecipes().forEach(r => $('#spice-recipe').append(localizedOption(()=>recipeLabel(r), r.id)));
   $('#spice-recipe').value = allRecipes().some(r => r.id === selected) ? selected : 'mix';
   recipeButtons();
 }
@@ -53,7 +55,7 @@ async function saveRecipe(update = false, remove = false) {
     await recipes();
     $('#spice-recipe').value = out.saved_id || 'mix';
     chooseRecipe(); $('#spice-recipe-editor').open = false;
-    toast(remove ? 'Рецепт удалён' : 'Рецепт сохранён');
+    toast(remove ? t("ui.fc5f3fec1360") : t("ui.7cec686bbae6"));
   } catch (error) {
     toast(error.message, true);
     if (error.conflict) await recipes();
@@ -67,7 +69,7 @@ function ingredients() {
     const tile = el('div', 'spice-tile spice-' + spice.id);
     const jar = button('', () => { mix[i] = (mix[i] + 1) % 4; ingredients(); controls(); }, 'spice-vessel-button');
     jar.draggable = true;
-    jar.setAttribute('aria-label', spice.name + ': ' + doses[mix[i]] + '. Взять приправу');
+    jar.setAttribute('aria-label', spice.name + ': ' + doses[mix[i]] + t("ui.038f19ecf8f2"));
     jar.setAttribute('aria-pressed', String(mix[i] > 0));
     jar.append(el('span', 'spice-name', spice.name));
     const vessel = el('span', 'spice-vessel');
@@ -87,7 +89,7 @@ function ingredients() {
     jar.addEventListener('dragend', clearDrop);
     const control = el('div', 'spice-dose');
     const minus = button('−', () => dose(i, -1)), plus = button('+', () => dose(i, 1));
-    minus.setAttribute('aria-label', 'Убавить: ' + spice.name); plus.setAttribute('aria-label', 'Добавить: ' + spice.name);
+    minus.setAttribute('aria-label', t("ui.e84324296703") + spice.name); plus.setAttribute('aria-label', t("ui.de9904449176") + spice.name);
     control.append(minus, el('output', '', String(mix[i])), plus);
     tile.append(jar, control); box.append(tile);
   });
@@ -105,7 +107,7 @@ function clearDrop() { $('#doc').classList.remove('spice-dragging'); document.qu
 function paragraph(node) { const p = node?.closest?.('#doc > p[data-md-block]'); return p && $('#doc').contains(p) ? p : null; }
 function stopPicking() { picking = false; $('#spice-pick').classList.remove('selected'); $('#doc').classList.remove('spice-picking'); }
 async function run(single = null) {
-  if (!ready() || !currentTarget()) { toast('Сохрани текст и выбери абзац или выделение в последней версии'); return; }
+  if (!ready() || !currentTarget()) { toast(t("ui.ba18d404ce2e")); return; }
   focusResult = document.activeElement?.id === 'spice-run';
   const selected = recipe();
   if (single != null) {
@@ -134,9 +136,9 @@ function jobs() {
   const job = S.jobs.find(j => j.kind === 'spice' && !ignored.has(j.id) && j.version === S.version);
   const active = S.jobs.find(j => j.kind === 'spice' && ['queued', 'running'].includes(j.status));
   animate(active);
-  if (active) $('#spice-status').textContent = 'Подбираем формулировки. Текст пока не меняется.';
+  if (active) localize($('#spice-status'),"textContent",()=>t("ui.5c631c91188b"));
   else if (job?.status === 'succeeded') {
-    $('#spice-status').textContent = job.result.base_revision === S.revision ? 'Предложения готовы — выбери, что оставить' : 'Статья изменилась. Получи предложения для текущей версии.';
+    localize($('#spice-status'),"textContent",()=>job.result.base_revision === S.revision ? t("ui.a0ca43d00b0a") : t("ui.486463be9423"));
     if (shown !== job.id) { shown = job.id; resultJob = job; showResult(job.result); }
   } else if (job && ['failed', 'conflict', 'interrupted'].includes(job.status)) $('#spice-status').textContent = job.message;
   controls();
@@ -148,19 +150,19 @@ function showResult(result) {
     const card = el('article', 'spice-change'); card.dataset.index = index;
     const heading = el('label', 'spice-choice'), checkbox = document.createElement('input');
     checkbox.type = 'checkbox'; checkbox.checked = true; checkbox.addEventListener('change', controls);
-    heading.append(checkbox, document.createTextNode('Оставить правку'));
+    heading.append(checkbox, document.createTextNode(t("ui.891b9620fd37")));
     const before = el('blockquote', 'spice-before', change.quote);
-    const label = el('label', 'spice-prompt', 'Новая формулировка');
+    const label = el('label', 'spice-prompt', ()=>t("ui.21f1887a67a6"));
     const input = document.createElement('textarea'); input.value = change.variants[0]; input.maxLength = 16000; label.append(input);
     card.append(heading, before);
     if (change.variants.length > 1) {
-      const options = document.createElement('select'); options.setAttribute('aria-label', 'Вариант замены');
-      change.variants.forEach((v, i) => options.append(new Option('Вариант ' + (i + 1), String(i))));
+      const options = document.createElement('select'); options.setAttribute('aria-label', t("ui.56b1771964e0"));
+      change.variants.forEach((v, i) => options.append(localizedOption(()=>t("ui.21f7c01ddd72") + (i + 1),String(i))));
       options.addEventListener('change', () => input.value = change.variants[Number(options.value)]); card.append(options);
     }
     card.append(label, el('p', 'fine-print', change.why)); $('#spice-changes').append(card);
   });
-  if (!result.changes.length) $('#spice-summary').textContent = result.summary || 'Уместных изменений не нашлось. Можно изменить рецепт.';
+  if (!result.changes.length) localize($('#spice-summary'),"textContent",()=>result.summary || t("ui.7315cd27483b"));
   controls();
   if (S.pane === 'spices') {
     $('#spice-result').scrollIntoView({ block: 'nearest' });
@@ -173,7 +175,7 @@ function showResult(result) {
 }
 function controls() {
   if (!$('#spice-run')) return;
-  $('#spice-run').textContent = $('#spice-mode').value === 'reduce' ? 'Убавить лишнее' : 'Приправить';
+  localize($('#spice-run'),"textContent",()=>$('#spice-mode').value === 'reduce' ? t("ui.f5db0899ec63") : t("ui.80631aa21d61"));
   $('#spice-run').disabled = !ready() || !currentTarget() || (!mix.some(Boolean) && !$('#spice-prompt').value.trim());
   $('#spice-apply').disabled = !resultJob || S.busy || !!S.editor || !!workingJob() || resultJob.result.base_revision !== S.revision || !latest() || !$('#spice-changes input:checked');
   for (const id of ['spice-pick', 'spice-all']) $('#' + id).disabled = !ready();
@@ -188,31 +190,31 @@ async function apply() {
   ignored.add(jobId); resultJob = null; $('#spice-result').hidden = true;
   if (out.version) { S.version = out.version; emit('version'); setView('diff'); }
   if (out.warning) toast(out.warning, true);
-  else toast(out.unchanged ? 'Текст остался прежним' : 'Правки сохранены в новой версии');
+  else toast(out.unchanged ? t("ui.b9554e8afaf9") : t("ui.5a1a545dccbd"));
 }
 function reset() {
   focusResult = false;
   target = lastSelection = resultJob = null; shown = ''; stopPicking(); clearDrop();
-  $('#spice-target').textContent = 'Выбери область обработки'; $('#spice-result').hidden = true; $('#spice-status').textContent = '';
+  localize($('#spice-target'),"textContent",()=>t("ui.c6e01ac31018")); $('#spice-result').hidden = true; $('#spice-status').textContent = '';
   controls(); jobs();
 }
 export function initSpices() {
-  ingredients(); recipes().catch(() => { $('#spice-status').textContent = 'Перезапусти Гранку, чтобы включить приправы'; });
+  ingredients(); recipes().catch(() => { localize($('#spice-status'),"textContent",()=>t("ui.40517730fbb4")); });
   $('#spice-settings').addEventListener('click', openSettings);
   $('#spice-recipe').addEventListener('change', chooseRecipe);
   $('#spice-mode').addEventListener('change', controls); $('#spice-prompt').addEventListener('input', controls);
   $('#spice-new').addEventListener('click', () => { $('#spice-recipe-editor').open = true; $('#spice-recipe-name').value = ''; $('#spice-recipe-name').focus(); });
   $('#spice-save').addEventListener('click', () => saveRecipe()); $('#spice-update').addEventListener('click', () => saveRecipe(true)); $('#spice-delete').addEventListener('click', () => saveRecipe(false, true));
-  $('#spice-pick').addEventListener('click', () => { picking = !picking; $('#spice-pick').classList.toggle('selected', picking); $('#doc').classList.toggle('spice-picking', picking); $('#spice-target').textContent = picking ? 'Нажми на нужный абзац в статье. Esc — отмена выбора.' : target ? target.quote.slice(0, 130) : 'Выбери область обработки'; if (picking) $('#inspector').classList.remove('mobile-open'); });
-  $('#spice-selection').addEventListener('click', () => { stopPicking(); setTarget(lastSelection, 'Выделение'); });
-  $('#spice-all').addEventListener('click', () => { stopPicking(); setTarget({ start: 0, end: [...version().text].length }, 'Вся статья'); });
+  $('#spice-pick').addEventListener('click', () => { picking = !picking; $('#spice-pick').classList.toggle('selected', picking); $('#doc').classList.toggle('spice-picking', picking); localize($('#spice-target'),"textContent",()=>picking ? t("ui.43ee15349292") : target ? target.quote.slice(0, 130) : t("ui.c6e01ac31018")); if (picking) $('#inspector').classList.remove('mobile-open'); });
+  $('#spice-selection').addEventListener('click', () => { stopPicking(); setTarget(lastSelection, t("ui.0e6188e48389")); });
+  $('#spice-all').addEventListener('click', () => { stopPicking(); setTarget({ start: 0, end: [...version().text].length }, t("ui.1f91a6789afd")); });
   $('#spice-run').addEventListener('click', () => run()); $('#spice-apply').addEventListener('click', apply);
-  $('#spice-discard').addEventListener('click', () => { if (resultJob) ignored.add(resultJob.id); resultJob = null; $('#spice-result').hidden = true; $('#spice-status').textContent = 'Оставлен исходный текст'; controls(); });
+  $('#spice-discard').addEventListener('click', () => { if (resultJob) ignored.add(resultJob.id); resultJob = null; $('#spice-result').hidden = true; localize($('#spice-status'),"textContent",()=>t("ui.249bc1792893")); controls(); });
   document.addEventListener('selectionchange', () => { const range = editor.selection(); if (range) { lastSelection = range; controls(); } });
   $('#doc').addEventListener('click', event => {
     if (!picking) return;
     const p = paragraph(event.target); if (!p) return;
-    event.preventDefault(); event.stopImmediatePropagation(); setTarget(editor.blockRange(p), 'Абзац'); stopPicking();
+    event.preventDefault(); event.stopImmediatePropagation(); setTarget(editor.blockRange(p), t("ui.cd2f3410f544")); stopPicking();
     if (getComputedStyle($('#inspector-close')).display !== 'none') $('#inspector').classList.add('mobile-open');
   }, true);
   $('#doc').addEventListener('dragover', event => {
@@ -227,7 +229,7 @@ export function initSpices() {
     let payload; try { payload = JSON.parse(event.dataTransfer.getData(MIME)); } catch (_) { return; }
     const p = paragraph(event.target);
     if (!p || !ready() || payload.root !== S.root || payload.file !== S.file || payload.version !== S.version || !Number.isInteger(payload.index) || payload.index < 0 || payload.index > 3) return;
-    setTarget(editor.blockRange(p), 'Абзац'); run(payload.index);
+    setTarget(editor.blockRange(p), t("ui.cd2f3410f544")); run(payload.index);
   }, true);
   document.addEventListener('keydown', event => { if (event.key === 'Escape') { stopPicking(); clearDrop(); } });
   events.addEventListener('settings', () => { ingredients(); jobs(); });

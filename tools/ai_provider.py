@@ -15,6 +15,7 @@ import urllib.error
 import uuid
 from . import config as environment
 from . import site_connections
+from . import languages
 
 HERE = Path(__file__).resolve().parents[1]
 CONFIG = environment.CONFIG_FILE
@@ -22,7 +23,8 @@ STATE = environment.STATE
 _WINDOWS = os.name == 'nt'
 DEFAULTS = {'analysis_provider':'codex', 'image_provider':'codex', 'codex_model':'',
             'openrouter_text_model':'', 'openrouter_image_model':'', 'image_aspect':'16:9',
-            'spice_view':'jars', 'spice_motion':'ripple'}
+            'spice_view':'jars', 'spice_motion':'ripple',
+            'material_language':'auto', 'comments_language':'ru'}
 
 
 def atomic_json(path, data):
@@ -62,6 +64,7 @@ def validated_settings(values, stored):
         raise ValueError('Неизвестный формат картинки')
     if new['spice_view'] not in {'jars','text'} or new['spice_motion'] not in {'ripple','gleam','none'}:
         raise ValueError('Неизвестное оформление приправ')
+    languages.selected(new)
     return new
 
 
@@ -196,8 +199,13 @@ def run_openrouter_text(prompt, directory, config):
 
 
 def text_result(prompt, schema, directory, config):
-    if config['analysis_provider']=='codex': return run_codex(prompt,schema,directory,config,text_only=True)
-    return run_openrouter_text(prompt, directory, config)
+    prompt=languages.instruction(config)+prompt
+    if config['analysis_provider']=='codex':value,receipt=run_codex(prompt,schema,directory,config,text_only=True)
+    else:value,receipt=run_openrouter_text(prompt,directory,config)
+    receipt={**receipt,'languages':{key:config.get(key,DEFAULTS.get(key))for key in
+                                  ('material_language','resolved_material_language','comments_language')}}
+    atomic_json(Path(directory)/'receipt.json',receipt)
+    return value,receipt
 
 
 def generate_image(prompt, directory, config):

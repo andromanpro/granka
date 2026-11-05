@@ -17,7 +17,7 @@ class ArticleDraftTests(unittest.TestCase):
         self.addCleanup(self.jobs.pool.shutdown, wait=True)
         self.prefs = Mock(); self.prefs.context.return_value = {'rules': ['Без канцелярита'], 'decisions': []}
         self.voice = Mock(); self.voice.inspect.return_value = (
-            {'status': 'ok', 'fingerprint': 'corpus-v1'}, [('a.md', '---\nsecret: ignored\n---\nМой голос. ' * 1000)])
+            {'status': 'ok', 'fingerprint': 'corpus-v1'}, [('a.md', '---\nsecret: ignored\n---\n' + 'Мой голос. ' * 1000)])
         self.body = {'title': 'Фикус', 'brief': 'Вымышленный пример с датчиком.', 'wizard_id': str(uuid.uuid4()),
                      'operation_id': str(uuid.uuid4())}
         self.provider = patch.object(draft.ai_provider, 'text_result', return_value=({'text': 'Я поставил датчик.\n\nОн просит воды.'}, {'provider': 'fake'}))

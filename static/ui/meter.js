@@ -1,3 +1,5 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
+import {uiText} from './i18n.js';
 import { $, S, api, emit, events, query, version, toast } from "./core.js";
 let sequence = 0,
   timer,
@@ -10,9 +12,9 @@ export const meterHighlights = () =>
 function drawHighlightButton() {
   const button = $("#meterhl"),
     count = S.meter?.axes?.["маркеры"]?.hits;
-  button.textContent = highlights
-    ? "Снять подсветку" + (count == null ? "" : " · " + count)
-    : "Подсветить обороты" + (count == null ? "" : " · " + count);
+  localize(button,"textContent",()=>highlights
+    ? t("ui.e2f1b96f8f5f") + (count == null ? "" : " · " + count)
+    : t("ui.9e1ffb77e222") + (count == null ? "" : " · " + count));
   button.setAttribute("aria-pressed", String(highlights));
 }
 export function clearMeter() {
@@ -29,14 +31,14 @@ export function clearMeter() {
   drawHighlightButton();
   $("#meter-number").textContent = "—";
   $("#meter-orbit").style.setProperty("--value", 0);
-  $("#meter-status").textContent = S.document ? "Готовлю замер текущей версии" : "Открой статью для локального разбора";
+  localize($("#meter-status"),"textContent",()=>S.document ? t("ui.5e396de77ce2") : t("ui.37b1ac53c4b4"));
   for (const name of ['voice', 'structure', 'markers']) {
     $('#axis-' + name + '-number').textContent = '—';
     $('#axis-' + name).style.width = '0%';
   }
   $('#meterflags').replaceChildren();
   $('#meterscale').textContent = '';
-  $("#mobile-meter").textContent = "ИИМетр";
+  localize($("#mobile-meter"),"textContent",()=>t("ui.e3c370fa4400"));
 }
 export function scheduleMeter() {
   clearTimeout(timer);
@@ -53,7 +55,7 @@ export async function measure() {
   $("#meterrefresh").disabled = true;
   $("#meter-error").textContent = '';
   $("#meter-retry").hidden = true;
-  $("#meter-status").textContent = "Локальный замер…";
+  localize($("#meter-status"),"textContent",()=>t("ui.c318a94e24c7"));
   try {
     const result = await api(
       "/api/iimeter?" +
@@ -78,7 +80,7 @@ export async function measure() {
     $('#meterflags').replaceChildren(); $('#meterscale').textContent = '';
     $('#meter-error').textContent = error.message;
     $('#meter-retry').hidden = false;
-    $("#meter-status").textContent = "Не удалось измерить";
+    localize($("#meter-status"),"textContent",()=>t("ui.39d053b301fe"));
     toast(error.message, true);
   } finally {
     if (seq === sequence) {
@@ -110,19 +112,19 @@ function drawMeter(meter) {
     };
     animation = requestAnimationFrame(draw);
   }
-  $("#meter-status").textContent =
-    n == null
-      ? meter.status === "uncalibrated"
-        ? (meter.corpus_state?.reason || "Сравнение голоса не настроено")
-        : "Недостаточно текста"
-      : meter.profile_label + " · " + meter.words + " слов" + (meter.sample_warning ? ' · короткий текст' : '');
-  $("#mobile-meter").textContent = "ИИМетр " + (n ?? "—");
+  localize($("#meter-status"),"textContent",()=>n == null
+      ? meter.status === 'unsupported_language' ? t("ui.c472d78cc622")
+      : meter.status === "uncalibrated"
+        ? (meter.corpus_state?.reason || t("ui.15ad401e77e9"))
+        : t("ui.b1e6f3cae6a5")
+      : uiText(meter.profile_label) + " · " + meter.words + t("ui.7b6787518b6d") + (meter.sample_warning ? t("ui.2df51f61b11a") : ''));
+  localize($("#mobile-meter"),"textContent",()=>t("ui.e6961978df2a") + (n ?? "—"));
   for (const [key, id] of [
     ["голос", "voice"],
     ["структура", "structure"],
     ["маркеры", "markers"],
   ]) {
-    const available = meter.status !== "insufficient_text" && (key !== "голос" || n != null),
+    const available = !['insufficient_text','unsupported_language'].includes(meter.status) && (key !== "голос" || n != null),
       value = available ? meter.axes[key].score : null;
     $("#axis-" + id + "-number").textContent = value ?? "—";
     $("#axis-" + id).style.width = (value ?? 0) + "%";
@@ -131,37 +133,37 @@ function drawMeter(meter) {
   notes.replaceChildren();
   const texts = [
     ...(meter.status === "uncalibrated"
-      ? [meter.corpus_state?.reason || "Сравнение голоса не настроено. Выбери папку своих текстов кнопкой ниже.", "Словарные обороты и структура доступны без корпуса."]
-      : meter.status === "insufficient_text" ? ["Для измерения нужна проза."] : []),
+      ? [meter.corpus_state?.reason || t("ui.90e08ba4afd4"), t("ui.0556e0237e1f")]
+      : meter.status === "insufficient_text" ? [t("ui.7bb7e0910840")] : []),
     ...(meter.sample_warning ? [meter.sample_warning] : []),
     ...(meter.status !== "insufficient_text" ? meter.axes["структура"].flags : []),
     meter.axes["маркеры"].hits
-      ? "Найдено словарных оборотов: " + meter.axes["маркеры"].hits + ". Подсветка показывает совпадения, которые стоит перечитать."
-      : "Словарных оборотов не найдено. Это не исключает шаблонной подачи: словарь не оценивает смысл и развитие текста.",
+      ? t("ui.b611fa538d03") + meter.axes["маркеры"].hits + t("ui.f74fe0adfc3e")
+      : t("ui.ff47c66ff3e7"),
   ];
   if (meter.axes["маркеры"].hits > meter.highlights.length)
-    texts.push("Показаны первые " + meter.highlights.length + " совпадений из " + meter.axes["маркеры"].hits + ".");
+    texts.push(t("ui.617bc984b7c0") + meter.highlights.length + t("ui.79dca9641ad7") + meter.axes["маркеры"].hits + ".");
+  if(meter.status==='unsupported_language')texts.splice(0,texts.length,t("ui.f60babf44ab5"));
   for (const text of texts) {
     const p = document.createElement("p");
-    p.textContent = text;
+    localize(p,'textContent',()=>uiText(text));
     notes.appendChild(p);
   }
   const samples = (meter.calibration?.samples || [])
     .map((x) => x.score)
     .filter((x) => typeof x === "number");
-  $("#meterscale").textContent =
-    (samples.length
-      ? "Диапазон проверенных рукописей: " +
+  localize($("#meterscale"),"textContent",()=>(samples.length
+      ? t("ui.a23989e65490") +
         Math.min(...samples) +
         "–" +
         Math.max(...samples) +
         ". "
       : "") +
-    "Корпус: " +
+    t("ui.e5c64e28e0a0") +
     meter.axes["голос"].corpus.length +
-    " текстов, " +
+    t("ui.487a9408824c") +
     meter.axes["голос"].corpus_words +
-    " слов. Это отклонение от выбранного корпуса, не вероятность участия ИИ.";
+    t("ui.8c7b847a61da"));
 }
 export function initMeter() {
   initCorpusSettings();
@@ -176,7 +178,7 @@ export function initMeter() {
   });
   $("#meterhl").addEventListener("click", () => {
     if (S.editor) {
-      toast("Сначала сохрани текст");
+      toast(t("ui.7eb00c7c509f"));
       return;
     }
     highlights = !highlights;
@@ -195,8 +197,7 @@ export function initMeter() {
     ++sequence; clearTimeout(timer); cancelAnimationFrame(animation);
     $('#meterwidget').classList.remove('measuring'); $('#meterwidget').setAttribute('aria-busy', 'false');
     $('#meterrefresh').disabled = false;
-    $("#meter-status").textContent =
-      "Показатели сохранённой версии · есть правки";
+    localize($("#meter-status"),"textContent",()=>t("ui.4db5fb74db45"));
     highlights = false;
     drawHighlightButton();
   });
@@ -207,11 +208,11 @@ function initCorpusSettings() {
   let revision = null, pending = false;
   const status = $('#meter-corpus-status');
   const load = async () => {
-    status.textContent = 'Читаю настройки корпуса…';
+    localize(status,"textContent",()=>t("ui.150791a6ab59"));
     try {
       const value = await api('/api/voice-corpus?profile=' + $('#meterprofile').value);
       revision = value.revision; $('#meter-corpus-path').value = value.directory;
-      status.textContent = value.status === 'ok' ? `${value.profile_label}: ${value.files} текстов, ${value.words} слов.` : value.reason;
+      localize(status,"textContent",()=>value.status === 'ok' ? t("ui.8d4363748128",value.profile_label,value.files,value.words) : value.reason);
     } catch (error) { status.textContent = error.message; }
   };
   $('#meter-configure').addEventListener('click', () => { if ($('#meter-corpus-settings').open) load(); else $('#meter-corpus-settings').open = true; });
@@ -228,10 +229,10 @@ function initCorpusSettings() {
   $('#meter-corpus-save').addEventListener('click', async () => {
     if (pending) return; pending = true; $('#meter-corpus-save').disabled = true;
     try {
-      if (!revision) throw Error('Сначала открой настройку сравнения голоса');
+      if (!revision) throw Error(t("ui.63c1563e0109"));
       const value = await api('/api/voice-corpus', {method: 'POST', body: {directory: $('#meter-corpus-path').value, expected_revision: revision}});
       revision = value.revision; clearMeter(); await measure();
-      status.textContent = S.meter?.corpus_state?.reason || 'Корпус подключён. Сравнение пересчитано локально.';
+      localize(status,"textContent",()=>S.meter?.corpus_state?.reason || t("ui.101745d112b5"));
     } catch (error) { status.textContent = error.message; }
     finally { pending = false; $('#meter-corpus-save').disabled = false; }
   });

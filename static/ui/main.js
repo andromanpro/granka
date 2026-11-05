@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -53,9 +54,9 @@ function controls() {
   $("#versel").disabled = $("#docsel").disabled;
   $("#opensrc").disabled = $("#docsel").disabled;
   $("#analysisbtn").disabled = S.busy || !!workingJob() || !latest();
-  $("#analysisbtn").textContent = S.editor
-    ? "Сохранить и проверить"
-    : "Проверить текст";
+  localize($("#analysisbtn"),"textContent",()=>S.editor
+    ? t("ui.ac4ba388b05f")
+    : t("ui.cbc2f7b99d50"));
   const editable =
     !S.busy && !S.recording && latest() && S.view === "article"
       ? "true"
@@ -63,8 +64,7 @@ function controls() {
   if ($("#doc").contentEditable !== editable)
     $("#doc").contentEditable = editable;
   $("#downloadbtn").disabled = S.busy;
-  $("#readybtn").title =
-    "Применить принятые решения, собрать версию и обновить Markdown-файл";
+  localize($("#readybtn"),"title",()=>t("ui.80853f9c16e3"));
 }
 function documentHeader() {
   const select = $("#versel");
@@ -72,7 +72,7 @@ function documentHeader() {
   for (const v of S.document.versions)
     select.appendChild(new Option(v.id + " · " + (v.label || ""), v.id));
   select.value = S.version;
-  document.title = (S.document.doc || "Статья") + " — Гранка";
+  localize(document,"title",()=>(S.document.doc || t("ui.4f0548d13284")) + t("ui.842d41ecfe60"));
   const docs = $("#docsel"),
     key = S.root + "|" + S.file;
   if (![...docs.options].some((o) => o.value === key))
@@ -88,8 +88,8 @@ async function documents() {
     const source = catalog.flatMap(s => [s, ...(s.copies || [])]).find(s =>
       !s.external && s.root === root && s.source_rel === relative);
     if (!source) {
-      $("#doc").textContent = "Статья по этой ссылке не найдена. Открой библиотеку и проверь источник.";
-      toast("Статья по ссылке больше не доступна");
+      localize($("#doc"),"textContent",()=>t("ui.3c18dbc4647b"));
+      toast(t("ui.9ddf73330a49"));
       return;
     }
     await openSource(source);
@@ -108,7 +108,7 @@ async function documents() {
     if (!d.error) select.appendChild(new Option(d.doc, d.root + "|" + d.rel));
   }
   if (!select.options.length) {
-    $("#doc").textContent = "Открой статью, чтобы начать.";
+    localize($("#doc"),"textContent",()=>t("ui.c9d067a2ccbf"));
     return;
   }
   const remembered = localStorage.getItem("granka.doc");
@@ -118,8 +118,8 @@ async function documents() {
   if ([...select.options].some((o) => o.value === requestedKey))
     select.value = requestedKey;
   else if (requested.has("root") || requested.has("f")) {
-    $("#doc").textContent = "Статья по этой ссылке не найдена. Открой библиотеку и проверь источник.";
-    toast("Статья по ссылке больше не доступна");
+    localize($("#doc"),"textContent",()=>t("ui.3c18dbc4647b"));
+    toast(t("ui.9ddf73330a49"));
     return;
   }
   const [root, file] = select.value.split("|");
@@ -128,14 +128,14 @@ async function documents() {
 async function openSources() {
   showWorkspacePage("#source-dialog", "library");
   $("#source-search").value = "";
-  $("#source-list").textContent = "Загружаю статьи…";
+  localize($("#source-list"),"textContent",()=>t("ui.2e0d60690250"));
   try {
     sources = (await api("/api/sources")).sources || [];
     drawSources();
     await sourceLocations();
     await refreshTrashCount();
   } catch (error) {
-    $("#source-list").textContent = "Не удалось загрузить библиотеку. Проверь подключённые источники и попробуй открыть раздел ещё раз.";
+    localize($("#source-list"),"textContent",()=>t("ui.e8dfc5b5dbf7"));
     toast(error.message, true);
   }
 }
@@ -148,15 +148,15 @@ async function sourceLocations() {
     list.replaceChildren();
     for (const item of result.locations) {
       const row = el("p", "source-location", item.path);
-      row.append(el("small", null, item.files ? "Файлы: " + item.files.join(", ") : "Все статьи в папке"));
+      row.append(el("small", null, ()=>item.files ? t("ui.36c5581c4fba") + item.files.join(", ") : t("ui.38090aec74a8")));
       list.append(row);
     }
-    if (!result.locations.length) list.append(el("p", "fine-print", "Здесь появятся выбранные файлы и папки."));
+    if (!result.locations.length) list.append(el("p", "fine-print", ()=>t("ui.4194835a6643")));
     return true;
   } catch (error) {
-    $("#source-location-status").textContent = error.status === 404
-      ? "Для выбора файлов сохрани текущую статью и перезапусти Гранку: сервер ещё работает с прежней версией."
-      : error.message;
+    localize($("#source-location-status"),"textContent",()=>error.status === 404
+      ? t("ui.9fe1d3e68dea")
+      : error.message);
     return false;
   }
 }
@@ -164,27 +164,27 @@ async function connectSource(kind, picker) {
   if (!locationsRevision && !(await sourceLocations())) return;
   const buttons = ["#source-file", "#source-folder", "#source-path-add"].map($);
   for (const button of buttons) button.disabled = true;
-  $("#source-location-status").textContent = picker ? "Выбери " + (kind === "file" ? "статью" : "папку") + " в системном окне…" : "Подключаю источник…";
+  localize($("#source-location-status"),"textContent",()=>picker ? t("ui.d472e521d736") + (kind === "file" ? t("ui.4c531726b656") : t("ui.17fd2d94c7d5")) + t("ui.c9cf281b4635") : t("ui.91a337f9ce2e"));
   try {
     const result = await api("/api/library-locations", {method: "POST", body: {
       kind, picker, path: picker ? undefined : $("#source-path").value,
       expected_revision: locationsRevision,
     }});
     if (result.cancelled) {
-      $("#source-location-status").textContent = "Выбор отменён.";
+      localize($("#source-location-status"),"textContent",()=>t("ui.c709eefbde9d"));
       return;
     }
     locationsRevision = result.revision;
     sources = (await api("/api/sources")).sources || [];
     drawSources();
     await sourceLocations();
-    $("#source-location-status").textContent = result.selection ? "Файл выбран." : "Папка добавлена. Статьи доступны в библиотеке и календаре.";
+    localize($("#source-location-status"),"textContent",()=>result.selection ? t("ui.a09307c73e87") : t("ui.c3859e7cbc41"));
     if (result.selection) await openSource(result.selection);
     else $("#source-search").focus();
   } catch (error) {
-    $("#source-location-status").textContent = error.status === 404
-      ? "Сохрани текущую статью и перезапусти Гранку, чтобы включить выбор файлов."
-      : error.message;
+    localize($("#source-location-status"),"textContent",()=>error.status === 404
+      ? t("ui.cc8adc4d67f8")
+      : error.message);
     if (error.conflict) await sourceLocations();
   } finally {
     for (const button of buttons) button.disabled = false;
@@ -209,28 +209,28 @@ function drawSources() {
   });
   const matches = sources.filter(s => (sourceFilter === 'all' || s.state === sourceFilter) &&
     (s.name + ' ' + s.dir + ' ' + (s.copies || []).map(c => c.rel).join(' ')).toLowerCase().includes(q));
-  $("#source-summary").textContent = `Найдено: ${matches.length} · доступны и в календаре`;
+  localize($("#source-summary"),"textContent",()=>t("ui.136c9448bca9",matches.length));
   for (const source of matches) {
     const row = el('article', 'source-item');
     row.dataset.state = source.state;
     row.style.setProperty('--tile-index', list.children.length % 3);
-    const motif = el('div', 'source-motif', source.state === 'published' ? 'В печать.' : ')))');
+    const motif = el('div', 'source-motif', ()=>source.state === 'published' ? t("ui.da0d2a9761ee") : ')))');
     motif.setAttribute('aria-hidden', 'true');
     row.append(motif);
     const main = source.external ? el('a', 'source-open') : button('', () => openSource(source), 'source-open');
     if (source.external) { main.href = source.url; main.target = '_blank'; main.rel = 'noopener noreferrer'; }
-    const label = source.state === 'published' ? 'Опубликовано' + (source.published_date ? ' · ' + source.published_date : '') : source.planning_state === 'excluded' ? 'Исключено из плана' :
-      source.planned_date ? 'В плане · ' + source.planned_date : (source.readiness?.percent ?? 0) + '% · без даты';
-    const location = source.dir === '.' ? (source.root === 'blog' ? 'Блог' : 'Рабочая папка') : source.dir;
+    const label = source.state === 'published' ? t("ui.382ded9c6877") + (source.published_date ? ' · ' + source.published_date : '') : source.planning_state === 'excluded' ? t("ui.9106263309ca") :
+      source.planned_date ? t("ui.b04293b90df8") + source.planned_date : (source.readiness?.percent ?? 0) + t("ui.60eaf68ae9d9");
+    const location = source.dir === '.' ? (source.root === 'blog' ? t("ui.c31cdbd07e6c") : t("ui.bf5423fe8102")) : source.dir;
     main.append(el('strong', null, source.name), el('small', null, (source.channel === 'telegram' ? 'Telegram · ' : '') + location), el('span', 'tag', label));
     row.append(main);
-    row.append(button('В корзину', () => trashArticle(source), 'source-trash quiet'));
+    row.append(button(()=>t("ui.4a252fb127a9"), () => trashArticle(source), 'source-trash quiet'));
     if (source.url && source.state === 'published' && !source.external) {
-      const link = el('a', 'source-publication', 'Читать публикацию');
+      const link = el('a', 'source-publication', ()=>t("ui.0c77138c469f"));
       link.href = source.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
       row.append(link);
     }
-    if (source.state !== 'published') row.append(button(source.planning_state === 'excluded' ? 'Вернуть в план' : 'В календарь', async () => {
+    if (source.state !== 'published') row.append(button(()=>source.planning_state === 'excluded' ? t("ui.c44c4bb3f45d") : t("ui.1d2c820bb4da"), async () => {
       try {
         if (source.planning_state === 'excluded') {
           const current = await api('/api/publication-plan');
@@ -240,18 +240,18 @@ function drawSources() {
       } catch (error) { toast(error.message, true); }
     }, 'source-plan quiet'));
     if (source.copies?.length) {
-      const copies = el('details', 'source-copies'); copies.append(el('summary', null, 'Другие исходники · ' + source.copies.length));
+      const copies = el('details', 'source-copies'); copies.append(el('summary', null, ()=>t("ui.ce50f63f01e9") + source.copies.length));
       for (const copy of source.copies) {
         const item = el('div', 'source-copy-row');
         item.append(button(copy.copy_label + ': ' + copy.rel, () => openSource(copy), 'quiet'),
-          button('В корзину', () => trashArticle(copy), 'source-trash quiet'));
+          button(()=>t("ui.4a252fb127a9"), () => trashArticle(copy), 'source-trash quiet'));
         copies.append(item);
       }
       row.append(copies);
     }
     list.append(row);
   }
-  if (!matches.length) list.append(el('p', 'fine-print', 'По этому фильтру статей нет.'));
+  if (!matches.length) list.append(el('p', 'fine-print', ()=>t("ui.c7435b691e1c")));
 }
 async function gitStatus() {
   if (!S.document) return;
@@ -259,14 +259,14 @@ async function gitStatus() {
     const result = await api(
       "/api/git?" + new URLSearchParams({ root: S.root, f: S.file }),
     );
-    $("#syncbtn").textContent = !result.repo
-      ? "Без Git"
+    localize($("#syncbtn"),"textContent",()=>!result.repo
+      ? t("ui.f846dc349965")
       : result.dirty
-        ? "Синхронизировать · " + result.dirty
-        : "Синхронизировать";
-    $("#syncbtn").title = result.repo
-      ? "Последний снимок: " + (result.last?.msg || "—")
-      : "Для этой папки нет Git";
+        ? t("ui.1cd7801d4af8") + result.dirty
+        : t("ui.cc1a5e44ed50"));
+    localize($("#syncbtn"),"title",()=>result.repo
+      ? t("ui.d923a0e684e8") + (result.last?.msg || "—")
+      : t("ui.380dee79c84a"));
   } catch (_) {}
 }
 async function sync() {
@@ -274,15 +274,15 @@ async function sync() {
   try {
     const out = await api("/api/git-sync", {
       method: "POST",
-      body: { root: S.root, rel: S.file, message: "Гранка: " + S.document.doc },
+      body: { root: S.root, rel: S.file, message: t("ui.1f8b909a3e74") + S.document.doc },
     });
     if (!out.ok) throw new Error(out.error);
     toast(
       out.pushed
-        ? "Отправлено в репозиторий"
+        ? t("ui.54bb7d451c63")
         : out.nothing
-          ? "Изменений нет"
-          : "Снимок сохранён локально",
+          ? t("ui.2f3d5a3bd2b6")
+          : t("ui.6e34125ecccd"),
     );
     gitStatus();
   } catch (error) {

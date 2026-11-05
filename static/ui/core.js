@@ -1,8 +1,10 @@
+import { t, localizedOption, locale } from './i18n.js';
+import { localize, translateError, language } from './i18n.js';
 export const $ = (selector) => document.querySelector(selector);
 export function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
-  if (text != null) node.textContent = text;
+  if (text != null) localize(node,'textContent',typeof text==='function'?text:()=>text);
   return node;
 }
 export function button(text, action, className = "") {
@@ -75,7 +77,7 @@ export function deepSelection() {
 export const query = () =>
   new URLSearchParams({ root: S.root, f: S.file }).toString();
 export const providerName = (p) =>
-  p === "openrouter" ? "OpenRouter" : p === "local" ? "Гранка" : "Codex";
+  p === "openrouter" ? "OpenRouter" : p === "local" ? t("ui.97e82c4a2b98") : "Codex";
 export function busy(value) {
   S.busy = value;
   emit("controls");
@@ -83,6 +85,7 @@ export function busy(value) {
 export async function api(path, options = {}) {
   const headers = {
     "X-Granka-Token": $('meta[name="granka-token"]').content,
+    "X-Granka-Language": language(),
     ...options.headers,
   };
   if (
@@ -101,7 +104,8 @@ export async function api(path, options = {}) {
     data = {};
   }
   if (!response.ok) {
-    const error = new Error(data.error || "HTTP " + response.status);
+    const error = new Error(translateError(data.error || "HTTP " + response.status));
+    error.code = data.code || 'http_error';
     error.conflict = response.status === 409;
     error.status = response.status;
     throw error;
@@ -153,7 +157,7 @@ export async function loadDocument(
     localStorage.setItem("granka.doc", root + "|" + file);
     emit("document", { errors: result.contract_errors || [] });
   } catch (error) {
-    toast("Не удалось открыть статью: " + error.message, true);
+    toast(t("ui.0ebb3cd51481") + error.message, true);
     throw error;
   } finally {
     if (seq === loadSequence) busy(false);
@@ -178,8 +182,8 @@ export async function operation(path, body, { reload = true } = {}) {
   } catch (error) {
     toast(
       error.conflict
-        ? "Статья изменилась в другой вкладке. Перечитай её."
-        : "Не сохранилось: " + error.message,
+        ? t("ui.0f69953b34fc")
+        : t("ui.55932347abb4") + error.message,
       true,
     );
     return null;

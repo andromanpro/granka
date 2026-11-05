@@ -48,11 +48,12 @@ class PublicReleaseTests(unittest.TestCase):
             code=('import json;from tools.config import load,roots;from tools.iimeter import measure;'
                   'from tools.site_publish import SitePublisher;'
                   'print(json.dumps({"roots":{k:str(v) for k,v in roots().items()},"enabled":load()["site"]["enabled"],'
-                  '"meter":measure("Own writing sample."),"site_repo":SitePublisher(lambda:"state").repo}))')
+                  '"meter":measure("Own writing sample."),"meter_ru":measure("Собственный текст автора."),"site_repo":SitePublisher(lambda:"state").repo}))')
             out=json.loads(subprocess.check_output([sys.executable,'-B','-c',code],cwd=ROOT,env=env))
             self.assertEqual(Path(out['roots']['articles']),Path(folder).resolve()/'articles')
             self.assertFalse(out['enabled']);self.assertIsNone(out['site_repo'])
-            self.assertIsNone(out['meter']['score']);self.assertEqual(out['meter']['status'],'uncalibrated')
+            self.assertIsNone(out['meter']['score']);self.assertEqual(out['meter']['status'],'unsupported_language')
+            self.assertIsNone(out['meter_ru']['score']);self.assertEqual(out['meter_ru']['status'],'uncalibrated')
 
     def test_openrouter_always_saves_response_before_validation(self):
         cases=[({'id':'receipt','usage':{'cost':0.1},'choices':[{'finish_reason':'stop','message':{'content':'{"ok":true}'}}]},True),

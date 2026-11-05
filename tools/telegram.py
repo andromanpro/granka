@@ -11,6 +11,7 @@ import urllib.request
 import uuid
 from .telegram_media import MAX_TOTAL, MIME, validate_bytes
 from .telegram_delivery import delivery_lock, PublicationBusy, head, post_key, validate_edit, edit_calls
+from .publication_scheduler import snapshot_revision, permitted, GRACE_SECONDS
 
 _UNSET=object()
 
@@ -152,7 +153,9 @@ class Telegram:
         path.parent.mkdir(parents=True,exist_ok=True)
         temporary=path.with_name('.'+path.name+'.'+uuid.uuid4().hex+'.tmp')
         try:
-            temporary.write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf-8',newline='\n')
+            with temporary.open('w',encoding='utf-8',newline='\n')as stream:
+                json.dump(record,stream,ensure_ascii=False,indent=2)
+                stream.flush();os.fsync(stream.fileno())
             for attempt in range(8):
                 try:temporary.replace(path);return
                 except PermissionError as error:
@@ -167,6 +170,7 @@ class Telegram:
             if value['root']==root and value['rel']==rel:
                 if recover and value['status']=='sending':
                     value.update(status='unknown',error='Отправка была прервана. Проверь канал перед дальнейшими действиями.')
+                    if value.get('schedule'):value['schedule']['state']='unknown'
                     self.persist(path,value)
                 values.append(value)
         return values
@@ -180,7 +184,8 @@ class Telegram:
 
     @staticmethod
     def public(record):
-        return {k:v for k,v in record.items() if k not in {'config_fingerprint','photo_path','media_paths','rich_message'}}
+        return {**{k:v for k,v in record.items() if k not in {'config_fingerprint','photo_path','media_paths','rich_message'}},
+                'review_revision':snapshot_revision(record)}
 
     def prepare(self,root,rel,version,text,photo=None,media=None,rich_message=None,rich_files=None,action=None,target_id=None,expected_source_id=_UNSET):
         if action not in {None,'create','update'}:raise ValueError('Выбери создание или обновление публикации')
@@ -222,6 +227,8 @@ class Telegram:
             path=self.record_path(identifier)
             if path.exists():
                 previous=self.read(identifier)
+                if previous.get('schedule',{}).get('state') not in {None,'cancelled'}:
+                    raise ValueError('Этот снимок в очереди. Открой его в отложенных публикациях или отмени планирование.')
                 if previous['status'] in {'prepared','failed'} and previous['config_fingerprint']!=fingerprint:
                     previous.update(config_fingerprint=fingerprint,channel=channel,status='prepared')
                     previous.pop('error',None);self.persist(path,previous)
@@ -233,6 +240,7 @@ class Telegram:
                     'status':'prepared','created':time.time(),'config_fingerprint':fingerprint,'with_cover':bool(photo),
                     'mode':'article' if rich_message else 'announcement','attachments':descriptors,'action':action or 'create',
                     'content_id':content_id,'base_source_id':latest['id']if latest else None}
+            if photo:record['photo_sha256']=hashlib.sha256(raw).hexdigest()
             if rich_message:record['rich_message']=rich_message
             if target:
                 validate_edit(record,target)
@@ -248,10 +256,22 @@ class Telegram:
             self.persist(path,record)
             return self.public(record)
 
-    def publish(self,identifier):
+    def publish(self,identifier,*,schedule_id=None,now=None):
         with self.lock,delivery_lock(self.directory):
             record=self.read(identifier)
             if record['status'] in {'sent','sending','unknown'}:return self.public(record)
+            schedule=record.get('schedule',{})
+            if schedule_id is not None:
+                if schedule.get('id')!=schedule_id or schedule.get('state')!='scheduled':return self.public(record)
+                now=time.time()if now is None else now
+                if now<schedule['due']:return self.public(record)
+                if now>schedule['due']+GRACE_SECONDS or not permitted(now,schedule['timezone'],schedule['windows']):
+                    schedule.update(state='missed',revision=uuid.uuid4().hex)
+                    self.persist(self.record_path(identifier),record);return self.public(record)
+                if snapshot_revision(record)!=schedule['snapshot_revision']:
+                    raise ValueError('Снимок изменился. Проверь предпросмотр заново.')
+            elif schedule.get('state')not in {None,'cancelled'}:
+                raise ValueError('Снимок в очереди. Сначала отмени планирование.')
             self.require_channel_publication()
             if record.get('sender_mode','channel')!='channel':
                 raise ValueError('Отправитель публикации изменился. Подготовь предпросмотр заново.')
@@ -259,6 +279,8 @@ class Telegram:
                 raise ValueError('Настройки бота изменились. Подготовь предпросмотр заново.')
             path=self.record_path(identifier)
             token=self.token();photo=Path(record['photo_path']) if record.get('photo_path') else None
+            if photo and record.get('photo_sha256') and hashlib.sha256(photo.read_bytes()).hexdigest()!=record['photo_sha256']:
+                raise ValueError('Снимок обложки изменился. Подготовь публикацию заново.')
             records=[v for v in self.records(record['root'],record['rel'])if v['channel']['chat_id']==record['channel']['chat_id']]
             latest=head(records)
             if 'base_source_id'in record:
@@ -276,6 +298,7 @@ class Telegram:
                 if hashlib.sha256(files[item['field']].read_bytes()).hexdigest()!=item['sha256']:
                     raise ValueError('Снимок вложения изменился. Подготовь публикацию заново.')
             record.pop('error',None)
+            if schedule_id:schedule.update(state='sending',revision=uuid.uuid4().hex)
             record.update(status='sending',started=time.time());self.persist(path,record)
             payload={'chat_id':record['channel']['chat_id']}
             method='sendPhoto' if photo else 'sendMessage'
@@ -323,6 +346,7 @@ class Telegram:
             except TelegramRejected as error:record.update(status='failed',error=str(error),finished=time.time())
             except Exception:
                 record.update(status='unknown',error='Результат отправки неизвестен. Проверь канал; повторная отправка заблокирована.',finished=time.time())
+            if schedule_id:schedule.update(state=record['status'],revision=uuid.uuid4().hex)
             self.persist(path,record)
             return self.public(record)
 

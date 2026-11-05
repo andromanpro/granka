@@ -35,6 +35,22 @@ class WorkspaceBrowserTests(unittest.TestCase):
         expect(self.page.locator('body')).to_have_attribute('data-section', section)
         expect(self.page.locator('button[data-section="'+section+'"]')).to_have_attribute('aria-current', 'page')
 
+    def test_about_author_links_in_russian_and_english(self):
+        self.page.set_viewport_size({'width': 390, 'height': 800})
+        for lang, title in (('ru', 'О программе'), ('en', 'About')):
+            self.page.evaluate('(lang) => localStorage.setItem("granka.locale", lang)', lang)
+            self.reload_ready()
+            self.go('help')
+            about = self.page.locator('#granka-about')
+            expect(about.get_by_role('heading')).to_have_text(title)
+            expect(about.locator('strong')).to_have_text('androman')
+            for name, href in (('androman.pro', 'https://androman.pro'),
+                               ('Telegram', 'https://t.me/andromanpro1c')):
+                link = about.get_by_role('link', name=name, exact=True)
+                expect(link).to_have_attribute('href', href)
+                expect(link).to_have_attribute('rel', 'noopener noreferrer')
+            self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'))
+
     def test_pages_preserve_source_draft_and_view_change_uses_unsaved_guard(self):
         self.page.click('[data-view=source]')
         draft = '# Незавершённая правка\n\nЕё нельзя потерять при навигации.'

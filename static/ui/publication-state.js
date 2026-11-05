@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import { S, api, query, events, emit } from './core.js';
 
 function publicURL(value) {
@@ -21,12 +22,12 @@ export function publicationView({ sources = [], site, telegram = [], root, file,
     channels.push({ channel: 'telegram', url: publicURL(sent.url), version: sent.version, changed: !!sent.version && sent.version !== version });
   if (!channels.length) return null;
   const changed = editing || channels.some(value => value.changed);
-  const where = channels.length > 1 ? 'на сайте и в Telegram' : channels[0].channel === 'site' ? 'на сайте' : 'в Telegram';
-  const details = channels.map(value => (value.channel === 'site' ? 'Сайт' : 'Telegram') +
+  const where = channels.length > 1 ? t("ui.8769f52e5f21") : channels[0].channel === 'site' ? t("ui.17cb6596fd77") : t("ui.d393902a22e2");
+  const details = channels.map(value => (value.channel === 'site' ? t("ui.b4541abdaefd") : 'Telegram') +
     (value.version ? ' · ' + value.version : '') + (value.url ? ' · ' + value.url : ''));
-  if (editing) details.push('Есть несохранённые изменения');
-  else if (changed) details.push('Есть изменения после публикации');
-  return { label: 'Опубликовано ' + where + (changed ? ' · есть правки' : ''), changed, channels, title: details.join('\n') };
+  if (editing) details.push(t("ui.382dd64dc0b2"));
+  else if (changed) details.push(t("ui.90e1374505fe"));
+  return { label: t("ui.a2aef4cb6346") + where + (changed ? t("ui.c072be35e6bc") : ''), changed, channels, title: details.join('\n') };
 }
 
 let generation = 0, terminal = '', timer;

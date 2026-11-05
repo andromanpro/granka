@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {render as renderMarkdown} from '../markdown-view.js';
 import {
   $,
@@ -89,8 +90,8 @@ function start(mode = "rich") {
 function changed() {
   if (!S.editor) start(S.view === "source" ? "source" : "rich");
   storeDraft();
-  if ($("#editor-status").textContent !== "Есть несохранённые правки")
-    $("#editor-status").textContent = "Есть несохранённые правки";
+  if ($("#editor-status").textContent !== t("ui.add45fc483f3"))
+    localize($("#editor-status"),"textContent",()=>t("ui.add45fc483f3"));
 }
 export async function save() {
   if (!S.editor) return true;
@@ -98,7 +99,7 @@ export async function save() {
   const state = S.editor,
     value = text();
   if (!value.trim()) {
-    toast("Текст не может быть пустым", true);
+    toast(t("ui.3c6e2478534e"), true);
     return false;
   }
   storeDraft();
@@ -122,12 +123,12 @@ export async function save() {
     localStorage.removeItem(draftKey());
     await loadDocument();
     emit("sync");
-    toast("Версия сохранена");
+    toast(t("ui.ac74f90aa04f"));
     return true;
   } catch (error) {
-    $("#editor-status").textContent = error.conflict
-      ? "Файл изменился снаружи. Твой черновик сохранён локально."
-      : "Не сохранилось: " + error.message;
+    localize($("#editor-status"),"textContent",()=>error.conflict
+      ? t("ui.56406f06f624")
+      : t("ui.55932347abb4") + error.message);
     toast($("#editor-status").textContent, true);
     return false;
   } finally {
@@ -138,7 +139,7 @@ async function cancel() {
   if (!S.editor) return;
   if (
     text() !== S.editor.original &&
-    !confirm("Отменить правку? Черновик останется локально.")
+    !confirm(t("ui.8083151b9e47"))
   )
     return;
   storeDraft();
@@ -198,9 +199,9 @@ function render() {
       return mark;
     },
   });
-  $("#editor-status").textContent = latest()
-    ? "Изменения сохраняются новой версией"
-    : "Предыдущая версия · только чтение";
+  localize($("#editor-status"),"textContent",()=>latest()
+    ? t("ui.1eef1eba3f5d")
+    : t("ui.3c900c7c3b03"));
   $("#restore-draft").hidden = true;
   try {
     const draft = JSON.parse(localStorage.getItem(draftKey()) || "null");
@@ -211,7 +212,7 @@ function render() {
 }
 export function setView(view) {
   if (S.editor) {
-    toast("Сначала сохрани текущую правку");
+    toast(t("ui.ae124ea875b8"));
     return;
   }
   S.view = view;
@@ -237,11 +238,11 @@ function controls() {
       (b.dataset.view === "diff" &&
         (S.document?.versions.length || 0) < 2);
   }
-  $("#reader-hint").textContent = S.editor
-    ? "Ctrl+S — сохранить · Ctrl+Z — отменить ввод"
+  localize($("#reader-hint"),"textContent",()=>S.editor
+    ? t("ui.b993083b8e97")
     : latest()
-      ? "Кликни в статью и пиши. Правая кнопка — вставить картинку."
-      : "Выбери последнюю версию для редактирования.";
+      ? t("ui.b5d242589ed8")
+      : t("ui.64a552fccee1"));
 }
 export function context(range) {
   const box = $("#doc"),
@@ -289,8 +290,7 @@ export function pickImage(figure) {
   const sel = getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
-  $("#reader-hint").textContent =
-    "Картинка выделена · Delete убирает её из статьи";
+  localize($("#reader-hint"),"textContent",()=>t("ui.85228cafd298"));
   emit("image-picked", { figure });
 }
 export function removeImages(figures) {
@@ -298,7 +298,7 @@ export function removeImages(figures) {
     list = (figures || (picked ? [picked] : [])).filter((f) => box.contains(f));
   if (!list.length) return false;
   if (S.busy || !latest() || !start()) {
-    toast("Правка доступна в последней версии статьи", true);
+    toast(t("ui.7cfadfee6d2e"), true);
     return false;
   }
   for (const figure of list) {
@@ -312,7 +312,7 @@ export function removeImages(figures) {
   $("#selpop").hidden = true;
   changed();
   controls();
-  toast(list.length > 1 ? "Картинки убраны" : "Картинка убрана");
+  toast(list.length > 1 ? t("ui.35aabfeeaf12") : t("ui.83409dc97dd6"));
   return true;
 }
 export async function insertImage(path, alt, target) {
@@ -359,7 +359,7 @@ export async function insertImage(path, alt, target) {
     caption.textContent = img.alt;
     node.append(img, caption);
     if (!document.execCommand("insertHTML", false, node.outerHTML))
-      throw new Error("Не удалось вставить изображение");
+      throw new Error(t("ui.f8fe0ec98ef7"));
     if (target.annotationId)
       S.editor.imageNotes.push({ id: target.annotationId, url: prepared.url });
     changed();
@@ -367,7 +367,7 @@ export async function insertImage(path, alt, target) {
   } catch (error) {
     toast(
       error.conflict
-        ? "Версия изменилась. Сохрани черновик и перечитай статью."
+        ? t("ui.ebe16b4e3453")
         : error.message,
       true,
     );
@@ -456,7 +456,7 @@ export function initEditor() {
     });
     changed();
     if(draft.baseVersion!==S.version){
-      const warning='Восстановлен черновик от '+draft.baseVersion+'. Текущая сохранённая версия — '+S.version+'. Проверь текст перед сохранением.';
+      const warning=t("ui.326915e7ba9c")+draft.baseVersion+t("ui.b746e374d28c")+S.version+t("ui.8c806c6f7848");
       $('#editor-status').textContent=warning;toast(warning,true);
     }
   });

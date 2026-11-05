@@ -29,6 +29,7 @@ from pathlib import Path
 if __package__ in {None,''}:
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from tools import config as environment
+from tools import languages
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -273,6 +274,15 @@ def structure_report(text: str, prof: dict | None = None):
 
 
 def measure(text: str, profile_id="blog", profile=None) -> dict:
+    detected=languages.detect(strip_markup(text))
+    if detected in {'en','mixed'}:
+        return {'words':style_vector(text)['words'],'score':None,'status':'unsupported_language',
+                'language':detected,'engine_version':ENGINE_VERSION,'profile_id':profile_id,
+                'profile_label':PROFILES[profile_id],'profile_fingerprint':None,'calibration':None,
+                'sample_warning':None,'text_hash':hashlib.sha256(text.encode('utf-8')).hexdigest(),
+                'axes':{'маркеры':{'score':None,'hits':0,'per_1000':None},
+                        'структура':{'score':None,'flags':[],'raw':{}},
+                        'голос':{'score':None,'parts':{},'corpus':[],'corpus_words':0}},'highlights':[]}
     prof = profile if profile is not None else load_profile(profile_id)
     v = style_vector(text)
     words = v["words"]

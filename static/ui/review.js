@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -46,7 +47,7 @@ async function decide(a, action, reason) {
     const chosen =
       variants.find((v) => v.index === choices.get(a.id)) || variants[0];
     if (!chosen) {
-      toast("Сначала выполни поручение или напиши свой вариант");
+      toast(t("ui.0e3e47c55628"));
       return;
     }
     decision = {
@@ -60,7 +61,7 @@ async function decide(a, action, reason) {
   if (action === "custom") {
     const text = (drafts.get(a.id) || "").trim();
     if (!text) {
-      toast("Напиши свой вариант");
+      toast(t("ui.1bebc27da4de"));
       return;
     }
     decision = { action, text, intent: "replace" };
@@ -68,7 +69,7 @@ async function decide(a, action, reason) {
   if (action === "comment") {
     const text = (drafts.get(a.id) || a.note || "").trim();
     if (!text) {
-      toast("Напиши комментарий");
+      toast(t("ui.4c38060e4456"));
       return;
     }
     decision = { action: "custom", text, intent: "comment" };
@@ -102,18 +103,18 @@ function card(a, compact = false) {
   root.id = "card-" + a.id;
   const label =
     a.type === "protected"
-      ? "Голос автора"
+      ? t("ui.ea1e59aa398e")
       : a.type === "note"
         ? a.kind === "image"
-          ? "Картинка"
-          : "Пометка"
+          ? t("ui.a02924da692d")
+          : t("ui.809b4fa27561")
         : request
           ? {
-              creative: "Поручение ИИ",
-              author: "Вопрос автору",
-              unsupported: "Проверить поручение",
+              creative: t("ui.bf8177194d6a"),
+              author: t("ui.c508f19f8321"),
+              unsupported: t("ui.8ba3dac232ff"),
             }[request.kind]
-          : a.class || "Замечание";
+          : a.class || t("ui.fc919c794f45");
   root.appendChild(
     el(
       "span",
@@ -124,49 +125,49 @@ function card(a, compact = false) {
   const quote = button("«" + a.quote + "»", () => choose(a.id), "review-quote");
   root.appendChild(quote);
   if (compact) {
-    if (a.decision) root.appendChild(el("small", "muted", "Решено"));
+    if (a.decision) root.appendChild(el("small", "muted", ()=>t("ui.63f6302a4dc9")));
     return root;
   }
   if (a.why) root.appendChild(el("p", "explanation", a.why));
   if (a.decision) {
     const d = a.decision,
-      labels = { reject: "Оставлено", allergen: "В аллергенах" };
+      labels = { reject: t("ui.508d93760b8b"), allergen: t("ui.a966b8082c52") };
     root.appendChild(
       el(
         "p",
         "decision-text",
-        labels[d.action] ||
+        ()=>labels[d.action] ||
           (d.intent === "delete"
-            ? "Вставка будет удалена"
-            : (d.intent === "comment" ? "Комментарий: " : "Замена: ") +
+            ? t("ui.1d04f346fda8")
+            : (d.intent === "comment" ? t("ui.67cb5488d26f") : t("ui.9528af9527d2")) +
               (d.text || "")),
       ),
     );
-    root.appendChild(button("Переиграть", () => decide(a, null), "quiet"));
+    root.appendChild(button(()=>t("ui.d95b37588046"), () => decide(a, null), "quiet"));
     return root;
   }
   if (a.type === "protected") {
     root.appendChild(
-      button("Это не мой голос", () => markAllergen(a), "quiet"),
+      button(()=>t("ui.d236c9e85b31"), () => markAllergen(a), "quiet"),
     );
     return root;
   }
   if (a.type === "note" && a.kind === "image") {
     root.appendChild(
       button(
-        "Выбрать или сгенерировать картинку",
+        ()=>t("ui.d02ba4fe6dcf"),
         () => emit("images", { context: editor.contextForAnnotation(a) }),
         "primary",
       ),
     );
-    root.appendChild(button("Удалить пометку", () => remove(a), "quiet"));
+    root.appendChild(button(()=>t("ui.b78043b784de"), () => remove(a), "quiet"));
     return root;
   }
   if (a.type === "candidate") {
     const usable = usableVariants(a);
     if (request?.kind === "creative") {
       const generate = button(
-        usable.length ? "Ещё варианты" : "Выполнить поручение",
+        ()=>usable.length ? t("ui.d2c8a33499ee") : t("ui.7cc0eab1a141"),
         () => startJob("editorial", { annotation_id: a.id }),
         "editorial-generate " + (usable.length ? "quiet" : "primary"),
       );
@@ -177,7 +178,7 @@ function card(a, compact = false) {
           el(
             "p",
             "muted",
-            "ИИ предложит готовый текст для этой вставки. Выбери вариант, затем примени решения.",
+            ()=>t("ui.d3f7cadcca38"),
           ),
         );
     } else if (request?.kind === "author") {
@@ -185,7 +186,7 @@ function card(a, compact = false) {
         el(
           "p",
           "muted",
-          "Здесь нужны твои сведения. Впиши ответ — он заменит вставку в скобках.",
+          ()=>t("ui.4470bc27736c"),
         ),
       );
     }
@@ -209,47 +210,47 @@ function card(a, compact = false) {
       textarea(
         a,
         request?.kind === "author"
-          ? "Твой ответ для текста статьи"
-          : "Свой вариант",
+          ? t("ui.571595e4d053")
+          : t("ui.a78f0004f45e"),
       ),
     );
     const actions = el("div", "actions");
     if (usable.length)
       actions.appendChild(
-        button("Принять", () => decide(a, "accept"), "primary"),
+        button(()=>t("ui.9659ad64c284"), () => decide(a, "accept"), "primary"),
       );
     actions.appendChild(
-      button(request ? "Вставить свой текст" : "Своё", () =>
+      button(()=>request ? t("ui.0bd6bf25fb0f") : t("ui.ecd3b2a11b19"), () =>
         decide(a, "custom"),
       ),
     );
     if (request)
       actions.appendChild(
-        button("Убрать вставку", () => decide(a, "delete"), "quiet"),
+        button(()=>t("ui.1053f9999714"), () => decide(a, "delete"), "quiet"),
       );
     root.appendChild(actions);
     const reasons = el("details", "reject-reasons");
-    reasons.appendChild(el("summary", null, "Оставить как есть…"));
+    reasons.appendChild(el("summary", null, ()=>t("ui.65e407d4ed71")));
     for (const [label, reason] of [
-      ["Мой голос", "voice"],
-      ["Уместно здесь", "ok-here"],
-      ["Ложное срабатывание", "fp"],
-      ["Варианты хуже", "worse"],
+      [t("ui.b4489c968fb2"), "voice"],
+      [t("ui.612fb27ef064"), "ok-here"],
+      [t("ui.8aa0d5a1a7e1"), "fp"],
+      [t("ui.1202d0cd3b3c"), "worse"],
     ])
       reasons.appendChild(
         button(label, () => decide(a, "reject", reason), "quiet"),
       );
     root.append(
       reasons,
-      button("В аллергены", () => markAllergen(a), "quiet danger"),
+      button(()=>t("ui.de9dc9600c10"), () => markAllergen(a), "quiet danger"),
     );
   } else {
-    root.appendChild(textarea(a, "Что изменить или уточнить"));
+    root.appendChild(textarea(a, t("ui.6eefecf9e487")));
     const actions = el("div", "actions");
     actions.append(
-      button("Заменить фрагмент", () => decide(a, "custom"), "primary"),
-      button("Комментарий", () => decide(a, "comment")),
-      button("Удалить пометку", () => remove(a), "quiet"),
+      button(()=>t("ui.db90b38f1429"), () => decide(a, "custom"), "primary"),
+      button(()=>t("ui.d89b31028652"), () => decide(a, "comment")),
+      button(()=>t("ui.b78043b784de"), () => remove(a), "quiet"),
     );
     root.appendChild(actions);
   }
@@ -271,9 +272,9 @@ async function markAllergen(a) {
   await operation(
     "/api/allergen",
     {
-      pattern: a.class || "Оборот",
+      pattern: a.class || t("ui.003a5c06e58b"),
       example: a.quote,
-      note: "Помечено автором в Гранке.",
+      note: t("ui.71b7ef2c0b22"),
     },
     { reload: false },
   );
@@ -283,7 +284,7 @@ export async function addNote() {
   $("#selpop").hidden = true;
   if (!range) {
     toast(
-      S.editor ? "Сначала сохрани правку текста" : "Выдели фрагмент статьи",
+      S.editor ? t("ui.f7056d9c8f89") : t("ui.d6e1e4018325"),
     );
     return;
   }
@@ -308,11 +309,11 @@ export function renderReview() {
     ? S.document.deep_analyses.filter((r) => r?.version === S.version).at(-1)?.findings || []
     : [];
   const deepPending = Array.isArray(deep) ? deep.filter((f) => !f.decision).length : 0;
-  $("#review-count").textContent = `${done} из ${judged.length}`;
+  localize($("#review-count"),"textContent",()=>t("ui.0191332365c7",done,judged.length));
   $("#review-progress").style.width =
     (judged.length ? (done / judged.length) * 100 : 0) + "%";
   $("#review-tab-count").textContent = judged.length - done + deepPending;
-  $("#review-tab-count").title = `${judged.length - done} локальных пометок и ${deepPending} замечаний к статье целиком`;
+  localize($("#review-tab-count"),"title",()=>t("ui.1b54b2d8b9b5",judged.length - done,deepPending));
   if (!all.some((a) => a.id === S.active))
     S.active =
       judged.find((a) => !a.decision)?.id || judged[0]?.id || all[0]?.id;
@@ -325,22 +326,22 @@ export function renderReview() {
       el(
         "p",
         "empty",
-        deep.length ? "Локальных замен нет. Замечания к статье целиком показаны выше." : "Замечаний нет. Можно править текст или запустить анализ.",
+        ()=>deep.length ? t("ui.6e8ed1397467") : t("ui.092212986867"),
       ),
     );
   const pending = judged.filter((a) => !a.decision && a.id !== S.active);
   if (pending.length) {
     root.appendChild(
-      el("h3", "section-label", "Следующие · " + pending.length),
+      el("h3", "section-label", ()=>t("ui.e88ba068d15f") + pending.length),
     );
     for (const a of pending) root.appendChild(card(a, true));
   }
   for (const [name, items] of [
     [
-      "Голос автора",
+      t("ui.ea1e59aa398e"),
       all.filter((a) => a.type === "protected" && a.id !== S.active),
     ],
-    ["Решённые", judged.filter((a) => a.decision && a.id !== S.active)],
+    [t("ui.bb4572f133b3"), judged.filter((a) => a.decision && a.id !== S.active)],
   ]) {
     if (!items.length) continue;
     const details = el("details", "review-group");
@@ -368,23 +369,23 @@ function controls() {
     );
 }
 const actions = {
-  decide: "Решение",
-  undecide: "Возврат на проверку",
-  "note-add": "Пометка",
-  "note-remove": "Удаление",
-  "text-edit": "Правка текста",
-  "image-insert": "Картинка",
-  "cover-edit": "Обложка",
-  "spice-edit": "Приправы",
-  "version-restore": "Возврат версии",
-  "decisions-batch": "Пакет решений",
-  "batch-undo": "Отмена пакета",
-  "apply-decisions": "Применение",
-  analysis: "Анализ",
-  "deep-analysis": "Разбор статьи целиком",
-  "deep-decision": "Решение по разбору",
-  status: "Статус",
-  "voice-session": "Голос",
+  decide: t("ui.199d6db958cd"),
+  undecide: t("ui.94d970fcc66a"),
+  "note-add": t("ui.809b4fa27561"),
+  "note-remove": t("ui.303c2b490a51"),
+  "text-edit": t("ui.666f751366cb"),
+  "image-insert": t("ui.a02924da692d"),
+  "cover-edit": t("ui.5bcd9613eb14"),
+  "spice-edit": t("ui.1c85fff09d68"),
+  "version-restore": t("ui.90d4deec7cc1"),
+  "decisions-batch": t("ui.d569874a11e8"),
+  "batch-undo": t("ui.a0b86377ba67"),
+  "apply-decisions": t("ui.94c9a70a782f"),
+  analysis: t("ui.d7327abdc0fe"),
+  "deep-analysis": t("ui.f926ce9e2529"),
+  "deep-decision": t("ui.22836fbcdaf7"),
+  status: t("ui.225077c6d479"),
+  "voice-session": t("ui.24a0d703afd4"),
 };
 function renderHistory() {
   const list = $("#history-list");
@@ -393,7 +394,7 @@ function renderHistory() {
     const row = el("article", "history-item");
     row.append(
       el("time", null, (event.ts || "").replace("T", " ")),
-      el("strong", null, actions[event.action] || "Изменение"),
+      el("strong", null, ()=>actions[event.action] || t("ui.9f0cda93578f")),
     );
     if (event.quote) row.appendChild(el("p", null, event.quote));
     else if (event.version)
@@ -409,7 +410,7 @@ function renderHistory() {
   }
   if (!list.children.length)
     list.appendChild(
-      el("p", "empty", "История появится после первого действия."),
+      el("p", "empty", ()=>t("ui.55f452b8ecab")),
     );
 }
 export function initReview() {

@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -35,7 +36,7 @@ export async function saveCover(path, alt, target) {
       target.file !== S.file ||
       target.version !== S.version)
   ) {
-    toast("Статья изменилась. Открой выбор обложки заново.", true);
+    toast(t("ui.99e52a7f0a84"), true);
     return false;
   }
   busy(true);
@@ -46,7 +47,7 @@ export async function saveCover(path, alt, target) {
         method: "POST",
         body: { path, expected_revision: S.revision },
       });
-      cover = { src: prepared.url, alt: alt || "Обложка статьи" };
+      cover = { src: prepared.url, alt: alt || t("ui.3b855468a0eb") };
     }
     await api("/api/cover?" + query(), {
       method: "POST",
@@ -60,12 +61,12 @@ export async function saveCover(path, alt, target) {
     $("#imagegallery").close();
     await loadDocument();
     emit("sync");
-    toast(cover ? "Обложка сохранена" : "Обложка убрана");
+    toast(cover ? t("ui.79233ee3afe6") : t("ui.2db507112079"));
     return true;
   } catch (error) {
     toast(
       error.conflict
-        ? "Статья изменилась. Перечитай её перед сохранением обложки."
+        ? t("ui.0a66a439c56a")
         : error.message,
       true,
     );
@@ -78,7 +79,7 @@ export async function saveCover(path, alt, target) {
 function render() {
   const cover = version()?.cover;
   $("#article-cover").hidden = !cover || S.view !== "article";
-  $("#cover-btn").textContent = cover ? "Обложка ✓" : "Обложка";
+  localize($("#cover-btn"),"textContent",()=>cover ? t("ui.61029f9bb707") : t("ui.5bcd9613eb14"));
   if (cover) {
     const url =
       "/api/article-image?" + query() + "&src=" + encodeURIComponent(cover.src);

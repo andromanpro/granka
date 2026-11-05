@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from tools.public_audit import scan
 
-ROOT_FILES = ['VERSION', 'LICENSE', 'README.md', 'docs/WINDOWS.md', 'docs/USER-GUIDE.md',
+ROOT_FILES = ['VERSION', 'LICENSE', 'README.md', 'README.en.md', 'docs/LANGUAGES-AND-SCHEDULES.md', 'docs/WINDOWS.md', 'docs/USER-GUIDE.md',
              'docs/CONFIGURATION.md', 'docs/DEEP-REVIEW.md',
              'start-granka.py', 'launch-granka.py', 'granka-server.py']
 RUNTIME_EXCLUDE = {'public_audit.py', 'public_export.py', 'release.py', 'build-brand.py', 'import-voice-archive.py'}

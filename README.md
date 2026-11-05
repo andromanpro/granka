@@ -1,5 +1,7 @@
 # Гранка
 
+[English guide](README.en.md) · [Языки и отложенные публикации](docs/LANGUAGES-AND-SCHEDULES.md)
+
 <img src="static/brand/mark.svg" width="72" height="72" alt="Знак Гранки" />
 
 Локальный редактор статей: оформленный Markdown, замечания ИИ, авторские
@@ -378,8 +380,7 @@ python tools/release.py --check
 
 ## Автор и лицензия
 
-Роман Андриянов (androman) · [androman.pro](https://androman.pro) ·
-[andromanpro](https://github.com/andromanpro).
+**androman** · [androman.pro](https://androman.pro) · [Telegram](https://t.me/andromanpro1c).
 
 Гранка распространяется под [MIT](LICENSE). Можно использовать в личной
 и коммерческой работе, менять и распространять с сохранением уведомления

@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -47,8 +48,8 @@ function render() {
       ),
     );
     row.append(
-      button("Принять варианты", () => open(items, "accept"), "quiet"),
-      button("Оставить", () => open(items, "reject"), "quiet"),
+      button(()=>t("ui.ed5fa633e1f0"), () => open(items, "accept"), "quiet"),
+      button(()=>t("ui.97b65905439a"), () => open(items, "reject"), "quiet"),
     );
     box.appendChild(row);
   }
@@ -65,7 +66,7 @@ function render() {
   ) {
     box.appendChild(
       button(
-        "Отменить последний пакет · " + last.count,
+        ()=>t("ui.d828a22c40d7") + last.count,
         async () => {
           await operation("/api/decisions-batch/undo", {
             version: S.version,
@@ -104,17 +105,17 @@ function open(items, action) {
       el(
         "strong",
         null,
-        action === "accept" ? "Заменить фрагмент" : "Оставить фрагмент",
+        ()=>action === "accept" ? t("ui.db90b38f1429") : t("ui.aeb3f8f515ba"),
       ),
     );
     row.appendChild(label);
     row.appendChild(el("blockquote", null, a.quote));
     if (action === "accept") {
       const select = el("select");
-      select.setAttribute("aria-label", "Вариант замены");
+      select.setAttribute("aria-label", t("ui.56b1771964e0"));
       (a.variants || []).forEach((v, i) => {
         if (v.trim() && v.trim() !== a.quote.trim())
-          select.appendChild(new Option("Вариант " + (i + 1), String(i)));
+          select.appendChild(localizedOption(()=>t("ui.21f7c01ddd72") + (i + 1),String(i)));
       });
       const after = el("p", "batch-after");
       after.textContent = a.variants[+select.value] || "";
@@ -126,8 +127,7 @@ function open(items, action) {
       if (!select.options.length) {
         check.checked = false;
         check.disabled = true;
-        after.textContent =
-          "Нет готового варианта — разбери эту карточку отдельно.";
+        localize(after,"textContent",()=>t("ui.b7125d61f15c"));
       }
     }
     box.appendChild(row);
@@ -152,7 +152,7 @@ export function initBatch() {
       current.root !== S.root ||
       current.file !== S.file
     ) {
-      toast("Статья изменилась. Открой пакет заново.", true);
+      toast(t("ui.62145335824d"), true);
       return;
     }
     const items = [...$("#batch-items").children]
@@ -165,7 +165,7 @@ export function initBatch() {
           : { reason: $("#batch-reason").value }),
       }));
     if (!items.length) {
-      toast("Выбери хотя бы один фрагмент");
+      toast(t("ui.8afd59d36b8b"));
       return;
     }
     locked = true;
@@ -178,7 +178,7 @@ export function initBatch() {
       });
       if (result) {
         $("#batchdialog").close();
-        toast("Сохранено решений: " + result.count);
+        toast(t("ui.4fd1be95ab38") + result.count);
         emit("selection");
       }
     } finally {

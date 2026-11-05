@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -63,14 +64,14 @@ async function refresh() {
 function renderPublication() {
   const publication = info?.publication;
   $("#publication-banner").hidden = !publication;
-  $("#site-btn").textContent = publication ? "Обновить на сайте" : "На сайт";
-  $("#site-title").textContent = publication ? "Обновление статьи" : "Публикация статьи";
+  localize($("#site-btn"),"textContent",()=>publication ? t("ui.1f93bbc61fbd") : t("ui.bd2cc7e95b17"));
+  localize($("#site-title"),"textContent",()=>publication ? t("ui.f3db1ae9bbe3") : t("ui.935b6e6ee2ed"));
   $("#site-slug").readOnly = !!publication;
   $("#site-date").readOnly = !!publication;
   if (!publication) return;
-  $("#publication-state").textContent = publication.post_status === "publish" ? "Опубликовано на сайте" : "Черновик на сайте";
-  $("#publication-description").textContent = `${publication.version} · ${publication.date} · ` +
-    (publication.changed || S.editor ? "Есть неопубликованные изменения" : "Текущая версия на сайте");
+  localize($("#publication-state"),"textContent",()=>publication.post_status === "publish" ? t("ui.f3024c1f148c") : t("ui.1531bdafa08d"));
+  localize($("#publication-description"),"textContent",()=>`${publication.version} · ${publication.date} · ` +
+    (publication.changed || S.editor ? t("ui.c2dd0286296d") : t("ui.5761cdd334a0")));
   $("#publication-link").href = publication.url;
 }
 function running() {
@@ -85,8 +86,7 @@ function render() {
     (plan.destination_signature && plan.destination_signature !== info?.configuration_signature));
   $("#site-fields").inert = locked || !!active;
   $("#site-prepare").disabled = !info?.configured;
-  $("#site-domain").textContent =
-    info?.environments?.[info?.final_stage]?.url || "WordPress · настрой подключение";
+  localize($("#site-domain"),"textContent",()=>info?.environments?.[info?.final_stage]?.url || t("ui.3176f42e1622"));
   $("#site-close").disabled = locked;
   $("#site-open-settings").disabled = locked || !!active;
   $("#site-review").hidden = !review || stale;
@@ -94,10 +94,10 @@ function render() {
     locked ||
     !!active ||
     (review?.previous && !$("#site-approval").checked);
-  $("#site-snapshot").textContent = plan
-    ? `${plan.version} · ${plan.file} · ${plan.assets.length} материалов` +
-      (stale ? " · Статья или подключение изменились: подготовь новый снимок." : "")
-    : "Подготовь снимок текста, обложки и картинок для публикации.";
+  localize($("#site-snapshot"),"textContent",()=>plan
+    ? t("ui.51065323f695",plan.version,plan.file,plan.assets.length) +
+      (stale ? t("ui.b898f105b1ee") : "")
+    : t("ui.d88b99fec325"));
   const box = $("#site-stages");
   box.replaceChildren();
   for (const stage of sequence()) {
@@ -115,16 +115,16 @@ function render() {
       const a = el(
         "a",
         null,
-        state.post_status === "draft"
-          ? "Открыть черновик (нужен вход)"
-          : "Открыть страницу",
+        ()=>state.post_status === "draft"
+          ? t("ui.6fb4e9965ba1")
+          : t("ui.6ee247bf8669"),
       );
       a.href = state.url;
       a.target = "_blank";
       a.rel = "noreferrer";
       row.appendChild(a);
       if (stage === sequence()[0] && plan.gitea) {
-        const git = el("a", null, "Исходник в Git");
+        const git = el("a", null, ()=>t("ui.729e65df5f6c"));
         git.href = plan.gitea.url;
         git.target = "_blank";
         git.rel = "noreferrer";
@@ -132,9 +132,9 @@ function render() {
       }
     } else {
       const next = button(
-        state?.status === "failed" || state?.status === "unknown"
-          ? "Проверить и повторить"
-          : "Подготовить переход",
+        ()=>state?.status === "failed" || state?.status === "unknown"
+          ? t("ui.b8f067556aa5")
+          : t("ui.44cdcce6a36e"),
         () => inspect(stage),
       );
       next.disabled = !enabled;
@@ -144,11 +144,10 @@ function render() {
     box.appendChild(row);
   }
   if (active)
-    $("#site-operation").textContent =
-      active.message +
+    localize($("#site-operation"),"textContent",()=>active.message +
       " · " +
       Math.floor(Date.now() / 1000 - active.created) +
-      " с";
+      t("ui.ddae8eb8bf21"));
 }
 async function action(fn) {
   if (locked) return;
@@ -166,37 +165,35 @@ async function action(fn) {
 }
 async function inspect(stage) {
   await action(async () => {
-    $("#site-operation").textContent = "Подключаюсь к площадке «" + stageName(stage) + "» и проверяю статью…";
+    localize($("#site-operation"),"textContent",()=>t("ui.4cb1abadd7f4") + stageName(stage) + t("ui.dfcc12a52705"));
     review = await api("/api/site/review?" + query(), {
       method: "POST",
       body: { id: plan.id, stage },
     });
     $("#site-review-title").textContent = stageName(stage);
-    $("#site-review-description").textContent =
-      (review.existing
-        ? "Обновится существующая статья «" +
+    localize($("#site-review-description"),"textContent",()=>(review.existing
+        ? t("ui.24b1fd1cf478") +
           review.existing.title +
-          "». Текст из WordPress будет заменён подготовленным снимком."
-        : "Будет создана статья «" + plan.metadata.title + "».") +
+          t("ui.810830f756b5")
+        : t("ui.cb775f1793e3") + plan.metadata.title + "».") +
       (final(stage)
-        ? " На сайте: " +
+        ? t("ui.84faf28b95b4") +
           (plan.metadata.status === "publish"
-            ? "публичная публикация."
-            : "черновик WordPress.")
-        : " Страница будет доступна для просмотра на этом контуре.");
+            ? t("ui.de5f7f789987")
+            : t("ui.946dbf50fc69"))
+        : t("ui.cf37bf2a96ed")));
     $("#site-existing").hidden = !review.existing;
     if (review.existing) $("#site-existing").href = review.existing.url;
     $("#site-approval-row").hidden = !review.previous;
     $("#site-approval").checked = false;
-    $("#site-confirm").textContent =
-      !final(stage)
-        ? "Перенести на «" + (info.environments[stage]?.label || stage) + "»"
+    localize($("#site-confirm"),"textContent",()=>!final(stage)
+        ? t("ui.58fe5ecdfaf3") + (info.environments[stage]?.label || stage) + "»"
           : plan.metadata.status === "publish"
-            ? (review.existing ? "Обновить статью на " : "Опубликовать на ") + (info.environments[stage]?.url || "сайте")
+            ? (review.existing ? t("ui.77c51c7a3a0b") : t("ui.c1d7ea84961b")) + (info.environments[stage]?.url || t("ui.0deb3221fa93"))
             : review.existing?.status === "publish"
-              ? "Снять с публикации и сохранить черновиком"
-              : "Сохранить черновик на сайте";
-    $("#site-operation").textContent = "Проверка завершена. Просмотри действие перед отправкой.";
+              ? t("ui.9dd66cdae1e1")
+              : t("ui.13bb8b0e4428"));
+    localize($("#site-operation"),"textContent",()=>t("ui.96edab4a0736"));
   });
 }
 export async function openSite() {
@@ -205,16 +202,16 @@ export async function openSite() {
   plan = null;
   review = null;
   info = null;
-  $("#site-operation").textContent = "Загружаю…";
+  localize($("#site-operation"),"textContent",()=>t("ui.1679ed866916"));
   $("#sitedialog").showModal();
   render();
   await action(async () => {
     await refresh();
     plan = info.plans.find((p) => p.source_hash === info.source_hash) || null;
     fill(plan?.metadata || info.metadata);
-    $("#site-operation").textContent = info.configured
+    localize($("#site-operation"),"textContent",()=>info.configured
       ? ""
-      : "Подключи WordPress в Настройках → Публикация на сайт. Можно использовать один сайт без Git и промежуточных площадок.";
+      : t("ui.fb4f60753260"));
   });
 }
 export function initSite() {
@@ -249,8 +246,7 @@ export function initSite() {
         },
       });
       review = null;
-      $("#site-operation").textContent =
-        "Снимок готов. Проверь переход на первую площадку; отправка потребует отдельного подтверждения.";
+      localize($("#site-operation"),"textContent",()=>t("ui.32ebe4bbf32d"));
     }),
   );
   $("#site-confirm").addEventListener("click", () =>
@@ -276,10 +272,9 @@ export function initSite() {
     if (job && signature !== jobSignature) {
       jobSignature = signature;
       if (!["queued", "running"].includes(job.status)) {
-        $("#site-operation").textContent =
-          job.status === "succeeded"
-            ? "Готово. Открой страницу и проверь результат."
-            : job.message;
+        localize($("#site-operation"),"textContent",()=>job.status === "succeeded"
+            ? t("ui.183a217f4059")
+            : job.message);
         refresh().catch((error) => toast(error.message, true));
       }
     }

@@ -47,6 +47,8 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.server.PREFERENCES=AuthorPreferences(lambda:self.directory/('prefs-'+self._testMethodName),lambda:self.server.ROOTS,lambda:self.server.CORRECTIONS)
         from tools.telegram import Telegram
         self.server.TELEGRAM=Telegram(lambda:self.directory/('tg-'+self._testMethodName))
+        from tools.publication_scheduler import PublicationScheduler
+        self.server.SCHEDULER=PublicationScheduler(self.server.TELEGRAM)
         from tools.publication_plan import PublicationPlan
         self.server.CALENDAR=PublicationPlan(lambda:self.directory/('calendar-'+self._testMethodName))
         self.state_patch=patch.object(self.server.ai_provider,'STATE',self.directory/'ai-state');self.state_patch.start();self.addCleanup(self.state_patch.stop)
@@ -58,7 +60,7 @@ class MarkdownBrowserTests(unittest.TestCase):
         self.source='# Заголовок 😀\n\nДо **жирного** есть [ссылка](https://example.org/).\n\n## Раздел\n\n- пункт один\n- пункт два\n\n> Цитата автора.\n'
         self.data={'doc':'fixture.md','versions':[{'id':'v1','text':self.source}],'annotations':[]}
         self.file.write_text(json.dumps(self.data,ensure_ascii=False),encoding='utf-8')
-        self.context=self.browser.new_context(viewport={'width':1440,'height':1000})
+        self.context=self.browser.new_context(viewport={'width':1440,'height':1000},locale='ru-RU')
         self.addCleanup(self.context.close)
         self.page=self.context.new_page()
         self.errors=[];self.page.on('pageerror',lambda e:self.errors.append(str(e)))

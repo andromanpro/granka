@@ -2,7 +2,7 @@
 import json
 import re
 import uuid
-from . import ai_provider, spices
+from . import ai_provider, spices, languages
 from .article_creation import line, CreationConflict
 
 SCHEMA = {'type': 'object', 'additionalProperties': False, 'required': ['text'],
@@ -20,7 +20,9 @@ def request(body):
     use_style = body.get('use_style', True)
     if type(use_style) is not bool:
         raise ValueError('Проверь выбор авторского стиля')
-    return {'title': title, 'audience': line(body.get('audience', ''), 'Аудитория', 500),
+    choices=languages.selected({**ai_provider.settings(), **{key:body[key]for key in
+                               ('material_language','comments_language')if key in body}}, title+' '+str(body.get('brief','')))
+    return {**choices, 'title': title, 'audience': line(body.get('audience', ''), 'Аудитория', 500),
             'purpose': line(body.get('purpose', ''), 'Цель', 1000),
             'brief': spices.text(body.get('brief', ''), 16000, 'Заметки для ИИ', empty=True).strip(),
             'profile': profile, 'length': length, 'use_style': use_style,
@@ -52,13 +54,13 @@ def style_context(value, preferences, voice):
     corpus, inputs = voice.inspect(value['profile'])
     # Examples transfer rhythm and tone, never facts or biographies from another text.
     samples = [re.sub(r'\A---\r?\n.*?\r?\n---\s*', '', text, flags=re.S)[:2000]
-               for _, text in inputs[:3]]
+               for _, text in inputs if languages.detect(text)==value['resolved_material_language']][:3]
     return personal, samples, {'rules': len(personal.get('rules', [])), 'examples': len(samples),
                                'corpus_status': corpus['status'], 'corpus_fingerprint': corpus['fingerprint']}
 
 
 def prompt(value, personal, samples):
-    return ('Напиши законченную русскую статью-заготовку по заданию автора. Верни JSON: text — '
+    return (languages.instruction(value)+'Напиши законченную статью-заготовку по заданию автора. Верни JSON: text — '
             'готовый Markdown БЕЗ заголовка первого уровня: название добавит редактор. '
             'Пиши для audience и ради purpose, опирайся на brief. Объём: ' + LENGTHS[value['length']] + '. '
             'author_preferences задают авторский голос и редакторские предпочтения. style_examples — '
@@ -92,6 +94,7 @@ def enqueue(body, jobs, preferences, voice):
     value = request(body)
     wizard, op = operation(body.get('wizard_id')), operation(body.get('operation_id'))
     settings = ai_provider.settings()
+    settings.update({key:value[key]for key in ('material_language','resolved_material_language','comments_language')})
 
     def work(directory):
         ai_provider.atomic_json(directory / 'draft-request.json', value)

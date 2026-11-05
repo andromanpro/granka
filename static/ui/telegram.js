@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {render as renderMarkdown} from '../markdown-view.js';
 import {
   $,
@@ -17,6 +18,7 @@ import { editor } from "./editor.js";
 import { startJob } from "./jobs.js";
 
 import { showWorkspacePage } from './workspace.js';
+import { initScheduledPosts, openSchedule } from './scheduled-posts.js';
 let context = null,
   prepared = null,
   settings = {},
@@ -37,9 +39,9 @@ function renderPublicationMode() {
   const manual = $("#tg-publication-mode").value === "manual";
   $("#tg-bot-credentials").hidden = manual;
   $("#tg-check").hidden = $("#tg-token-clear").hidden = manual;
-  $("#tg-publication-mode-help").textContent = manual
-    ? "Гранка не отправляет посты. Скопируй текст и добавь медиа в Telegram; отправителя выберешь там."
-    : "Пост отправит бот в указанный канал. Твой личный профиль не используется. Подписи авторов настраиваются в Telegram.";
+  localize($("#tg-publication-mode-help"),"textContent",()=>manual
+    ? t("ui.90b6b64013fe")
+    : t("ui.288ca096eb84"));
 }
 const payload = () => ({
   text: $("#tg-text").value,
@@ -73,7 +75,7 @@ function renderDelivery() {
   const options = targets(), select = $("#tg-target"), previous = select.value;
   select.replaceChildren();
   for (const item of options) {
-    const option = el("option", null, new Date((item.finished || item.created) * 1000).toLocaleString("ru-RU") + " · " + item.version);
+    const option = el("option", null, new Date((item.finished || item.created) * 1000).toLocaleString(locale()) + " · " + item.version);
     option.value = item.id; select.appendChild(option);
   }
   if (options.some(r => r.id === previous)) select.value = previous;
@@ -84,16 +86,16 @@ function renderDelivery() {
   for (const element of [select, $("#tg-delivery-action")]) element.disabled = locked || !!prepared || !publicationsReady;
   const hint = $("#tg-delivery-hint"); hint.replaceChildren();
   const target = options.find(r => r.id === select.value);
-  hint.textContent = prepared?.unchanged ? "Изменений нет — этот вариант уже опубликован." : updating
-    ? "Изменится существующий пост. Его ссылка и номер сохранятся."
-    : options.length ? "В канале уже есть публикация этой статьи. Это действие создаст ещё один пост." : "Будет создан первый пост этой статьи в выбранном канале.";
+  localize(hint,"textContent",()=>prepared?.unchanged ? t("ui.7667337cbab9") : updating
+    ? t("ui.a253967b0938")
+    : options.length ? t("ui.d8073533bdb5") : t("ui.bb5bce8cb694"));
   const url = prepared?.target_url || target?.url;
   if (url && (updating || options.length)) {
-    const link = el("a", null, " Открыть прежний пост"); link.href = url; link.target = "_blank"; link.rel = "noreferrer"; hint.appendChild(link);
+    const link = el("a", null, ()=>t("ui.a7b84ea7d964")); link.href = url; link.target = "_blank"; link.rel = "noreferrer"; hint.appendChild(link);
   }
-  if (!publicationsReady) hint.textContent = "Проверяю историю публикаций…";
+  if (!publicationsReady) localize(hint,"textContent",()=>t("ui.ff8201e9f696"));
   if (manualPublication()) {
-    hint.textContent = "Отправка из Гранки выключена. Текст можно сохранить и скопировать; фото и видео добавь в Telegram.";
+    localize(hint,"textContent",()=>t("ui.8bb1dfb44d86"));
     select.disabled = $("#tg-delivery-action").disabled = true;
   }
 }
@@ -120,19 +122,18 @@ function render() {
   $("#tg-use-article").hidden = !rich;
   $("#tg-cover").closest("label").hidden = rich;
   $("#tg-text").maxLength = rich ? 60000 : 4096;
-  document.querySelector('label[for="tg-text"]').textContent = rich ? "Текст статьи · Markdown" : "Текст анонса";
-  $("#tg-format-help").textContent = rich
-    ? "Картинки и видео размещаются между абзацами. Добавление файла вставит его в текст. Отправка использует Rich Messages; вид зависит от версии Telegram."
-    : "До 10 фото и видео, включая обложку. С вложениями подпись до 1024 символов; без них — до 4096.";
+  localize(document.querySelector('label[for="tg-text"]'),"textContent",()=>rich ? t("ui.e3243273323a") : t("ui.3cc3431b9237"));
+  localize($("#tg-format-help"),"textContent",()=>rich
+    ? t("ui.fb6141ff4171")
+    : t("ui.5a9cb9bcdcc5"));
   const value = prepared?.text ?? assembled();
   if(rich && value) renderMarkdown($("#tg-preview"),value,[],{imageUrl:src=>{
     const index=prepared?.attachments?.findIndex(item=>item.name===decodeURIComponent(src).split('/').at(-1))??-1;
     return index>=0 ? "/api/telegram/media?"+query()+"&id="+prepared.id+"&index="+index : mediaURL(src);
   }});
-  else $("#tg-preview").textContent = value || "Здесь появится текст.";
+  else localize($("#tg-preview"),"textContent",()=>value || t("ui.e7e2b6c0e73c"));
   const limit=rich?60000:$("#tg-cover").checked||attachments.length?1024:4096;
-  $("#tg-count").textContent =
-    `${value.length} / ${limit} символов со ссылкой`;
+  localize($("#tg-count"),"textContent",()=>t("ui.c77769eaa79b",value.length,limit));
   $("#tg-count").classList.toggle(
     "error",
     value.length > limit,
@@ -157,78 +158,78 @@ function render() {
   }
   const list=$("#tg-media-list");list.replaceChildren();
   if(!rich)attachments.forEach((item,index)=>{
-    const row=el("div","tg-media-row");row.appendChild(el("span",null,(item.type==="video"?"Видео · ":"Фото · ")+item.name));
+    const row=el("div","tg-media-row");row.appendChild(el("span",null,()=>(item.type==="video"?t("ui.b6381a3b195f"):t("ui.cbf06126fede"))+item.name));
     const move=delta=>{const to=index+delta;if(to<0||to>=attachments.length)return;[attachments[index],attachments[to]]=[attachments[to],attachments[index]];store();render();};
-    for(const [label,fn]of[["↑",()=>move(-1)],["↓",()=>move(1)],["Убрать",()=>{attachments.splice(index,1);store();render();}]])row.appendChild(button(label,fn));
+    for(const [label,fn]of[["↑",()=>move(-1)],["↓",()=>move(1)],[t("ui.07cb65087477"),()=>{attachments.splice(index,1);store();render();}]])row.appendChild(button(label,fn));
     list.appendChild(row);
   });
-  $("#tg-channel").textContent = prepared
+  localize($("#tg-channel"),"textContent",()=>prepared
     ? prepared.channel.title +
       " · " +
       (prepared.channel.username
         ? "@" + prepared.channel.username
         : prepared.channel.chat_id)
     : settings.chat_id
-      ? "Канал: " + settings.chat_id
-      : "Предпросмотр · канал ещё не настроен";
-  $("#tg-sender").textContent = manualPublication()
-    ? "Отправителя выберешь в Telegram. Гранка ничего не отправляет."
-    : "От имени канала" + (prepared ? " «" + prepared.channel.title + "»" : settings.chat_id ? " · " + settings.chat_id : " · укажи канал в настройках") + " — через бота";
+      ? t("ui.bcdd7ac2129e") + settings.chat_id
+      : t("ui.9d39d251ff19"));
+  localize($("#tg-sender"),"textContent",()=>manualPublication()
+    ? t("ui.c34f4e4bc897")
+    : t("ui.7f8588297e82") + (prepared ? " «" + prepared.channel.title + "»" : settings.chat_id ? " · " + settings.chat_id : t("ui.422bb4ba559d")) + t("ui.1f788026bd09"));
   $("#tg-compose").inert = !!prepared || locked;
   for (const id of ["#tg-save", "#tg-copy", "#tg-prepare"])
     $(id).hidden = !!prepared;
   $("#tg-edit").hidden = !prepared;
   $("#tg-publish").hidden = !prepared;
   $("#tg-publish").disabled =
-    locked || manualPublication() || !prepared || !["prepared", "failed"].includes(prepared.status);
-  $("#tg-publish").textContent =
-    prepared?.status === "sent"
-      ? prepared.action === "update" ? "Обновлено" : "Опубликовано"
+    locked || manualPublication() || !prepared || !["prepared", "failed"].includes(prepared.status) || !!prepared.schedule && prepared.schedule.state !== 'cancelled';
+  $('#tg-schedule').hidden = !prepared || !['prepared','failed'].includes(prepared.status);
+  $('#tg-schedule').disabled = locked || manualPublication() || !!prepared?.schedule && prepared.schedule.state !== 'cancelled';
+  localize($("#tg-publish"),"textContent",()=>prepared?.status === "sent"
+      ? prepared.action === "update" ? t("ui.798343da0b45") : t("ui.382ded9c6877")
       : prepared?.status === "failed"
-        ? prepared.action === "update" ? "Повторить обновление" : "Повторить отправку"
-        : prepared?.action === "update" ? "Обновить опубликованный пост" : "Опубликовать в «" + (prepared?.channel.title || "канал") + "»";
+        ? prepared.action === "update" ? t("ui.976e03d39c01") : t("ui.0c2b4e7e894e")
+        : prepared?.action === "update" ? t("ui.e331183a1168") : t("ui.8f74b6d49df7") + (prepared?.channel.title || t("ui.e88e1a759ff5")) + "»");
   for (const id of ["#tg-save", "#tg-prepare", "#tg-edit", "#telegram-close", "#tg-back-article", "#tg-check", "#tg-settings-save", "#tg-token-clear"])
     $(id).disabled = locked;
-  $("#tg-prepare").textContent = "Проверить перед отправкой";
+  localize($("#tg-prepare"),"textContent",()=>t("ui.e0facbf1c5e5"));
   $("#tg-prepare").disabled = locked || manualPublication() || !publicationsReady;
   $("#tg-publication-mode").disabled = locked;
-  const step = $("#tg-publish-step"), channel = prepared?.channel.title || "канал";
-  if (!prepared && manualPublication()) step.textContent = "Ручная публикация: скопируй текст и перенеси его вместе с медиа в Telegram.";
-  else if (!prepared) step.textContent = "Шаг 1 из 2. Сначала проверь пост, затем подтверди отправку отдельной кнопкой.";
-  else if (prepared.status === "sent") step.textContent = prepared.action === "update"
-    ? "Пост в «" + channel + "» обновлён. Ссылка ниже."
-    : "Пост опубликован в «" + channel + "». Ссылка ниже.";
-  else if (prepared.status === "sending") step.textContent = "Отправка в «" + channel + "» выполняется. Дождись результата.";
-  else if (prepared.status === "unknown") step.textContent = "Результат отправки неизвестен. Проверь канал перед дальнейшими действиями.";
-  else step.textContent = "Шаг 2 из 2. " + (prepared.action === "update" ? "Изменения ещё не отправлены. " : "Пост ещё не отправлен. ") +
-    "Отправитель — канал «" + channel + "». Проверь предпросмотр и подтверди отправку кнопкой ниже.";
-  $("#tg-check").textContent = checkingAccess ? "Проверяю…" : "Проверить доступ";
+  const step = $("#tg-publish-step"), channel = prepared?.channel.title || t("ui.e88e1a759ff5");
+  if (!prepared && manualPublication()) localize(step,"textContent",()=>t("ui.515652d7f657"));
+  else if (!prepared) localize(step,"textContent",()=>t("ui.6370f30c6f5a"));
+  else if (prepared.status === "sent") localize(step,"textContent",()=>prepared.action === "update"
+    ? t("ui.3ab103c7069b") + channel + t("ui.675ddaa253ce")
+    : t("ui.a9719f1a30ad") + channel + t("ui.7800e01c1474"));
+  else if (prepared.status === "sending") localize(step,"textContent",()=>t("ui.bc540efd31f6") + channel + t("ui.bf5cdcf9f0dc"));
+  else if (prepared.status === "unknown") localize(step,"textContent",()=>t("ui.59691c762776"));
+  else localize(step,"textContent",()=>t("ui.aa2895263479") + (prepared.action === "update" ? t("ui.f65199a3eace") : t("ui.ef620035049a")) +
+    t("ui.8a30a3ae6597") + channel + t("ui.99a9cbc1f261"));
+  localize($("#tg-check"),"textContent",()=>checkingAccess ? t("ui.74d0346f0cf4") : t("ui.2e7fd36e3cfa"));
   document.querySelectorAll("[data-tg-tab]").forEach((b) => b.disabled = locked);
   if (prepared) {
     const status = $("#tg-status");
     status.replaceChildren();
     if (prepared.status === "sent") {
-      const a = el("a", null, "Открыть опубликованный пост");
+      const a = el("a", null, ()=>t("ui.808b950a21f8"));
       a.href = prepared.url;
       a.target = "_blank";
       a.rel = "noreferrer";
       status.appendChild(a);
     } else
-      status.textContent =
-        actionError || prepared.error ||
+      localize(status,"textContent",()=>actionError || prepared.error ||
         (prepared.status === "sending"
-          ? "Отправка выполняется."
-          : "В канал будет отправлен показанный текст с выбранными вложениями.");
+          ? t("ui.90cd93f26ef6")
+          : t("ui.93abb86c6498")));
   }
 }
 const mediaURL=src=>"/api/article-image?"+query()+"&src="+encodeURIComponent(src);
 function addMedia(item){
   if($("#tg-mode").value==="article"){
     const area=$("#tg-text"),start=area.selectionStart,end=area.selectionEnd;
-    const alt=item.type==="video"?"Видео":"Иллюстрация";
+    const alt=item.type==="video"?t("ui.f92fafb4c00a"):t("ui.524c2d2663e6");
     area.setRangeText("\n\n!["+alt+"]("+item.src+")\n\n",start,end,"end");
   }else{
-    if(attachments.length+Number($("#tg-cover").checked)>=10)throw Error("В одном альбоме до10вложений,включая обложку");
+    if(attachments.length+Number($("#tg-cover").checked)>=10)throw Error(t("ui.7dc77cf0e799"));
     if(!attachments.some(a=>a.src===item.src))attachments.push(item);
   }
   store();render();
@@ -242,11 +243,11 @@ async function refreshSettings() {
   renderPublicationMode();
   delete $("#tg-bot-status").dataset.state;
   $("#tg-bot-status").classList.remove("error");
-  $("#tg-bot-status").textContent = manualPublication()
-    ? "Ручная публикация. Отправка через бота выключена."
+  localize($("#tg-bot-status"),"textContent",()=>manualPublication()
+    ? t("ui.e454b0159f4d")
     : settings.has_token
-    ? "Токен настроен."
-    : "Токен ещё не настроен.";
+    ? t("ui.33283e7d72b9")
+    : t("ui.52e198928786"));
 }
 async function publications() {
   const result = await api("/api/telegram/publications?" + query()),
@@ -256,18 +257,17 @@ async function publications() {
   publicationsReady = true;
   for (const record of result.publications) {
     const row = el("p", "fine-print");
-    row.textContent =
-      record.channel.title +
+    localize(row,"textContent",()=>record.channel.title +
       " · " +
       ({
-        prepared: "Подготовлен",
-        sent: record.action === "update" ? "Обновлён" : "Опубликован",
-        failed: "Ошибка",
-        sending: "Отправляется",
-        unknown: "Проверь канал",
-      }[record.status] || record.status);
+        prepared: t("ui.61ca6b0c7e22"),
+        sent: record.action === "update" ? t("ui.8e6cd0d8c983") : t("ui.5202b1f290af"),
+        failed: t("ui.bf22dfeeba8b"),
+        sending: t("ui.408d1167e921"),
+        unknown: t("ui.076b3991e23f"),
+      }[record.status] || record.status));
     if (record.url) {
-      const a = el("a", null, " Открыть пост");
+      const a = el("a", null, ()=>t("ui.95b2abf80f26"));
       a.href = record.url;
       a.target = "_blank";
       a.rel = "noreferrer";
@@ -275,7 +275,7 @@ async function publications() {
     }
     list.appendChild(row);
   }
-  if (!list.children.length) list.textContent = "Публикаций пока нет.";
+  if (!list.children.length) localize(list,"textContent",()=>t("ui.e40e6445c42a"));
 }
 export async function openTelegram() {
   if (S.busy || !latest() || S.recording) return;
@@ -300,12 +300,11 @@ export async function openTelegram() {
   $("#tg-cover").disabled = !version().cover;
   $("#tg-cover").checked = currentMode!=="article" && !!version().cover && (draft.include_cover ?? true);
   $("#tg-assets").hidden=true;
-  $("#tg-status").textContent =
-    draft.version && draft.version !== S.version
-      ? "Черновик анонса от " +
+  localize($("#tg-status"),"textContent",()=>draft.version && draft.version !== S.version
+      ? t("ui.f7cc2eadb434") +
         draft.version +
-        ". Проверь его по текущей версии статьи."
-      : "";
+        t("ui.2234af29f6bc")
+      : "");
   $("#tg-variants").replaceChildren();
   tab("compose");
   render();
@@ -325,13 +324,13 @@ function renderGeneration() {
   );
   const running = job && ["queued", "running"].includes(job.status);
   $("#tg-generate").disabled = !!running || generating;
-  $("#tg-generation").textContent = job
+  localize($("#tg-generation"),"textContent",()=>job
     ? running
-      ? job.message + " · " + Math.floor(Date.now() / 1000 - job.created) + " с"
+      ? job.message + " · " + Math.floor(Date.now() / 1000 - job.created) + t("ui.ddae8eb8bf21")
       : job.status === "succeeded"
-        ? "Выбери вариант, затем поправь текст под себя."
+        ? t("ui.d2bfc436414e")
         : job.message
-    : "";
+    : "");
   if (job?.status === "succeeded" && job.id !== displayed) {
     displayed = job.id;
     const box = $("#tg-variants");
@@ -367,9 +366,12 @@ async function action(fn) {
   }
 }
 export function initTelegram() {
+  initScheduledPosts();
+  $('#tg-schedule').addEventListener('click',()=>{if(prepared)openSchedule(prepared);});
+  events.addEventListener('schedule-changed',async()=>{prepared=null;await publications();render();});
   $("#tg-publication-mode").addEventListener("change", () => {
     renderPublicationMode();
-    $("#tg-bot-status").textContent = "Режим изменён. Сохрани настройки.";
+    localize($("#tg-bot-status"),"textContent",()=>t("ui.9ecd99544957"));
   });
   for (const id of ["#tg-delivery-action", "#tg-target"]) $(id).addEventListener("change", () => { deliveryChoice = true; render(); });
   $("#tg-mode").addEventListener("change",()=>{
@@ -378,19 +380,19 @@ export function initTelegram() {
     $("#tg-cover").checked=selected!=="article"&&!!version().cover&&!!draft.include_cover;attachments=draft.attachments||[];store();render();
   });
   $("#tg-use-article").addEventListener("click",()=>{
-    if($("#tg-text").value.trim()&&!confirm("Заменить текст Telegram текущей статьёй? Черновик статьи в редакторе не изменится."))return;
+    if($("#tg-text").value.trim()&&!confirm(t("ui.d8508559d970")))return;
     $("#tg-text").value=version().text.replace(/^\ufeff?---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/,"").trim();store();render();
   });
   $("#tg-add-media").addEventListener("click",()=>$("#tg-upload").click());
   $("#tg-upload").addEventListener("change",()=>action(async()=>{
     const files=[...$("#tg-upload").files];$("#tg-upload").value="";
     for(const file of files){const r=await api("/api/telegram/upload?"+query()+"&name="+encodeURIComponent(file.name),{method:"POST",body:file,headers:{"X-Granka-Revision":S.revision}});addMedia(r.asset);}
-    $("#tg-status").textContent="Материалы добавлены в папку статьи. Сохрани черновик Telegram.";
+    localize($("#tg-status"),"textContent",()=>t("ui.8d122fb4dd1d"));
   }));
   $("#tg-article-assets").addEventListener("click",()=>action(async()=>{
     const {assets}=await api("/api/telegram/assets?"+query()),box=$("#tg-assets");box.replaceChildren();box.hidden=false;
-    for(const item of assets)box.appendChild(button((item.type==="video"?"Видео · ":"Фото · ")+item.name,()=>{try{addMedia(item);}catch(error){toast(error.message,true);}}));
-    if(!assets.length)box.textContent="В папке статьи пока нет фото и видео.";
+    for(const item of assets)box.appendChild(button(()=>(item.type==="video"?t("ui.b6381a3b195f"):t("ui.cbf06126fede"))+item.name,()=>{try{addMedia(item);}catch(error){toast(error.message,true);}}));
+    if(!assets.length)localize(box,"textContent",()=>t("ui.c4b3a1238897"));
   }));
   $("#announcement-btn").addEventListener("click", openTelegram);
   for (const id of ["#telegram-close", "#tg-back-article"]) $(id).addEventListener("click", () => {
@@ -427,24 +429,24 @@ export function initTelegram() {
       if (result) {
         S.document.announcement = result.announcement;
         store();
-        $("#tg-status").textContent = "Черновик Telegram сохранён.";
+        localize($("#tg-status"),"textContent",()=>t("ui.6da31bfb8b5b"));
       }
     }),
   );
   $("#tg-copy").addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(assembled());
-      toast("Анонс скопирован");
+      toast(t("ui.d984065bbaa0"));
     } catch (_) {
-      toast("Выдели и скопируй текст анонса вручную");
+      toast(t("ui.99011b176661"));
     }
   });
   $("#tg-prepare").addEventListener("click", async () => {
     await action(async () => {
-      if (manualPublication()) throw new Error("Отправка из Гранки выключена в настройках Telegram.");
+      if (manualPublication()) throw new Error(t("ui.b82b44e1ba8c"));
       if (!settings.has_token || !settings.chat_id) {
         tab("bot");
-        toast("Сначала настрой бота и канал");
+        toast(t("ui.3d80e388dc72"));
         return;
       }
       prepared = await api("/api/telegram/prepare?" + query(), {
@@ -482,7 +484,7 @@ export function initTelegram() {
       });
       prepared = null;
       await refreshSettings();
-      $("#tg-bot-status").textContent = "Настройки сохранены.";
+      localize($("#tg-bot-status"),"textContent",()=>t("ui.db022e4a824b"));
     }),
   );
   $("#tg-token-clear").addEventListener("click", () =>
@@ -503,24 +505,24 @@ export function initTelegram() {
       checkingAccess = true;
       status.classList.remove("error");
       status.dataset.state = "pending";
-      status.textContent = "Проверяю бота, канал и право публикации…";
+      localize(status,"textContent",()=>t("ui.b799e27c5ec4"));
       render();
       try {
         if ($("#tg-token").value.trim() ||
             $("#tg-chat-id").value.trim() !== (settings.chat_id || "") ||
             $("#tg-publication-mode").value !== (settings.publication_mode || "channel") ||
             $("#tg-token-file").value.trim() !== (settings.token_file || ""))
-          throw new Error("Сначала сохрани изменённые настройки бота, затем проверь доступ.");
+          throw new Error(t("ui.f4ab3c51e36c"));
         timer = setTimeout(() => controller.abort(), 45000);
         const result = await api("/api/telegram/check", {
           method: "POST", body: {}, signal: controller.signal,
         });
         status.dataset.state = "success";
-        status.textContent = "Доступ подтверждён: @" + result.bot_username +
-          " может публиковать в «" + result.title + "». ID канала: " + result.chat_id + ".";
+        localize(status,"textContent",()=>t("ui.2f6f78b2a0af") + result.bot_username +
+          t("ui.68051d66f7f8") + result.title + t("ui.a2d1cbf35c55") + result.chat_id + ".");
       } catch (error) {
         if (error.name === "AbortError")
-          error = new Error("Telegram не ответил за 45 секунд. Проверь соединение и повтори проверку.");
+          error = new Error(t("ui.8f003081ea2b"));
         status.dataset.state = "error";
         status.classList.add("error");
         status.textContent = error.message;

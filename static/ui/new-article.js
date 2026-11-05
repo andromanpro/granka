@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import { $, S, api, allowNavigation, loadDocument, toast } from './core.js';
 import { editor } from './editor.js';
 import { navigateWorkspace } from './workspace.js';
@@ -5,6 +6,7 @@ import { initArticleDraft } from './new-article-ai.js';
 
 let step = 1, sending = false, operation = crypto.randomUUID(), plan = null, opener, draft;
 const values = () => ({title: $('#newarticle-title').value, audience: $('#newarticle-audience').value,
+  material_language:S.settings.material_language || 'auto', comments_language:S.settings.comments_language || 'ru',
   purpose: $('#newarticle-purpose').value, mode: $('#newarticle-mode').value,
   notes: $('#newarticle-notes').value, root: $('#newarticle-root').value, folder: $('#newarticle-folder').value.trim(),
   ...($('#newarticle-mode').value === 'ai' ? draft.values() : {})});
@@ -16,15 +18,15 @@ function lock(value) {
 }
 function draw() {
   for (const panel of document.querySelectorAll('[data-newarticle-step]')) panel.hidden = Number(panel.dataset.newarticleStep) !== step;
-  $('#newarticle-progress').textContent = `Шаг ${step} из 3 · ${['Тема', 'Начало текста', 'Сохранение'][step - 1]}`;
+  localize($('#newarticle-progress'),"textContent",()=>t("ui.3f78ddb85fe2",step,[t("ui.682f961a0751"), t("ui.202d1e749c55"), t("ui.a77d5c4eccaa")][step - 1]));
   $('#newarticle-back').hidden = step === 1;
-  $('#newarticle-next').textContent = step === 3 ? 'Создать статью' : 'Дальше';
+  localize($('#newarticle-next'),"textContent",()=>step === 3 ? t("ui.1e7950aa16f2") : t("ui.ea58bb0bc6d4"));
   $('#newarticle-next').disabled = sending || (step === 3 && !plan) || ($('#newarticle-mode').value === 'ai' && step >= 2 && (draft?.busy() || !draft?.ready()));
   $('#newarticle-notes-row').hidden = $('#newarticle-mode').value !== 'notes';
 }
 async function preview() {
   plan = null; draw();
-  $('#newarticle-files').textContent = 'Проверяю папку и имена файлов…';
+  localize($('#newarticle-files'),"textContent",()=>t("ui.9eeaa9977457"));
   const key = JSON.stringify(values());
   try {
     const result = await api('/api/article-creation/preview', {method: 'POST', body: values()});
@@ -68,7 +70,7 @@ export function initNewArticle() {
   $('#newarticle-form').addEventListener('submit', async event => {
     event.preventDefault();
     if (sending) return;
-    if (!$('#newarticle-title').value.trim()) { step = 1; draw(); $('#newarticle-title').focus(); $('#newarticle-status').textContent = 'Укажи название статьи'; return; }
+    if (!$('#newarticle-title').value.trim()) { step = 1; draw(); $('#newarticle-title').focus(); localize($('#newarticle-status'),"textContent",()=>t("ui.d075373f3487")); return; }
     if (step < 3) {
       step++; draw();
       if (step === 3) await preview();
@@ -77,7 +79,7 @@ export function initNewArticle() {
       return;
     }
     if (!plan) return;
-    lock(true); $('#newarticle-status').textContent = 'Создаю статью…';
+    lock(true); localize($('#newarticle-status'),"textContent",()=>t("ui.f345057088f6"));
     try {
       const result = await api('/api/article-creation', {method: 'POST', body: {...values(), filename: plan.filename, operation_id: operation}});
       await loadDocument(result.root, result.rel);
@@ -85,8 +87,8 @@ export function initNewArticle() {
       lock(false);
       await navigateWorkspace('editor'); editor.setView('source'); $('#texteditor').focus();
       $('#newarticle-form').reset(); draft.reset(); step = 1; plan = null; operation = crypto.randomUUID();
-      toast('Новая статья создана');
-    } catch (error) { $('#newarticle-status').textContent = error.message + ' Можно повторить тот же запрос.'; }
+      toast(t("ui.dcdd90d32a03"));
+    } catch (error) { localize($('#newarticle-status'),"textContent",()=>error.message + t("ui.d9b4a3006e75")); }
     finally { lock(false); }
   });
 }

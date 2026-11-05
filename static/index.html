@@ -20,10 +20,11 @@
     <link rel="stylesheet" href="/static/ui/spices.css" />
     <link rel="stylesheet" href="/static/ui/atelier.css?v=atelier-1" />
     <link rel="stylesheet" href="/static/ui/new-article.css" />
+    <link rel="stylesheet" href="/static/ui/localization.css" />
   </head>
   <body>
-    <a class="skip-workspace" href="#reader-shell">К тексту статьи</a>
-    <aside class="app-sidebar" aria-label="Разделы Гранки">
+    <a class="skip-workspace" href="#reader-shell"><!--i18n:ui.6fb2efa145be-->К тексту статьи</a>
+    <aside class="app-sidebar" aria-label="Разделы Гранки" data-i18n-aria-label="ui.08cc3e87e14e">
       <div class="brand">
         <img
           class="brand-mark"
@@ -32,85 +33,85 @@
           width="40"
           height="40"
         />
-        <img class="brand-word" src="/static/brand/logo.svg?v=brackets-1" alt="Гранка" />
+        <img class="brand-word" src="/static/brand/logo.svg?v=brackets-1" alt="Гранка"  data-i18n-alt="ui.97e82c4a2b98"/>
         <span class="app-version" title="Версия Гранки"
-          >__GRANKA_VERSION__</span
+           data-i18n-title="ui.92da9e6e506e">__GRANKA_VERSION__</span
         >
       </div>
-      <small class="nav-caption">МАСТЕРСКАЯ</small>
-      <nav aria-label="Основная навигация">
-<button data-section="library" title="Статьи"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4h6l2 2h8v14H4z"/><path d="M8 10h8m-8 4h8"/></svg><span>Статьи</span></button>
-<button data-section="editor" title="Редактор"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 4l6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15z"/></svg><span>Редактор</span></button>
-<button data-section="spices" title="Приправы"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3h8v4H8zM7 9h10l1 11H6zM9 14h6m-3-2v4"/></svg><span>Приправы</span></button>
-<button data-section="diff" title="Изменения"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 3v18m10-18v18M3 7l4-4 4 4m2 10l4 4 4-4"/></svg><span>Изменения</span></button>
-<button data-section="history" title="История"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-5v7l4 2"/></svg><span>История</span></button>
-<button id="planner-btn" data-section="calendar" title="Календарь"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18m-13 4h2m4 0h2"/></svg><span>Календарь</span></button>
+      <small class="nav-caption"><!--i18n:ui.f8472fb3de99-->МАСТЕРСКАЯ</small>
+      <nav aria-label="Основная навигация" data-i18n-aria-label="ui.8fff0bba4454">
+<button data-section="library" title="Статьи" data-i18n-title="ui.279e6b2bd1dc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4h6l2 2h8v14H4z"/><path d="M8 10h8m-8 4h8"/></svg><span><!--i18n:ui.279e6b2bd1dc-->Статьи</span></button>
+<button data-section="editor" title="Редактор" data-i18n-title="ui.119d528f623e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 4l6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15z"/></svg><span><!--i18n:ui.119d528f623e-->Редактор</span></button>
+<button data-section="spices" title="Приправы" data-i18n-title="ui.1c85fff09d68"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3h8v4H8zM7 9h10l1 11H6zM9 14h6m-3-2v4"/></svg><span><!--i18n:ui.1c85fff09d68-->Приправы</span></button>
+<button data-section="diff" title="Изменения" data-i18n-title="ui.c7951fd569fc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 3v18m10-18v18M3 7l4-4 4 4m2 10l4 4 4-4"/></svg><span><!--i18n:ui.c7951fd569fc-->Изменения</span></button>
+<button data-section="history" title="История" data-i18n-title="ui.1417b7792d57"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-5v7l4 2"/></svg><span><!--i18n:ui.1417b7792d57-->История</span></button>
+<button id="planner-btn" data-section="calendar" title="Календарь" data-i18n-title="ui.2ea15d96b2d0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v5m10-5v5M3 11h18m-13 4h2m4 0h2"/></svg><span><!--i18n:ui.2ea15d96b2d0-->Календарь</span></button>
 <button data-section="telegram" title="Telegram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 10l18-7-4 18-6-6-4 3 1-6zM8 12l9-6-6 9"/></svg><span>Telegram</span></button>
       </nav>
-      <nav class="sidebar-bottom" aria-label="Настройки Гранки">
-<button id="settingsbtn" data-section="settings" title="Настройки"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg><span>Настройки</span></button>
-<button data-section="help" title="Справка"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3v1"/></svg><span>Справка</span></button>
+      <nav class="sidebar-bottom" aria-label="Настройки Гранки" data-i18n-aria-label="ui.b7a212bf4303">
+<button id="settingsbtn" data-section="settings" title="Настройки" data-i18n-title="ui.985b5e0f2ccf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg><span><!--i18n:ui.985b5e0f2ccf-->Настройки</span></button>
+<button data-section="help" title="Справка" data-i18n-title="ui.3e202cd422f5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 2-3 4m0 3v1"/></svg><span><!--i18n:ui.3e202cd422f5-->Справка</span></button>
       </nav>
-      <p class="sidebar-local"><i></i> Локальный редактор</p>
+      <p class="sidebar-local"><i></i><!--i18n:ui.9da9ad057bac--> Локальный редактор</p>
     </aside>
     <div class="app-frame">
     <header class="app-header">
       <div class="document-switch">
-        <select id="docsel" aria-label="Статья"></select
-        ><button id="opensrc" class="icon-button" title="Открыть другую статью">
+        <select id="docsel" aria-label="Статья" data-i18n-aria-label="ui.4f0548d13284"></select
+        ><button id="opensrc" class="icon-button" title="Открыть другую статью" data-i18n-title="ui.73a8d31395f9">
           ＋
         </button>
       </div>
       <div class="header-actions">
-        <button id="newarticle-main" data-new-article>Новая статья</button>
-        <button id="analysisbtn">Проверить текст</button>
-        <button id="savebtn" class="primary" disabled>Сохранить</button>
+        <button id="newarticle-main" data-new-article><!--i18n:ui.15c048a3c028-->Новая статья</button>
+        <button id="analysisbtn"><!--i18n:ui.cbc2f7b99d50-->Проверить текст</button>
+        <button id="savebtn" class="primary" disabled><!--i18n:ui.b4d30cae5289-->Сохранить</button>
         <button
           id="inspector-toggle"
           class="mobile-only"
           aria-label="Открыть инспектор"
-        >
+         data-i18n-aria-label="ui.ddd05b107ff7"><!--i18n:ui.55e7845d604b-->
           Замечания
         </button>
       </div>
     </header>
     <div class="document-strip">
       <span id="stage-dot" class="stage-dot"></span
-      ><span id="stage-label">Открой статью, чтобы начать</span>
+      ><span id="stage-label"><!--i18n:ui.c0e388a675ff-->Открой статью, чтобы начать</span>
       <div class="strip-right">
-        <select id="versel" aria-label="Версия"></select
-        ><button id="mobile-meter" class="mobile-only quiet">ИИМетр</button>
+        <select id="versel" aria-label="Версия" data-i18n-aria-label="ui.c39948923340"></select
+        ><button id="mobile-meter" class="mobile-only quiet"><!--i18n:ui.e3c370fa4400-->ИИМетр</button>
       </div>
     </div>
     <main class="workspace">
-      <section id="reader-shell" class="reader-shell" tabindex="-1" aria-label="Редактор статьи">
+      <section id="reader-shell" class="reader-shell" tabindex="-1" aria-label="Редактор статьи" data-i18n-aria-label="ui.1853771d322b">
         <nav class="reader-nav">
           <div class="segmented">
-            <button data-view="article" class="selected">Статья</button
-            ><button data-view="source">Исходник</button
-            ><button data-view="diff">Изменения</button
-            ><button id="reader-history">История</button>
+            <button data-view="article" class="selected"><!--i18n:ui.4f0548d13284-->Статья</button
+            ><button data-view="source"><!--i18n:ui.0b5267f774e0-->Исходник</button
+            ><button data-view="diff"><!--i18n:ui.c7951fd569fc-->Изменения</button
+            ><button id="reader-history"><!--i18n:ui.1417b7792d57-->История</button>
           </div>
           <div class="reader-actions">
-            <button id="cancel-edit" class="quiet" hidden>
+            <button id="cancel-edit" class="quiet" hidden><!--i18n:ui.dfc4a6452fc1-->
               Отменить правку</button
-            ><button id="downloadbtn" class="quiet" title="Скачать Markdown">
+            ><button id="downloadbtn" class="quiet" title="Скачать Markdown" data-i18n-title="ui.2c7e4d730177"><!--i18n:ui.ee1c0a199396-->
               Скачать .md
             </button>
           </div>
         </nav>
         <div id="formatbar" class="formatbar">
-          <button data-format="bold" title="Жирный · Ctrl+B"><b>Ж</b></button
-          ><button data-format="italic" title="Курсив · Ctrl+I"><i>К</i></button
-          ><button data-format="insertUnorderedList" title="Список">
+          <button data-format="bold" title="Жирный · Ctrl+B" data-i18n-title="ui.c6ee4fe1c3fc"><b><!--i18n:ui.af01de547c2d-->Ж</b></button
+          ><button data-format="italic" title="Курсив · Ctrl+I" data-i18n-title="ui.11ffba5e38f2"><i><!--i18n:ui.130b874a5c04-->К</i></button
+          ><button data-format="insertUnorderedList" title="Список" data-i18n-title="ui.93fd1e0f9feb"><!--i18n:ui.628dfdd1293e-->
             • список</button
           ><span class="toolbar-divider"></span
-          ><button id="image-btn">Картинка</button
-          ><button id="cover-btn">Обложка</button
-          ><button id="announcement-btn">Анонс</button
-          ><button id="site-btn">На сайт</button
-          ><button id="note-btn">Пометка</button
-          ><button id="restore-draft" class="quiet" hidden>
+          ><button id="image-btn"><!--i18n:ui.a02924da692d-->Картинка</button
+          ><button id="cover-btn"><!--i18n:ui.5bcd9613eb14-->Обложка</button
+          ><button id="announcement-btn"><!--i18n:ui.3c08a1b2c241-->Анонс</button
+          ><button id="site-btn"><!--i18n:ui.bd2cc7e95b17-->На сайт</button
+          ><button id="note-btn"><!--i18n:ui.809b4fa27561-->Пометка</button
+          ><button id="restore-draft" class="quiet" hidden><!--i18n:ui.08cdf8595159-->
             Восстановить черновик
           </button>
         </div>
@@ -122,15 +123,15 @@
           </div>
         </div>
         <div id="docwrap" class="document-canvas">
-          <div id="publication-banner" class="publication-banner" hidden><div><strong id="publication-state"></strong><p id="publication-description"></p></div><a id="publication-link" target="_blank" rel="noreferrer">Открыть на сайте</a><button id="publication-edit" class="quiet">Обновить на сайте</button></div>
+          <div id="publication-banner" class="publication-banner" hidden><div><strong id="publication-state"></strong><p id="publication-description"></p></div><a id="publication-link" target="_blank" rel="noreferrer"><!--i18n:ui.57fb0f05a811-->Открыть на сайте</a><button id="publication-edit" class="quiet"><!--i18n:ui.1f93bbc61fbd-->Обновить на сайте</button></div>
           <figure id="article-cover" class="article-cover" hidden>
             <img id="cover-preview" alt="" />
             <figcaption>
-              <span>Обложка статьи</span>
+              <span><!--i18n:ui.3b855468a0eb-->Обложка статьи</span>
               <div class="actions">
-                <a id="cover-download" download>Скачать</a>
-                <button id="cover-change" class="quiet">Заменить</button>
-                <button id="cover-remove" class="quiet">Убрать</button>
+                <a id="cover-download" download><!--i18n:ui.535119bf3cc5-->Скачать</a>
+                <button id="cover-change" class="quiet"><!--i18n:ui.c20163fda193-->Заменить</button>
+                <button id="cover-remove" class="quiet"><!--i18n:ui.07cb65087477-->Убрать</button>
               </div>
             </figcaption>
           </figure>
@@ -141,17 +142,17 @@
             aria-label="Текст статьи"
             aria-multiline="true"
             spellcheck="true"
-          ></article>
+           data-i18n-aria-label="ui.2be57bd9fdca"></article>
           <textarea
             id="texteditor"
             aria-label="Исходник Markdown"
             spellcheck="false"
             hidden
-          ></textarea>
+           data-i18n-aria-label="ui.d37e794ccb4b"></textarea>
           <div id="diff-controls" class="diff-controls" hidden>
-            <label>Слева<select id="diff-from" aria-label="Левая версия для сравнения"></select></label>
-            <button id="diff-swap" class="quiet" aria-label="Поменять версии местами">⇄</button>
-            <label>Справа<select id="diff-to" aria-label="Правая версия для сравнения"></select></label>
+            <label><!--i18n:ui.d7f76a36c9fb-->Слева<select id="diff-from" aria-label="Левая версия для сравнения" data-i18n-aria-label="ui.8790c6f32566"></select></label>
+            <button id="diff-swap" class="quiet" aria-label="Поменять версии местами" data-i18n-aria-label="ui.9a6809195f14">⇄</button>
+            <label><!--i18n:ui.98ab54c1c01f-->Справа<select id="diff-to" aria-label="Правая версия для сравнения" data-i18n-aria-label="ui.7869a0e08772"></select></label>
             <span id="diff-status" class="fine-print" role="status"></span>
           </div>
           <div id="diffwrap" class="diffwrap" hidden>
@@ -160,253 +161,253 @@
           </div>
         </div>
         <footer class="reader-footer">
-          <span id="editor-status">Версии и решения сохраняются локально</span
-          ><button id="syncbtn" class="quiet">Синхронизировать</button>
+          <span id="editor-status"><!--i18n:ui.6a9ef6d2543a-->Версии и решения сохраняются локально</span
+          ><button id="syncbtn" class="quiet"><!--i18n:ui.cc1a5e44ed50-->Синхронизировать</button>
         </footer>
       </section>
       <aside id="inspector" class="inspector">
-        <button id="inspector-close" class="mobile-only inspector-close">
+        <button id="inspector-close" class="mobile-only inspector-close"><!--i18n:ui.a7a4033657e8-->
           Закрыть
         </button>
-        <section id="meterwidget" class="meter-widget" aria-label="ИИМетр">
+        <section id="meterwidget" class="meter-widget" aria-label="ИИМетр" data-i18n-aria-label="ui.e3c370fa4400">
           <div id="meter-orbit" class="meter-orbit">
-            <div><strong id="meter-number">—</strong><small>из 100</small></div>
+            <div><strong id="meter-number">—</strong><small><!--i18n:ui.c2fe249486ce-->из 100</small></div>
           </div>
           <div class="meter-caption">
             <div class="meter-heading">
-              <strong>ИИМетр</strong
+              <strong><!--i18n:ui.e3c370fa4400-->ИИМетр</strong
               ><button
                 id="meterrefresh"
                 class="icon-button"
                 aria-label="Пересчитать ИИМетр"
-              >
+               data-i18n-aria-label="ui.c5521fd65bf9">
                 ↻
               </button>
             </div>
-            <p>Отклонение от твоего голоса</p>
-            <small id="meter-status">Локальный замер</small>
+            <p><!--i18n:ui.a84536fdf349-->Отклонение от твоего голоса</p>
+            <small id="meter-status"><!--i18n:ui.a58df2ade0ef-->Локальный замер</small>
           </div>
         </section>
         <nav class="inspector-tabs">
-          <button data-pane="review" class="selected">
+          <button data-pane="review" class="selected"><!--i18n:ui.55e7845d604b-->
             Замечания <span id="review-tab-count">0</span></button
-          ><button data-pane="meter">Разбор</button
-          ><button data-pane="history">История</button
-          ><button data-pane="spices">Приправы</button>
+          ><button data-pane="meter"><!--i18n:ui.88182448b7b1-->Разбор</button
+          ><button data-pane="history"><!--i18n:ui.1417b7792d57-->История</button
+          ><button data-pane="spices"><!--i18n:ui.1c85fff09d68-->Приправы</button>
         </nav>
         <section data-panel="review" class="inspector-panel review-panel">
           <div class="review-summary">
-            <span>Принято решений</span
-            ><strong id="review-count">0 из 0</strong>
+            <span><!--i18n:ui.09c2d4b697cb-->Принято решений</span
+            ><strong id="review-count"><!--i18n:ui.2274030ad9d4-->0 из 0</strong>
           </div>
           <div class="progress-track"><i id="review-progress"></i></div>
-          <p id="review-locked" class="inline-notice" hidden>
+          <p id="review-locked" class="inline-notice" hidden><!--i18n:ui.32ba37980b96-->
             Сохрани текст, чтобы продолжить работу с пометками.
           </p>
           <div id="review-result" class="review-result"></div>
           <div class="review-tools">
-            <button id="preferences-btn" class="quiet">Мои правила</button>
-            <button id="deep-analysis-btn" class="quiet" aria-describedby="deep-analysis-hint">Разобрать статью целиком</button>
+            <button id="preferences-btn" class="quiet"><!--i18n:ui.dae8370ee925-->Мои правила</button>
+            <button id="deep-analysis-btn" class="quiet" aria-describedby="deep-analysis-hint"><!--i18n:ui.82a4ef844fa6-->Разобрать статью целиком</button>
           </div>
-          <p id="deep-analysis-hint" class="muted deep-hint">Карта, замечания, перепроверка · до 3 запросов к выбранной модели</p>
-          <section id="deep-review" class="deep-review" aria-label="Разбор статьи целиком" hidden></section>
+          <p id="deep-analysis-hint" class="muted deep-hint"><!--i18n:ui.ea2e12eb0fd3-->Карта, замечания, перепроверка · до 3 запросов к выбранной модели</p>
+          <section id="deep-review" class="deep-review" aria-label="Разбор статьи целиком" hidden data-i18n-aria-label="ui.f926ce9e2529"></section>
           <div id="batch-groups" class="batch-groups"></div>
           <div id="cards" class="cards"></div>
           <div class="review-bottom">
-            <button id="readybtn" class="primary full-width">
+            <button id="readybtn" class="primary full-width"><!--i18n:ui.3add8fe75dc7-->
               Применить решения</button
-            ><small>Соберём следующую версию и покажем изменения</small>
+            ><small><!--i18n:ui.d71ec29577ea-->Соберём следующую версию и покажем изменения</small>
           </div>
           <details class="voice-composer">
-            <summary>Комментарий и голос</summary>
+            <summary><!--i18n:ui.3ee31d07215e-->Комментарий и голос</summary>
             <textarea
               id="fbtext"
               placeholder="Что ещё учесть при анализе…"
-            ></textarea>
+             data-i18n-placeholder="ui.d4b4116115cc"></textarea>
             <div class="actions">
-              <button id="fbsend">Отправить</button
-              ><button id="recbtn">Записать голос</button
+              <button id="fbsend"><!--i18n:ui.ceb68a9287da-->Отправить</button
+              ><button id="recbtn"><!--i18n:ui.395472d82ca8-->Записать голос</button
               ><canvas id="reclevel" width="45" height="12" hidden></canvas>
             </div>
-            <select id="micsel" aria-label="Микрофон"></select>
+            <select id="micsel" aria-label="Микрофон" data-i18n-aria-label="ui.f03841529528"></select>
             <p id="voice-status" class="muted"></p>
             <div id="voice-review"></div>
             <div id="voice-actions" class="actions" hidden>
-              <button id="voice-apply" class="primary">Сохранить пометки</button
-              ><button id="voice-cancel">Отмена</button>
+              <button id="voice-apply" class="primary"><!--i18n:ui.c85a899e4972-->Сохранить пометки</button
+              ><button id="voice-cancel"><!--i18n:ui.8fbe9b75cbdf-->Отмена</button>
             </div>
           </details>
         </section>
         <section data-panel="meter" class="inspector-panel" hidden>
-          <h2 class="panel-title">Из чего складывается оценка</h2>
-          <label class="field-label" for="meterprofile">Мой голос</label
+          <h2 class="panel-title"><!--i18n:ui.2a68aece50e9-->Из чего складывается оценка</h2>
+          <label class="field-label" for="meterprofile"><!--i18n:ui.b4489c968fb2-->Мой голос</label
           ><select id="meterprofile">
-            <option value="blog">Статьи и блог</option>
-            <option value="talks">Доклады</option>
+            <option value="blog"><!--i18n:ui.39dd29034313-->Статьи и блог</option>
+            <option value="talks"><!--i18n:ui.dbd87d562e00-->Доклады</option>
           </select>
           <div class="axis">
-            <label>Голос <strong id="axis-voice-number">—</strong></label
+            <label><!--i18n:ui.24a0d703afd4-->Голос <strong id="axis-voice-number">—</strong></label
             ><i><b id="axis-voice"></b></i>
           </div>
           <div class="axis">
             <label
-              >Ритм и структура
+              ><!--i18n:ui.53b17e250101-->Ритм и структура
               <strong id="axis-structure-number">—</strong></label
             ><i><b id="axis-structure"></b></i>
           </div>
           <div class="axis">
             <label
-              >Известные обороты
+              ><!--i18n:ui.810b79f11226-->Известные обороты
               <strong id="axis-markers-number">—</strong></label
             ><i><b id="axis-markers"></b></i>
           </div>
           <div id="meterflags" class="meter-flags"></div>
-          <button id="meterhl" class="full-width">Подсветить обороты</button>
+          <button id="meterhl" class="full-width"><!--i18n:ui.9e1ffb77e222-->Подсветить обороты</button>
           <p id="meterscale" class="fine-print"></p>
-          <p id="meter-error" role="status"></p><button id="meter-retry" hidden>Повторить расчёт</button>
-          <button id="meter-configure" class="full-width">Настроить сравнение голоса</button>
-          <details id="meter-corpus-settings" class="voice-corpus-settings"><summary>Папка собственных текстов</summary>
-            <p class="fine-print">Сравнение выполняется локально. Исходники корпуса не меняются и не отправляются в ИИ. Нужны собственные Markdown-тексты (.md); README, код и пустые файлы не подходят. Для профиля «Доклады» используется подпапка talks.</p>
-            <label class="field-label" for="meter-corpus-path">Полный путь к папке</label><input id="meter-corpus-path" placeholder="Папка собственных Markdown-текстов" />
-            <div class="actions"><button id="meter-corpus-pick">Выбрать папку…</button><button id="meter-corpus-save">Подключить и пересчитать</button></div>
+          <p id="meter-error" role="status"></p><button id="meter-retry" hidden><!--i18n:ui.e72040a34c19-->Повторить расчёт</button>
+          <button id="meter-configure" class="full-width"><!--i18n:ui.1ee132b797c7-->Настроить сравнение голоса</button>
+          <details id="meter-corpus-settings" class="voice-corpus-settings"><summary><!--i18n:ui.02059711b728-->Папка собственных текстов</summary>
+            <p class="fine-print"><!--i18n:ui.df58f329814f-->Сравнение выполняется локально. Исходники корпуса не меняются и не отправляются в ИИ. Нужны собственные Markdown-тексты (.md); README, код и пустые файлы не подходят. Для профиля «Доклады» используется подпапка talks.</p>
+            <label class="field-label" for="meter-corpus-path"><!--i18n:ui.8fb869dc33fa-->Полный путь к папке</label><input id="meter-corpus-path" placeholder="Папка собственных Markdown-текстов"  data-i18n-placeholder="ui.192b3f039d2c"/>
+            <div class="actions"><button id="meter-corpus-pick"><!--i18n:ui.582804fbabc5-->Выбрать папку…</button><button id="meter-corpus-save"><!--i18n:ui.690aaea51823-->Подключить и пересчитать</button></div>
             <p id="meter-corpus-status" class="fine-print" role="status"></p>
           </details>
         </section>
         <section id="spice-panel" data-panel="spices" class="inspector-panel" hidden>
-          <div class="spice-heading"><h2 class="panel-title">Приправы</h2><button id="spice-settings" class="quiet" aria-label="Настройки приправ">⚙</button></div>
-          <p class="fine-print">Перетащи флакон на абзац. Или выбери фрагмент и составь смесь.</p>
-          <div class="spice-recipe-row"><select id="spice-recipe" aria-label="Рецепт"><option value="mix">Своя смесь</option></select><button id="spice-new" class="quiet">＋ Рецепт</button></div>
-          <div id="spice-ingredients" class="spice-ingredients" aria-label="Приправы и дозировки"></div>
-          <div class="spice-config"><label>Действие<select id="spice-mode"><option value="add">Добавить</option><option value="reduce">Убавить</option></select></label><label>Количество<select id="spice-density"><option value="rare">Щепотка</option><option value="some">Местами</option><option value="rich">От души</option></select></label></div>
-          <label class="spice-prompt">Пожелание к смеси<textarea id="spice-prompt" maxlength="2000" placeholder="Можно написать своё задание без готовых приправ"></textarea></label>
-          <details id="spice-recipe-editor"><summary>Сохранить свой рецепт</summary><label class="spice-prompt">Название<input id="spice-recipe-name" maxlength="80" /></label><p class="fine-print">Сохраняются состав, дозировки, действие, количество и пожелание.</p><div class="spice-buttons"><button id="spice-save">Сохранить новым</button><button id="spice-update" hidden>Обновить</button><button id="spice-delete" class="quiet" hidden>Удалить рецепт</button></div></details>
-          <div class="spice-target-actions"><button id="spice-pick">Выбрать абзац</button><button id="spice-selection">Выделение</button><button id="spice-all">Вся статья</button></div>
-          <p id="spice-target" class="spice-target" aria-live="polite">Выбери область обработки</p>
-          <button id="spice-run" class="primary full-width">Приправить</button>
+          <div class="spice-heading"><h2 class="panel-title"><!--i18n:ui.1c85fff09d68-->Приправы</h2><button id="spice-settings" class="quiet" aria-label="Настройки приправ" data-i18n-aria-label="ui.1306cd45e8ea">⚙</button></div>
+          <p class="fine-print"><!--i18n:ui.33fb3c23841a-->Перетащи флакон на абзац. Или выбери фрагмент и составь смесь.</p>
+          <div class="spice-recipe-row"><select id="spice-recipe" aria-label="Рецепт" data-i18n-aria-label="ui.c1f26bf92841"><option value="mix"><!--i18n:ui.c4729808c35f-->Своя смесь</option></select><button id="spice-new" class="quiet"><!--i18n:ui.51715f954d8f-->＋ Рецепт</button></div>
+          <div id="spice-ingredients" class="spice-ingredients" aria-label="Приправы и дозировки" data-i18n-aria-label="ui.de57b1a12fc8"></div>
+          <div class="spice-config"><label><!--i18n:ui.6b53aafe28bd-->Действие<select id="spice-mode"><option value="add"><!--i18n:ui.71038c53bbc4-->Добавить</option><option value="reduce"><!--i18n:ui.759b732c94ac-->Убавить</option></select></label><label><!--i18n:ui.737f7561bd7f-->Количество<select id="spice-density"><option value="rare"><!--i18n:ui.2dc88854ded6-->Щепотка</option><option value="some"><!--i18n:ui.6bcb39705cf2-->Местами</option><option value="rich"><!--i18n:ui.5f3a7c53428a-->От души</option></select></label></div>
+          <label class="spice-prompt"><!--i18n:ui.a060cb0188b7-->Пожелание к смеси<textarea id="spice-prompt" maxlength="2000" placeholder="Можно написать своё задание без готовых приправ" data-i18n-placeholder="ui.d6e29ebf4928"></textarea></label>
+          <details id="spice-recipe-editor"><summary><!--i18n:ui.0c8b1e1d82a0-->Сохранить свой рецепт</summary><label class="spice-prompt"><!--i18n:ui.0918b4ba9268-->Название<input id="spice-recipe-name" maxlength="80" /></label><p class="fine-print"><!--i18n:ui.bb2e6d81b84e-->Сохраняются состав, дозировки, действие, количество и пожелание.</p><div class="spice-buttons"><button id="spice-save"><!--i18n:ui.924ea9edc8bc-->Сохранить новым</button><button id="spice-update" hidden><!--i18n:ui.603e460bf59c-->Обновить</button><button id="spice-delete" class="quiet" hidden><!--i18n:ui.49dade1e3d44-->Удалить рецепт</button></div></details>
+          <div class="spice-target-actions"><button id="spice-pick"><!--i18n:ui.054a4a7a6c36-->Выбрать абзац</button><button id="spice-selection"><!--i18n:ui.0e6188e48389-->Выделение</button><button id="spice-all"><!--i18n:ui.1f91a6789afd-->Вся статья</button></div>
+          <p id="spice-target" class="spice-target" aria-live="polite"><!--i18n:ui.c6e01ac31018-->Выбери область обработки</p>
+          <button id="spice-run" class="primary full-width"><!--i18n:ui.80631aa21d61-->Приправить</button>
           <p id="spice-status" class="fine-print" role="status" aria-live="polite"></p>
-          <section id="spice-result" hidden aria-label="Предложения по рецепту"><p id="spice-summary"></p><div id="spice-changes"></div><div class="spice-buttons"><button id="spice-apply" class="primary">Применить выбранное</button><button id="spice-discard" class="quiet">Оставить как есть</button></div></section>
+          <section id="spice-result" hidden aria-label="Предложения по рецепту" data-i18n-aria-label="ui.769f5e218997"><p id="spice-summary"></p><div id="spice-changes"></div><div class="spice-buttons"><button id="spice-apply" class="primary"><!--i18n:ui.fdbc79ca90b3-->Применить выбранное</button><button id="spice-discard" class="quiet"><!--i18n:ui.53cd4960eda8-->Оставить как есть</button></div></section>
         </section>
         <section data-panel="history" class="inspector-panel" hidden>
-          <h2 class="panel-title">История этой статьи</h2>
-          <div id="version-history" aria-label="Версии статьи"></div>
-          <h3 class="history-events-title">События</h3>
+          <h2 class="panel-title"><!--i18n:ui.c9d4923a2892-->История этой статьи</h2>
+          <div id="version-history" aria-label="Версии статьи" data-i18n-aria-label="ui.c1007309072b"></div>
+          <h3 class="history-events-title"><!--i18n:ui.210d9860bdff-->События</h3>
           <div id="history-list"></div>
         </section>
       </aside>
     </main>
     </div>
     <div id="selpop" class="context-menu selection-menu" hidden>
-      <button id="addann">Пометка</button
-      ><button id="addimg">Вставить картинку</button
-      ><button id="delimg" hidden>Убрать картинку</button>
+      <button id="addann"><!--i18n:ui.809b4fa27561-->Пометка</button
+      ><button id="addimg"><!--i18n:ui.49ae51fec309-->Вставить картинку</button
+      ><button id="delimg" hidden><!--i18n:ui.7810e52f6b53-->Убрать картинку</button>
     </div>
     <div id="docmenu" class="context-menu" role="menu" hidden>
-      <button id="contextimage" role="menuitem">Вставить картинку</button>
-      <button id="contextdelimage" role="menuitem" hidden>
+      <button id="contextimage" role="menuitem"><!--i18n:ui.49ae51fec309-->Вставить картинку</button>
+      <button id="contextdelimage" role="menuitem" hidden><!--i18n:ui.adaaecbf53a9-->
         Удалить картинку
       </button>
     </div>
     <dialog id="unsaved-dialog" class="dialog" aria-labelledby="unsaved-title">
-      <h2 id="unsaved-title">Есть несохранённые изменения</h2>
-      <p>Сохранить текущий текст перед переходом?</p>
-      <p class="fine-print">Если перейти без сохранения, правки с момента последнего сохранения будут отменены.</p>
+      <h2 id="unsaved-title"><!--i18n:ui.382dd64dc0b2-->Есть несохранённые изменения</h2>
+      <p><!--i18n:ui.2618649cc641-->Сохранить текущий текст перед переходом?</p>
+      <p class="fine-print"><!--i18n:ui.1030e4a5188e-->Если перейти без сохранения, правки с момента последнего сохранения будут отменены.</p>
       <footer class="source-add-actions">
-        <button id="unsaved-cancel" type="button">Остаться</button>
-        <button id="unsaved-discard" type="button">Не сохранять и перейти</button>
-        <button id="unsaved-save" type="button" class="primary">Сохранить и перейти</button>
+        <button id="unsaved-cancel" type="button"><!--i18n:ui.3a5acd0245fe-->Остаться</button>
+        <button id="unsaved-discard" type="button"><!--i18n:ui.d38028f9902f-->Не сохранять и перейти</button>
+        <button id="unsaved-save" type="button" class="primary"><!--i18n:ui.ec55dd6980b9-->Сохранить и перейти</button>
       </footer>
     </dialog>
     <dialog id="source-dialog" class="dialog source-dialog" aria-labelledby="library-title">
       <header>
         <div>
-          <small>Библиотека</small>
-          <h2 id="library-title">Статьи</h2>
+          <small><!--i18n:ui.d659e27ebecd-->Библиотека</small>
+          <h2 id="library-title"><!--i18n:ui.279e6b2bd1dc-->Статьи</h2>
         </div>
-        <button id="source-close" class="icon-button" aria-label="Закрыть">
+        <button id="source-close" class="icon-button" aria-label="Закрыть" data-i18n-aria-label="ui.a7a4033657e8">
           ✕
         </button>
       </header>
       <div class="source-add-actions">
-        <button id="newarticle-library" class="primary" data-new-article>Новая статья</button>
-        <button id="source-file" class="primary">Открыть файл…</button>
-        <button id="source-folder">Добавить папку…</button>
-        <button id="source-trash">Корзина</button>
+        <button id="newarticle-library" class="primary" data-new-article><!--i18n:ui.15c048a3c028-->Новая статья</button>
+        <button id="source-file" class="primary"><!--i18n:ui.65003f6fcc1b-->Открыть файл…</button>
+        <button id="source-folder"><!--i18n:ui.db5842421d77-->Добавить папку…</button>
+        <button id="source-trash"><!--i18n:ui.ec1808413ddc-->Корзина</button>
       </div>
       <p id="source-location-status" class="fine-print" role="status"></p>
       <details class="source-locations">
-        <summary>Подключённые источники и ручной путь</summary>
+        <summary><!--i18n:ui.84d85a72084b-->Подключённые источники и ручной путь</summary>
         <div id="source-locations-list"></div>
         <form id="source-path-form" class="source-path-form">
-          <select id="source-path-kind" aria-label="Что подключить">
-            <option value="folder">Папка</option>
-            <option value="file">Файл</option>
+          <select id="source-path-kind" aria-label="Что подключить" data-i18n-aria-label="ui.bfd867173042">
+            <option value="folder"><!--i18n:ui.73a0f69d548d-->Папка</option>
+            <option value="file"><!--i18n:ui.f242456b2273-->Файл</option>
           </select>
-          <input id="source-path" aria-label="Полный путь" placeholder="Полный путь к файлу или папке" required />
-          <button id="source-path-add" type="submit">Открыть</button>
+          <input id="source-path" aria-label="Полный путь" placeholder="Полный путь к файлу или папке" required  data-i18n-aria-label="ui.fc2c168fa694" data-i18n-placeholder="ui.914bd25e3b2d"/>
+          <button id="source-path-add" type="submit"><!--i18n:ui.ea1f40824607-->Открыть</button>
         </form>
       </details>
       <input
         id="source-search"
         placeholder="Название или папка…"
         aria-label="Поиск статьи"
-      />
-      <div class="segmented source-filters"><button data-source-filter="draft" class="selected">Черновики <span></span></button><button data-source-filter="published">Опубликовано <span></span></button><button data-source-filter="all">Все <span></span></button></div>
+       data-i18n-placeholder="ui.b75dbd14ce4f" data-i18n-aria-label="ui.a27210aaedbc"/>
+      <div class="segmented source-filters"><button data-source-filter="draft" class="selected"><!--i18n:ui.b26814afbd43-->Черновики <span></span></button><button data-source-filter="published"><!--i18n:ui.382ded9c6877-->Опубликовано <span></span></button><button data-source-filter="all"><!--i18n:ui.215816bf4210-->Все <span></span></button></div>
       <p id="source-summary" class="fine-print" role="status"></p>
       <div id="source-list"></div>
     </dialog>
     <dialog id="trash-dialog" class="dialog trash-dialog" aria-labelledby="trash-title">
-      <header><h2 id="trash-title">Корзина статей</h2><button id="trash-close" aria-label="Закрыть корзину">✕</button></header>
-      <p class="fine-print">Восстановление вернёт статью с историей и материалами в прежнюю папку. Занятые имена не перезаписываются.</p>
-      <button id="trash-empty" class="danger">Очистить корзину</button><p id="trash-status" role="status" aria-live="polite"></p><div id="trash-list"></div>
+      <header><h2 id="trash-title"><!--i18n:ui.2272fd324a43-->Корзина статей</h2><button id="trash-close" aria-label="Закрыть корзину" data-i18n-aria-label="ui.d8d6248376aa">✕</button></header>
+      <p class="fine-print"><!--i18n:ui.03f81cd8fb63-->Восстановление вернёт статью с историей и материалами в прежнюю папку. Занятые имена не перезаписываются.</p>
+      <button id="trash-empty" class="danger"><!--i18n:ui.8986af2ea000-->Очистить корзину</button><p id="trash-status" role="status" aria-live="polite"></p><div id="trash-list"></div>
     </dialog>
     <dialog id="trash-confirm" class="dialog trash-dialog" aria-labelledby="trash-confirm-title">
       <h2 id="trash-confirm-title"></h2><div id="trash-confirm-detail"></div><p id="trash-confirm-status" role="status" aria-live="polite"></p>
-      <div class="actions"><button id="trash-confirm-cancel">Отмена</button><button id="trash-confirm-apply" class="danger"></button></div>
+      <div class="actions"><button id="trash-confirm-cancel"><!--i18n:ui.8fbe9b75cbdf-->Отмена</button><button id="trash-confirm-apply" class="danger"></button></div>
     </dialog>
     <dialog id="newarticle-dialog" class="dialog new-article-dialog" aria-labelledby="newarticle-heading">
-      <header><div><small id="newarticle-progress">Шаг 1 из 3 · Тема</small><h2 id="newarticle-heading">Новая статья</h2></div><button id="newarticle-close" type="button" aria-label="Закрыть мастер">✕</button></header>
+      <header><div><small id="newarticle-progress"><!--i18n:ui.c7841a05aee5-->Шаг 1 из 3 · Тема</small><h2 id="newarticle-heading"><!--i18n:ui.15c048a3c028-->Новая статья</h2></div><button id="newarticle-close" type="button" aria-label="Закрыть мастер" data-i18n-aria-label="ui.13e7d499d992">✕</button></header>
       <form id="newarticle-form" novalidate>
-        <fieldset data-newarticle-step="1"><legend class="sr-only">Тема</legend>
-          <label for="newarticle-title">Название · обязательно</label><input id="newarticle-title" maxlength="180" required />
-          <label for="newarticle-audience">Для кого пишем · необязательно</label><input id="newarticle-audience" maxlength="500" />
-          <label for="newarticle-purpose">Зачем пишем · необязательно</label><input id="newarticle-purpose" maxlength="1000" />
-          <p class="fine-print">Аудитория и цель сохранятся как заметки к статье. В публикуемый текст они не попадут.</p>
+        <fieldset data-newarticle-step="1"><legend class="sr-only"><!--i18n:ui.682f961a0751-->Тема</legend>
+          <label for="newarticle-title"><!--i18n:ui.991f4f282fb9-->Название · обязательно</label><input id="newarticle-title" maxlength="180" required />
+          <label for="newarticle-audience"><!--i18n:ui.2b6a7c93aa90-->Для кого пишем · необязательно</label><input id="newarticle-audience" maxlength="500" />
+          <label for="newarticle-purpose"><!--i18n:ui.3d1e8ed2ebcd-->Зачем пишем · необязательно</label><input id="newarticle-purpose" maxlength="1000" />
+          <p class="fine-print"><!--i18n:ui.d40c1730aef7-->Аудитория и цель сохранятся как заметки к статье. В публикуемый текст они не попадут.</p>
         </fieldset>
-        <fieldset data-newarticle-step="2" hidden><legend class="sr-only">Начало текста</legend>
-          <label for="newarticle-mode">С чего начнём?</label><select id="newarticle-mode"><option value="blank">Пустой черновик</option><option value="outline">Заготовка с разделами</option><option value="notes">Свои заметки</option><option value="ai">Заготовка с ИИ</option></select>
-          <div id="newarticle-notes-row" hidden><label for="newarticle-notes">Заметки</label><textarea id="newarticle-notes" maxlength="100000"></textarea></div>
-          <p id="newarticle-local-note" class="fine-print">Это локальное создание файла. Запрос к ИИ не выполняется.</p>
-          <section id="newarticle-ai" hidden aria-label="Заготовка с ИИ">
-            <label for="newarticle-brief">Факты, заметки и что обязательно раскрыть</label><textarea id="newarticle-brief" data-draft-parameter maxlength="16000" placeholder="Что произошло, что ты сделал, какой вывод хочешь донести…"></textarea>
-            <div class="draft-options"><div><label for="newarticle-length">Объём</label><select id="newarticle-length" data-draft-parameter><option value="short">Коротко · 150–300 слов</option><option value="medium" selected>Статья · 500–800 слов</option><option value="long">Подробно · 1000–1500 слов</option></select></div><div><label for="newarticle-profile">Авторский профиль</label><select id="newarticle-profile" data-draft-parameter><option value="blog">Статьи и блог</option><option value="talks">Доклады</option></select></div></div>
-            <label class="draft-check"><input id="newarticle-style" data-draft-parameter type="checkbox" checked />Писать в моём стиле</label>
+        <fieldset data-newarticle-step="2" hidden><legend class="sr-only"><!--i18n:ui.202d1e749c55-->Начало текста</legend>
+          <label for="newarticle-mode"><!--i18n:ui.11fbe067edfa-->С чего начнём?</label><select id="newarticle-mode"><option value="blank"><!--i18n:ui.d97894610dcf-->Пустой черновик</option><option value="outline"><!--i18n:ui.bd1c56077a71-->Заготовка с разделами</option><option value="notes"><!--i18n:ui.a5ce62e51490-->Свои заметки</option><option value="ai"><!--i18n:ui.087bc2727673-->Заготовка с ИИ</option></select>
+          <div id="newarticle-notes-row" hidden><label for="newarticle-notes"><!--i18n:ui.04a18b51cdc2-->Заметки</label><textarea id="newarticle-notes" maxlength="100000"></textarea></div>
+          <p id="newarticle-local-note" class="fine-print"><!--i18n:ui.8d8ff44e60a4-->Это локальное создание файла. Запрос к ИИ не выполняется.</p>
+          <section id="newarticle-ai" hidden aria-label="Заготовка с ИИ" data-i18n-aria-label="ui.087bc2727673">
+            <label for="newarticle-brief"><!--i18n:ui.cf347f1591af-->Факты, заметки и что обязательно раскрыть</label><textarea id="newarticle-brief" data-draft-parameter maxlength="16000" placeholder="Что произошло, что ты сделал, какой вывод хочешь донести…" data-i18n-placeholder="ui.d22be54d1dd9"></textarea>
+            <div class="draft-options"><div><label for="newarticle-length"><!--i18n:ui.808c04fe8a46-->Объём</label><select id="newarticle-length" data-draft-parameter><option value="short"><!--i18n:ui.eaee883c9110-->Коротко · 150–300 слов</option><option value="medium" selected><!--i18n:ui.6ed5f9a1d383-->Статья · 500–800 слов</option><option value="long"><!--i18n:ui.3ee3c4f11862-->Подробно · 1000–1500 слов</option></select></div><div><label for="newarticle-profile"><!--i18n:ui.e77e7f746d52-->Авторский профиль</label><select id="newarticle-profile" data-draft-parameter><option value="blog"><!--i18n:ui.39dd29034313-->Статьи и блог</option><option value="talks"><!--i18n:ui.dbd87d562e00-->Доклады</option></select></div></div>
+            <label class="draft-check"><input id="newarticle-style" data-draft-parameter type="checkbox" checked /><!--i18n:ui.0e0a1fd1adc4-->Писать в моём стиле</label>
             <p id="newarticle-style-info" class="fine-print" role="status"></p>
-            <label class="draft-check"><input id="newarticle-season" data-draft-parameter type="checkbox" />Приправить перед написанием</label>
+            <label class="draft-check"><input id="newarticle-season" data-draft-parameter type="checkbox" /><!--i18n:ui.50f6feb615f9-->Приправить перед написанием</label>
             <div id="newarticle-spice-fields" hidden>
-              <label for="newarticle-recipe">Рецепт</label><select id="newarticle-recipe" data-draft-parameter><option value="">Своя смесь</option></select>
+              <label for="newarticle-recipe"><!--i18n:ui.c1f26bf92841-->Рецепт</label><select id="newarticle-recipe" data-draft-parameter><option value=""><!--i18n:ui.c4729808c35f-->Своя смесь</option></select>
               <div class="draft-spice-shelf">
-                <label>🧂 Ирония<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Ирония: дозировка" /><output>Без добавок</output></label>
-                <label>🌶 Пошлые шутки<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Пошлые шутки: дозировка" /><output>Без добавок</output></label>
-                <label>🌿 Метафоры<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Метафоры: дозировка" /><output>Без добавок</output></label>
-                <label>🧪 Аллегории<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Аллегории: дозировка" /><output>Без добавок</output></label>
+                <label><!--i18n:ui.a88d439bd591-->🧂 Ирония<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Ирония: дозировка"  data-i18n-aria-label="ui.2bfb3e8e2cff"/><output><!--i18n:ui.ad62ec4f065f-->Без добавок</output></label>
+                <label><!--i18n:ui.93bda4bed084-->🌶 Пошлые шутки<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Пошлые шутки: дозировка"  data-i18n-aria-label="ui.26ed0d2f1cc9"/><output><!--i18n:ui.ad62ec4f065f-->Без добавок</output></label>
+                <label><!--i18n:ui.dadd0240c662-->🌿 Метафоры<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Метафоры: дозировка"  data-i18n-aria-label="ui.960802193955"/><output><!--i18n:ui.ad62ec4f065f-->Без добавок</output></label>
+                <label><!--i18n:ui.f69e6cd00d00-->🧪 Аллегории<input data-draft-dose data-draft-parameter type="range" min="0" max="3" value="0" aria-label="Аллегории: дозировка"  data-i18n-aria-label="ui.e842aee9e06f"/><output><!--i18n:ui.ad62ec4f065f-->Без добавок</output></label>
               </div>
-              <div class="draft-options"><div><label for="newarticle-spice-mode">Действие</label><select id="newarticle-spice-mode" data-draft-parameter><option value="add">Добавить</option><option value="reduce">Убавить пафос и приёмы</option></select></div><div><label for="newarticle-density">Как часто</label><select id="newarticle-density" data-draft-parameter><option value="rare">Редкие акценты</option><option value="some">Несколько мест</option><option value="rich">Насыщенно</option></select></div></div>
-              <label for="newarticle-spice-prompt">Как приправы повлияют на статью</label><textarea id="newarticle-spice-prompt" data-draft-parameter maxlength="2000" placeholder="Например: построить объяснение на одной бытовой метафоре, добавить сухой самоиронии…"></textarea>
-              <p class="fine-print">Эта смесь действует только на текущую заготовку. Авторские правила и рецепты не изменятся.</p>
+              <div class="draft-options"><div><label for="newarticle-spice-mode"><!--i18n:ui.6b53aafe28bd-->Действие</label><select id="newarticle-spice-mode" data-draft-parameter><option value="add"><!--i18n:ui.71038c53bbc4-->Добавить</option><option value="reduce"><!--i18n:ui.a4aba679acaf-->Убавить пафос и приёмы</option></select></div><div><label for="newarticle-density"><!--i18n:ui.fb80d43f3e4d-->Как часто</label><select id="newarticle-density" data-draft-parameter><option value="rare"><!--i18n:ui.3e1c49c5c3f3-->Редкие акценты</option><option value="some"><!--i18n:ui.de47b0f6654e-->Несколько мест</option><option value="rich"><!--i18n:ui.52e1aa135d75-->Насыщенно</option></select></div></div>
+              <label for="newarticle-spice-prompt"><!--i18n:ui.5c352bd0015e-->Как приправы повлияют на статью</label><textarea id="newarticle-spice-prompt" data-draft-parameter maxlength="2000" placeholder="Например: построить объяснение на одной бытовой метафоре, добавить сухой самоиронии…" data-i18n-placeholder="ui.9fe32d85b8a9"></textarea>
+              <p class="fine-print"><!--i18n:ui.44c21b15e2d6-->Эта смесь действует только на текущую заготовку. Авторские правила и рецепты не изменятся.</p>
             </div>
-            <p class="fine-print">По кнопке выбранному ИИ отправятся тема, аудитория, цель и заметки, а при включённом авторском стиле — личные правила, примеры решений и до трёх фрагментов корпуса. Действуют тарифы выбранного подключения. Файлы статьи появятся после отдельного «Создать статью».</p>
-            <button id="newarticle-generate" type="button" class="primary">Написать заготовку</button>
+            <p class="fine-print"><!--i18n:ui.6cea0e02f093-->По кнопке выбранному ИИ отправятся тема, аудитория, цель и заметки, а при включённом авторском стиле — личные правила, примеры решений и до трёх фрагментов корпуса. Действуют тарифы выбранного подключения. Файлы статьи появятся после отдельного «Создать статью».</p>
+            <button id="newarticle-generate" type="button" class="primary"><!--i18n:ui.290bcb6d24cd-->Написать заготовку</button>
             <p id="newarticle-ai-status" role="status" aria-live="polite"></p>
-            <div id="newarticle-ai-result" hidden><p id="newarticle-ai-stale" hidden>Тема или смесь изменились. Для этих параметров нужна новая заготовка.</p><label for="newarticle-draft-text">Заготовка · можно редактировать</label><textarea id="newarticle-draft-text" maxlength="100000"></textarea></div>
+            <div id="newarticle-ai-result" hidden><p id="newarticle-ai-stale" hidden><!--i18n:ui.6524ed969845-->Тема или смесь изменились. Для этих параметров нужна новая заготовка.</p><label for="newarticle-draft-text"><!--i18n:ui.9d17620bfeaa-->Заготовка · можно редактировать</label><textarea id="newarticle-draft-text" maxlength="100000"></textarea></div>
           </section>
         </fieldset>
-        <fieldset data-newarticle-step="3" hidden><legend class="sr-only">Сохранение</legend>
-          <label for="newarticle-root">Папка статей</label><select id="newarticle-root"></select>
-          <label for="newarticle-folder">Подпапка · необязательно</label><input id="newarticle-folder" placeholder="Например: черновики" />
-          <p class="fine-print">Выбери подключённую папку или существующую подпапку внутри неё. Другой источник можно подключить в библиотеке.</p>
-          <div id="newarticle-files" aria-live="polite"></div><p class="fine-print">Дата публикации не назначается. Статья появится в библиотеке и календаре.</p>
+        <fieldset data-newarticle-step="3" hidden><legend class="sr-only"><!--i18n:ui.a77d5c4eccaa-->Сохранение</legend>
+          <label for="newarticle-root"><!--i18n:ui.752e09103355-->Папка статей</label><select id="newarticle-root"></select>
+          <label for="newarticle-folder"><!--i18n:ui.8c13dc839119-->Подпапка · необязательно</label><input id="newarticle-folder" placeholder="Например: черновики"  data-i18n-placeholder="ui.1394c016128c"/>
+          <p class="fine-print"><!--i18n:ui.b4ead00e97dc-->Выбери подключённую папку или существующую подпапку внутри неё. Другой источник можно подключить в библиотеке.</p>
+          <div id="newarticle-files" aria-live="polite"></div><p class="fine-print"><!--i18n:ui.4b141690ffd4-->Дата публикации не назначается. Статья появится в библиотеке и календаре.</p>
         </fieldset>
-        <p id="newarticle-status" role="status"></p><div class="actions"><button id="newarticle-back" type="button" hidden>Назад</button><button id="newarticle-next" class="primary" type="submit">Дальше</button></div>
+        <p id="newarticle-status" role="status"></p><div class="actions"><button id="newarticle-back" type="button" hidden><!--i18n:ui.1a9fb1f3cf8e-->Назад</button><button id="newarticle-next" class="primary" type="submit"><!--i18n:ui.ea58bb0bc6d4-->Дальше</button></div>
       </form>
     </dialog>
     <dialog
@@ -416,20 +417,20 @@
     >
       <header>
         <div>
-          <small id="image-kicker">Иллюстрация для статьи</small>
-          <h2 id="image-title">Выбрать картинку</h2>
+          <small id="image-kicker"><!--i18n:ui.5d9db05a58f9-->Иллюстрация для статьи</small>
+          <h2 id="image-title"><!--i18n:ui.c7f44282f28f-->Выбрать картинку</h2>
         </div>
         <button
           id="imageclose"
           class="icon-button"
           aria-label="Закрыть выбор картинки"
-        >
+         data-i18n-aria-label="ui.c69eb4e5ac6b">
           ✕
         </button>
       </header>
       <div class="segmented image-tabs">
-        <button data-image-tab="library" class="selected">Мои картинки</button
-        ><button data-image-tab="generate">Сгенерировать</button>
+        <button data-image-tab="library" class="selected"><!--i18n:ui.bb912a1a3a60-->Мои картинки</button
+        ><button data-image-tab="generate"><!--i18n:ui.ab5e1191a766-->Сгенерировать</button>
       </div>
       <div class="image-layout">
         <section>
@@ -438,20 +439,20 @@
               id="imagefilter"
               placeholder="Поиск по имени…"
               aria-label="Поиск картинок"
-            />
+             data-i18n-placeholder="ui.49ee93fa0d54" data-i18n-aria-label="ui.36c30f941bdc"/>
             <div id="imagegrid"></div>
           </div>
           <div id="image-generation" hidden>
             <label class="field-label" for="generation-prompt"
-              >Что нарисовать?</label
+              ><!--i18n:ui.80358f41de60-->Что нарисовать?</label
             ><textarea
               id="generation-prompt"
               placeholder="Сюжет, стиль, важные детали и надписи…"
-            ></textarea>
+             data-i18n-placeholder="ui.55404c42ec29"></textarea>
             <p id="generation-note" class="fine-print"></p>
             <div class="actions">
-              <button id="generate-image" class="primary">Сгенерировать</button
-              ><button id="generation-settings" class="quiet">
+              <button id="generate-image" class="primary"><!--i18n:ui.ab5e1191a766-->Сгенерировать</button
+              ><button id="generation-settings" class="quiet"><!--i18n:ui.037174d58809-->
                 Исполнитель
               </button>
             </div>
@@ -468,16 +469,34 @@
               id="imagepreview"
               alt="Предпросмотр выбранной картинки"
               hidden
-            /><span id="imageinfo">Выбери картинку слева</span>
+             data-i18n-alt="ui.abbc17192c5c"/><span id="imageinfo"><!--i18n:ui.e9b3ab2e6c75-->Выбери картинку слева</span>
           </div>
-          <label class="field-label" for="imagealt">Описание</label
-          ><input id="imagealt" placeholder="Что изображено" />
+          <label class="field-label" for="imagealt"><!--i18n:ui.b3680f2cba5f-->Описание</label
+          ><input id="imagealt" placeholder="Что изображено"  data-i18n-placeholder="ui.205337c3ae62"/>
           <p id="imagewhere" class="fine-print"></p>
-          <button id="imageinsert" class="primary full-width" disabled>
+          <button id="imageinsert" class="primary full-width" disabled><!--i18n:ui.d244a9d025b1-->
             Вставить в статью
           </button>
         </section>
       </div>
+    </dialog>
+    <dialog
+      id="scheduled-queue-dialog" class="dialog" aria-labelledby="scheduled-queue-title">
+      <header><h2 id="scheduled-queue-title"><!--i18n:ui.7818588d30c4-->Отложенные публикации</h2><button id="scheduled-queue-close" aria-label="Закрыть" data-i18n-aria-label="ui.a7a4033657e8">✕</button></header><div id="scheduled-queue-content"></div>
+    </dialog>
+    <dialog
+      id="schedule-dialog" class="dialog" aria-labelledby="schedule-title">
+      <header><h2 id="schedule-title"><!--i18n:ui.57a45c6972fa-->Запланировать публикацию</h2><button id="schedule-close" aria-label="Закрыть" data-i18n-aria-label="ui.a7a4033657e8">✕</button></header>
+      <p id="schedule-channel"></p><pre id="schedule-preview" class="scheduled-preview"></pre>
+      <div class="settings-grid"><label><!--i18n:ui.99a5f2e180a5-->Дата и время<input id="schedule-when" type="datetime-local" /></label><label><!--i18n:ui.ce2e24e73ac4-->Часовой пояс<input id="schedule-timezone" placeholder="UTC+03:00" maxlength="80" list="schedule-zones" /></label></div>
+      <datalist id="schedule-zones"><option value="UTC"></option><option value="UTC+03:00"></option><option value="UTC-05:00"></option></datalist>
+      <p class="fine-print"><!--i18n:ui.87408471a194-->Смещение UTC фиксированное: сезонный перевод часов его не меняет. Доступность именованных поясов зависит от локальной базы часовых поясов.</p>
+      <details><summary><!--i18n:ui.eb81cf451706-->Разрешённые дни и часы</summary><div class="actions">
+        <label><input type="checkbox" data-schedule-day="0" checked /><!--i18n:ui.31a8ee2fb6b7-->Пн</label><label><input type="checkbox" data-schedule-day="1" checked /><!--i18n:ui.839b2d5c5aa3-->Вт</label><label><input type="checkbox" data-schedule-day="2" checked /><!--i18n:ui.7ec16b9e41ff-->Ср</label><label><input type="checkbox" data-schedule-day="3" checked /><!--i18n:ui.956618723dd8-->Чт</label><label><input type="checkbox" data-schedule-day="4" checked /><!--i18n:ui.4ca114c23be8-->Пт</label><label><input type="checkbox" data-schedule-day="5" checked /><!--i18n:ui.95dab017a4da-->Сб</label><label><input type="checkbox" data-schedule-day="6" checked /><!--i18n:ui.7971972c7cbb-->Вс</label>
+      </div><div class="settings-grid"><label><!--i18n:ui.07b8c0e68d5c-->С<input id="schedule-start" type="time" value="00:00" /></label><label><!--i18n:ui.4a38273155aa-->До<input id="schedule-end" type="time" value="23:59" /></label></div></details>
+      <p class="fine-print"><!--i18n:ui.acdb8097b03a-->Компьютер и Гранка должны работать в выбранное время. При опоздании более минуты отправка приостанавливается. Правки черновика не меняют этот снимок.</p>
+      <label class="setting-row"><input id="schedule-confirm" type="checkbox" /><!--i18n:ui.a82a53907de7-->Подтверждаю автоматическую отправку показанного снимка в выбранный канал и время</label>
+      <p id="schedule-error" class="error" role="alert"></p><button id="schedule-submit" class="primary"><!--i18n:ui.85d7cb8cbd87-->Подтвердить расписание</button>
     </dialog>
     <dialog
       id="settingsdialog"
@@ -486,66 +505,69 @@
     >
       <header>
         <div>
-          <small>Настройки</small>
-          <h2 id="settings-title">Настройки</h2>
+          <small><!--i18n:ui.985b5e0f2ccf-->Настройки</small>
+          <h2 id="settings-title"><!--i18n:ui.985b5e0f2ccf-->Настройки</h2>
         </div>
         <button
           id="settingsclose"
           class="icon-button"
           aria-label="Закрыть настройки"
-        >
+         data-i18n-aria-label="ui.ea4361602090">
           ✕
         </button>
       </header>
       <section class="appearance-settings" aria-labelledby="appearance-title">
-        <h3 id="appearance-title">Оформление</h3>
-        <div class="theme-swatch"><div class="mini-atelier" aria-hidden="true"><i></i><i></i><i></i></div><div><strong>Тёмная мастерская</strong><p>Графит, тёплая бумага и коралловый акцент.</p></div><span>Выбрана</span></div>
-        <div class="settings-grid"><label>Шрифт статьи<select id="reading-font"><option value="serif">Georgia — с засечками</option><option value="sans">Segoe UI — без засечек</option></select></label><label>Размер текста<select id="reading-size"><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label></div>
-        <label class="setting-row reading-motion"><span><input id="reading-motion" type="checkbox" /> Анимация интерфейса</span><small class="fine-print">Системное ограничение движения имеет приоритет.</small></label>
+        <h3><!--i18n:ui.19e4bb1a50f2-->Языки</h3>
+        <div class="settings-grid"><label><!--i18n:ui.517c6d91fcdb-->Интерфейс<select id="ui-language"><option value="ru"><!--i18n:ui.6da140fdd4be-->Русский</option><option value="en">English</option></select></label><label><!--i18n:ui.7e00703fc124-->Материал<select id="material-language"><option value="auto"><!--i18n:ui.6c2420951895-->Определять по тексту</option><option value="ru"><!--i18n:ui.6da140fdd4be-->Русский</option><option value="en">English</option></select></label><label><!--i18n:ui.d0dfdee8b225-->Комментарии ИИ<select id="comments-language"><option value="ru"><!--i18n:ui.6da140fdd4be-->Русский</option><option value="en">English</option></select></label></div>
+        <p class="fine-print"><!--i18n:ui.c8f53b9c8a78-->Интерфейс переключается сразу и сохраняется в этом браузере. Языки материала и комментариев применяются после сохранения настроек. Статья не переводится.</p>
+        <h3 id="appearance-title"><!--i18n:ui.1731619efa3a-->Оформление</h3>
+        <div class="theme-swatch"><div class="mini-atelier" aria-hidden="true"><i></i><i></i><i></i></div><div><strong><!--i18n:ui.9921d2c756ad-->Тёмная мастерская</strong><p><!--i18n:ui.7eb4653bffa8-->Графит, тёплая бумага и коралловый акцент.</p></div><span><!--i18n:ui.cfafba8bb70c-->Выбрана</span></div>
+        <div class="settings-grid"><label><!--i18n:ui.827ad1119a8b-->Шрифт статьи<select id="reading-font"><option value="serif"><!--i18n:ui.1deb8d688d56-->Georgia — с засечками</option><option value="sans"><!--i18n:ui.9b596410d4d2-->Segoe UI — без засечек</option></select></label><label><!--i18n:ui.fbbfdb37a5ba-->Размер текста<select id="reading-size"><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label></div>
+        <label class="setting-row reading-motion"><span><input id="reading-motion" type="checkbox" /><!--i18n:ui.72c2b63daa62--> Анимация интерфейса</span><small class="fine-print"><!--i18n:ui.a2d3d69ea1c0-->Системное ограничение движения имеет приоритет.</small></label>
       </section>
-      <h3>Исполнители ИИ</h3>
-      <p class="fine-print">
+      <h3><!--i18n:ui.601ddbfbb757-->Исполнители ИИ</h3>
+      <p class="fine-print"><!--i18n:ui.578057a98c72-->
         Для анализа и картинок можно выбрать разных исполнителей. По умолчанию —
         Codex.
       </p>
       <div class="settings-grid">
         <label
-          >Анализ статьи<select id="analysis-provider">
+          ><!--i18n:ui.f9892cd83a97-->Анализ статьи<select id="analysis-provider">
             <option value="codex">Codex</option>
             <option value="openrouter">OpenRouter</option>
           </select></label
         ><label
-          >Картинки<select id="image-provider">
+          ><!--i18n:ui.4150ebf1db0f-->Картинки<select id="image-provider">
             <option value="codex">Codex</option>
             <option value="openrouter">OpenRouter</option>
           </select></label
         >
       </div>
       <label class="setting-row"
-        >Модель Codex<input
+        ><!--i18n:ui.fc55ccc8b36c-->Модель Codex<input
           id="codex-model"
           placeholder="Текущая модель из настроек Codex"
-      /></label>
+       data-i18n-placeholder="ui.5a0b5c8eaf53"/></label>
       <details class="settings-extra">
-        <summary>Модели OpenRouter</summary>
+        <summary><!--i18n:ui.e8fd4929780c-->Модели OpenRouter</summary>
         <label class="setting-row"
-          >Для анализа<input
+          ><!--i18n:ui.a77fadff3a40-->Для анализа<input
             id="or-text-model"
             list="or-text-models"
-            placeholder="Идентификатор модели" /><datalist
+            placeholder="Идентификатор модели"  data-i18n-placeholder="ui.d0cc8d3bc400"/><datalist
             id="or-text-models"
           ></datalist></label
         ><label class="setting-row"
-          >Для картинок<input
+          ><!--i18n:ui.3ea1b0b29cf7-->Для картинок<input
             id="or-image-model"
             list="or-image-models"
-            placeholder="Идентификатор модели" /><datalist
+            placeholder="Идентификатор модели"  data-i18n-placeholder="ui.d0cc8d3bc400"/><datalist
             id="or-image-models"
           ></datalist></label
-        ><button id="load-models">Загрузить модели OpenRouter</button>
+        ><button id="load-models"><!--i18n:ui.278c54608e25-->Загрузить модели OpenRouter</button>
       </details>
       <label class="setting-row"
-        >Формат картинки<select id="image-aspect">
+        ><!--i18n:ui.c138c2bc021d-->Формат картинки<select id="image-aspect">
           <option>16:9</option>
           <option>1:1</option>
           <option>9:16</option>
@@ -553,26 +575,26 @@
           <option>3:2</option>
         </select></label
       >
-      <h3>Приправы</h3>
-      <div class="settings-grid"><label>Правая панель<select id="spice-view"><option value="jars">Флаконы с приправами</option><option value="text">Текстовая панель</option></select></label><label>Во время обработки<select id="spice-motion"><option value="ripple">Мягкая рябь</option><option value="gleam">Только блик</option><option value="none">Без движения</option></select></label></div>
+      <h3><!--i18n:ui.1c85fff09d68-->Приправы</h3>
+      <div class="settings-grid"><label><!--i18n:ui.74b9fb7cc73a-->Правая панель<select id="spice-view"><option value="jars"><!--i18n:ui.df468afebc7a-->Флаконы с приправами</option><option value="text"><!--i18n:ui.5de72ded5adf-->Текстовая панель</option></select></label><label><!--i18n:ui.bd669d40d1b2-->Во время обработки<select id="spice-motion"><option value="ripple"><!--i18n:ui.f3f225e1f3ab-->Мягкая рябь</option><option value="gleam"><!--i18n:ui.dce1be7d5b77-->Только блик</option><option value="none"><!--i18n:ui.d185221bc15e-->Без движения</option></select></label></div>
       <section class="connection-settings" aria-labelledby="connections-title">
-        <h3 id="connections-title">Публикация на сайт</h3>
-        <p class="fine-print">Подключите один WordPress или несколько площадок по порядку. Последняя включённая площадка — сайт публикации; промежуточные и Git необязательны. Нужен SSH-доступ и WP-CLI на сервере.</p>
-        <label class="setting-row reading-motion"><span><input id="site-config-enabled" type="checkbox" /> Включить публикацию на сайт</span></label>
+        <h3 id="connections-title"><!--i18n:ui.46fa1a4ce8f2-->Публикация на сайт</h3>
+        <p class="fine-print"><!--i18n:ui.c00759f93663-->Подключите один WordPress или несколько площадок по порядку. Последняя включённая площадка — сайт публикации; промежуточные и Git необязательны. Нужен SSH-доступ и WP-CLI на сервере.</p>
+        <label class="setting-row reading-motion"><span><input id="site-config-enabled" type="checkbox" /><!--i18n:ui.855116135d0c--> Включить публикацию на сайт</span></label>
         <p id="system-proxy-state" class="connection-system" role="status"></p>
-        <p id="site-empty" class="fine-print">Сайты ещё не подключены. Добавьте свой WordPress; локальная инфраструктура не требуется.</p>
+        <p id="site-empty" class="fine-print"><!--i18n:ui.758eec15ef6e-->Сайты ещё не подключены. Добавьте свой WordPress; локальная инфраструктура не требуется.</p>
         <div id="site-connections"></div>
-        <button id="site-add-destination" type="button">＋ Добавить WordPress</button>
-        <details class="connection-git"><summary>Хранение снимков в Git · необязательно</summary>
-          <label class="setting-row reading-motion"><span><input id="site-git-enabled" type="checkbox" /> Сохранять снимок в Git перед первой площадкой</span></label>
-          <div id="site-git-fields" hidden><label class="setting-row">Локальный репозиторий<input id="site-git-repository" placeholder="Каталог репозитория" /></label><label class="setting-row">Адрес remote<input id="site-git-remote" placeholder="https://git.example.invalid/author/articles.git" /></label><label class="setting-row">Ветка<input id="site-git-branch" placeholder="main" /></label><p class="fine-print">Используется существующий репозиторий с origin и настроенным авторством Git. Пароль в URL не поддерживается.</p></div>
+        <button id="site-add-destination" type="button"><!--i18n:ui.8073d65a5ab5-->＋ Добавить WordPress</button>
+        <details class="connection-git"><summary><!--i18n:ui.5516dd043296-->Хранение снимков в Git · необязательно</summary>
+          <label class="setting-row reading-motion"><span><input id="site-git-enabled" type="checkbox" /><!--i18n:ui.b86005c6a2bb--> Сохранять снимок в Git перед первой площадкой</span></label>
+          <div id="site-git-fields" hidden><label class="setting-row"><!--i18n:ui.88516ab25596-->Локальный репозиторий<input id="site-git-repository" placeholder="Каталог репозитория"  data-i18n-placeholder="ui.5dc14e789883"/></label><label class="setting-row"><!--i18n:ui.9a3865618e51-->Адрес remote<input id="site-git-remote" placeholder="https://git.example.invalid/author/articles.git" /></label><label class="setting-row"><!--i18n:ui.7ab76a2eea0a-->Ветка<input id="site-git-branch" placeholder="main" /></label><p class="fine-print"><!--i18n:ui.fc8bce87f616-->Используется существующий репозиторий с origin и настроенным авторством Git. Пароль в URL не поддерживается.</p></div>
         </details>
-        <p class="fine-print">Сохранение меняет только настройки подключения. Проверка сервера — кнопкой «Подготовить переход» в публикации на сайт.</p>
+        <p class="fine-print"><!--i18n:ui.ff59ad535019-->Сохранение меняет только настройки подключения. Проверка сервера — кнопкой «Подготовить переход» в публикации на сайт.</p>
         <p id="connections-error" role="alert" hidden></p>
       </section>
       <p id="settingsnote" class="fine-print"></p>
       <footer>
-        <button id="settingssave" class="primary">Сохранить настройки</button>
+        <button id="settingssave" class="primary"><!--i18n:ui.d3257f0c9ba3-->Сохранить настройки</button>
       </footer>
     </dialog>
     <dialog
@@ -582,136 +604,140 @@
     >
       <header>
         <div>
-          <small>После статьи</small>
+          <small><!--i18n:ui.7bf5fdf69041-->После статьи</small>
           <h2 id="telegram-title">Telegram</h2>
         </div>
         <button
           id="telegram-close"
           class="quiet workspace-back"
           aria-label="Вернуться к статье"
-        >
+         data-i18n-aria-label="ui.1ae1efa0f8e9"><!--i18n:ui.9debf4d5d412-->
           ← К статье
         </button>
       </header>
       <div class="segmented image-tabs">
-        <button data-tg-tab="compose" class="selected">Текст и медиа</button
-        ><button data-tg-tab="bot">Бот и канал</button>
+        <button data-tg-tab="compose" class="selected"><!--i18n:ui.c0b57e74612c-->Текст и медиа</button
+        ><button data-tg-tab="bot"><!--i18n:ui.69af4294577b-->Бот и канал</button>
       </div>
       <section id="tg-compose-panel">
-        <section class="tg-delivery" aria-label="Действие с публикацией">
-          <label for="tg-delivery-action">Публикация в канале</label>
-          <select id="tg-delivery-action"><option value="create">Создать новый пост</option><option value="update">Обновить опубликованный пост</option></select>
-          <label for="tg-target" id="tg-target-label" hidden>Какой пост обновить</label>
+        <section class="tg-delivery" aria-label="Действие с публикацией" data-i18n-aria-label="ui.56ff0bfe6c96">
+          <label for="tg-delivery-action"><!--i18n:ui.e08f96c462ba-->Публикация в канале</label>
+          <select id="tg-delivery-action"><option value="create"><!--i18n:ui.082629ce7da5-->Создать новый пост</option><option value="update"><!--i18n:ui.e331183a1168-->Обновить опубликованный пост</option></select>
+          <label for="tg-target" id="tg-target-label" hidden><!--i18n:ui.3ffa44f94f3d-->Какой пост обновить</label>
           <select id="tg-target" hidden></select>
           <p id="tg-delivery-hint" class="fine-print" role="status"></p>
         </section>
         <div id="tg-compose" class="telegram-layout">
           <section>
-            <label class="field-label" for="tg-mode">Формат</label>
-            <select id="tg-mode"><option value="announcement">Анонс с вложениями</option><option value="article">Статья с картинками и видео</option></select>
+            <label class="field-label" for="tg-mode"><!--i18n:ui.63fdd980cf43-->Формат</label>
+            <select id="tg-mode"><option value="announcement"><!--i18n:ui.c0a62975fe72-->Анонс с вложениями</option><option value="article"><!--i18n:ui.38ed16347421-->Статья с картинками и видео</option></select>
             <p id="tg-format-help" class="fine-print"></p>
-            <button id="tg-use-article" hidden>Взять текст текущей статьи</button>
+            <button id="tg-use-article" hidden><!--i18n:ui.f6a43c7e73b8-->Взять текст текущей статьи</button>
             <div id="tg-announcement-options">
             <label class="field-label" for="tg-direction"
-              >Что подчеркнуть?</label
+              ><!--i18n:ui.32eb99c9f5bb-->Что подчеркнуть?</label
             ><input
               id="tg-direction"
               placeholder="Например: больше самоиронии, акцент на практику"
               maxlength="2000"
-            />
-            <button id="tg-generate">Предложить три анонса</button>
+             data-i18n-placeholder="ui.ba54f4a709f1"/>
+            <button id="tg-generate"><!--i18n:ui.c7b416e528e8-->Предложить три анонса</button>
             <p id="tg-generation" class="fine-print" role="status"></p>
             <div id="tg-variants" class="tg-variants"></div>
             </div>
-            <label class="field-label" for="tg-text">Текст анонса</label
+            <label class="field-label" for="tg-text"><!--i18n:ui.3cc3431b9237-->Текст анонса</label
             ><textarea
               id="tg-text"
               placeholder="Выбери вариант или напиши свой анонс…"
               maxlength="4096"
-            ></textarea>
+             data-i18n-placeholder="ui.ecb1a3614755"></textarea>
             <label class="field-label" for="tg-url"
-              >Ссылка на опубликованную статью</label
+              ><!--i18n:ui.7c26674ace30-->Ссылка на опубликованную статью</label
             ><input id="tg-url" type="url" placeholder="https://…" />
             <label class="tg-checkbox"
-              ><input id="tg-cover" type="checkbox" /> С обложкой статьи</label
+              ><input id="tg-cover" type="checkbox" /><!--i18n:ui.fd0ca3885dba--> С обложкой статьи</label
             >
-            <div class="actions"><button id="tg-add-media">Добавить фото или видео</button><button id="tg-article-assets">Из материалов статьи</button></div>
+            <div class="actions"><button id="tg-add-media"><!--i18n:ui.e7a1cf97228e-->Добавить фото или видео</button><button id="tg-article-assets"><!--i18n:ui.66bd813943cd-->Из материалов статьи</button></div>
             <input id="tg-upload" type="file" accept="image/png,image/jpeg,image/webp,video/mp4" multiple hidden />
             <div id="tg-assets" class="tg-media-list" hidden></div>
             <div id="tg-media-list" class="tg-media-list"></div>
             <p id="tg-count" class="fine-print"></p>
           </section>
           <section>
-            <p id="tg-channel" class="field-label">Предпросмотр</p>
+            <p id="tg-channel" class="field-label"><!--i18n:ui.32060a34f5be-->Предпросмотр</p>
             <p id="tg-sender" class="fine-print" role="status"></p>
             <div class="telegram-preview">
-              <img id="tg-photo" alt="Обложка анонса" hidden />
+              <img id="tg-photo" alt="Обложка анонса" hidden  data-i18n-alt="ui.0d9f69bf9eb9"/>
               <div id="tg-media-preview"></div>
               <div id="tg-preview"></div>
-              <small>Telegram · предпросмотр</small>
+              <small><!--i18n:ui.acc9c92f5b4d-->Telegram · предпросмотр</small>
             </div>
           </section>
         </div>
-        <p id="tg-publish-step" class="field-label" role="status" tabindex="-1">Шаг 1 из 2. Сначала проверь пост, затем подтверди отправку отдельной кнопкой.</p>
+        <p id="tg-publish-step" class="field-label" role="status" tabindex="-1"><!--i18n:ui.6370f30c6f5a-->Шаг 1 из 2. Сначала проверь пост, затем подтверди отправку отдельной кнопкой.</p>
         <p id="tg-status" class="fine-print" role="status"></p>
         <div class="actions telegram-actions">
-          <button id="tg-save">Сохранить черновик</button
-          ><button id="tg-copy">Копировать</button
-          ><button id="tg-prepare" class="primary">Проверить перед отправкой</button
-          ><button id="tg-edit" hidden>Вернуться к правке</button
-          ><button id="tg-publish" class="primary" hidden>Опубликовать</button>
-          <button id="tg-back-article" class="quiet">← К статье</button>
+          <button id="tg-save"><!--i18n:ui.6a4e14990b20-->Сохранить черновик</button
+          ><button id="tg-copy"><!--i18n:ui.1ecddf40bfeb-->Копировать</button
+          ><button id="tg-prepare" class="primary"><!--i18n:ui.e0facbf1c5e5-->Проверить перед отправкой</button
+          ><button id="tg-edit" hidden><!--i18n:ui.c00ba7d9f71f-->Вернуться к правке</button
+          ><button id="tg-publish" class="primary" hidden><!--i18n:ui.4d0fa33cdbdd-->Опубликовать</button>
+          <button id="tg-schedule" hidden><!--i18n:ui.9eb20815f8ff-->Запланировать публикацию…</button>
+          <button id="tg-back-article" class="quiet"><!--i18n:ui.9debf4d5d412-->← К статье</button>
         </div>
         <details class="settings-extra">
-          <summary>История публикаций</summary>
+          <summary><!--i18n:ui.0411d84e2f48-->История публикаций</summary>
           <div id="tg-publications"></div>
+        </details>
+        <details class="settings-extra" id="scheduled-details">
+          <summary><!--i18n:ui.7818588d30c4-->Отложенные публикации</summary><div id="scheduled-panel"><p id="scheduled-worker" class="fine-print" role="status"></p><button id="scheduled-refresh"><!--i18n:ui.242de0178f7e-->Обновить очередь</button><div id="scheduled-posts" aria-live="polite"></div></div>
         </details>
       </section>
       <section id="tg-bot-panel" hidden>
-        <label class="setting-row" for="tg-publication-mode">Публикация
+        <label class="setting-row" for="tg-publication-mode"><!--i18n:ui.8d0ec8282047-->Публикация
           <select id="tg-publication-mode" aria-describedby="tg-publication-mode-help">
-            <option value="channel">От имени канала — через бота</option>
-            <option value="manual">Вручную в Telegram</option>
+            <option value="channel"><!--i18n:ui.2e2201e827d8-->От имени канала — через бота</option>
+            <option value="manual"><!--i18n:ui.a18b31fd2927-->Вручную в Telegram</option>
           </select>
         </label>
         <p id="tg-publication-mode-help" class="fine-print"></p>
         <div id="tg-bot-credentials">
-        <p class="fine-print">
+        <p class="fine-print"><!--i18n:ui.4ae6c9042bca-->
           Создай бота через
           <a href="https://t.me/BotFather" target="_blank" rel="noreferrer"
             >@BotFather</a
-          >
+          ><!--i18n:ui.3fdd20141f82-->
           и добавь его администратором канала с правом публикации.
         </p>
         <label class="setting-row"
-          >Канал<input
+          ><!--i18n:ui.a9cd3794fd35-->Канал<input
             id="tg-chat-id"
             placeholder="@имя_канала или -100…"
             autocomplete="off"
-        /></label>
+         data-i18n-placeholder="ui.dc4054632988"/></label>
         <label class="setting-row"
-          >Токен бота<input
+          ><!--i18n:ui.81ff0c13570a-->Токен бота<input
             id="tg-token"
             type="password"
             autocomplete="new-password"
             placeholder="Оставь пустым, чтобы сохранить текущий"
-        /></label>
+         data-i18n-placeholder="ui.bb1d0b07d91d"/></label>
         <label class="setting-row"
-          >Или файл с токеном<input
+          ><!--i18n:ui.c268f9cad104-->Или файл с токеном<input
             id="tg-token-file"
             placeholder="Полный путь к текстовому файлу"
-        /></label>
-        <p class="fine-print">
+         data-i18n-placeholder="ui.d164c76aeeaa"/></label>
+        <p class="fine-print"><!--i18n:ui.ea2e50b4bd88-->
           Токен хранится локально, вне репозитория. Также поддерживается
           переменная GRANKA_TELEGRAM_BOT_TOKEN.
         </p>
         </div>
         <p id="tg-bot-status" class="fine-print" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="actions">
-          <button id="tg-settings-save" class="primary">
+          <button id="tg-settings-save" class="primary"><!--i18n:ui.601ed4459ffa-->
             Сохранить настройки Telegram</button
-          ><button id="tg-check">Проверить доступ</button
-          ><button id="tg-token-clear" class="quiet">
+          ><button id="tg-check"><!--i18n:ui.2e7fd36e3cfa-->Проверить доступ</button
+          ><button id="tg-token-clear" class="quiet"><!--i18n:ui.7d6615dc4f70-->
             Удалить сохранённый токен
           </button>
         </div>
@@ -725,58 +751,58 @@
       <header>
         <div>
           <small id="site-domain">WordPress</small>
-          <h2 id="site-title">Публикация статьи</h2>
+          <h2 id="site-title"><!--i18n:ui.935b6e6ee2ed-->Публикация статьи</h2>
         </div>
         <button
           id="site-close"
           class="icon-button"
           aria-label="Закрыть публикацию"
-        >
+         data-i18n-aria-label="ui.08a1916c4847">
           ✕
         </button>
       </header>
-      <p class="fine-print">
+      <p class="fine-print"><!--i18n:ui.10cc7cf6a718-->
         Подготовьте снимок статьи и проверьте выбранную площадку.
         Отправка потребует отдельного подтверждения. Дополнительные площадки и Git — в настройках.
       </p>
-      <button id="site-open-settings" type="button" class="quiet">Настройки публикации…</button>
+      <button id="site-open-settings" type="button" class="quiet"><!--i18n:ui.e81ed5dc8caa-->Настройки публикации…</button>
       <div class="site-layout">
         <section id="site-fields">
           <label class="setting-row"
-            >Заголовок<input id="site-post-title" maxlength="300"
+            ><!--i18n:ui.5f77cb92e071-->Заголовок<input id="site-post-title" maxlength="300"
           /></label>
           <label class="setting-row"
-            >Адрес статьи (slug)<input
+            ><!--i18n:ui.4203302c8b74-->Адрес статьи (slug)<input
               id="site-slug"
               placeholder="nazvanie-stati"
           /></label>
           <div class="settings-grid">
-            <label>Дата<input id="site-date" type="date" /></label
+            <label><!--i18n:ui.232a0ead182b-->Дата<input id="site-date" type="date" /></label
             ><label
-              >Статус на сайте<select id="site-status">
-                <option value="draft">Черновик</option>
-                <option value="publish">Опубликованная статья</option>
+              ><!--i18n:ui.8ffb242fd55f-->Статус на сайте<select id="site-status">
+                <option value="draft"><!--i18n:ui.65fd24f1cb37-->Черновик</option>
+                <option value="publish"><!--i18n:ui.887ac8c4c620-->Опубликованная статья</option>
               </select></label
             >
           </div>
           <label class="setting-row"
-            >Категории через запятую<input
+            ><!--i18n:ui.7f49bff7d9c7-->Категории через запятую<input
               id="site-categories"
               placeholder="Заметки"
-          /></label>
+           data-i18n-placeholder="ui.04a18b51cdc2"/></label>
           <label class="setting-row"
-            >Теги через запятую<input id="site-tags" placeholder="разработка, заметки"
-          /></label>
+            ><!--i18n:ui.c8fa45fb52c9-->Теги через запятую<input id="site-tags" placeholder="разработка, заметки"
+           data-i18n-placeholder="ui.dee4decc60f8"/></label>
           <label class="setting-row"
-            >Короткое описание<textarea
+            ><!--i18n:ui.86ff5bc5aa65-->Короткое описание<textarea
               id="site-excerpt"
               maxlength="1000"
             ></textarea>
           </label>
-          <button id="site-prepare" class="primary">Подготовить снимок</button>
+          <button id="site-prepare" class="primary"><!--i18n:ui.fd8493e5e191-->Подготовить снимок</button>
         </section>
         <section>
-          <p id="site-snapshot" class="fine-print">
+          <p id="site-snapshot" class="fine-print"><!--i18n:ui.6b6f4ab1e34d-->
             Снимок ещё не подготовлен.
           </p>
           <div id="site-stages" class="site-stages"></div>
@@ -784,10 +810,10 @@
             <h3 id="site-review-title"></h3>
             <p id="site-review-description"></p>
             <a id="site-existing" target="_blank" rel="noreferrer" hidden
-              >Открыть текущую страницу перед обновлением</a
+              ><!--i18n:ui.15f003b8e00a-->Открыть текущую страницу перед обновлением</a
             >
             <label id="site-approval-row" class="tg-checkbox" hidden
-              ><input id="site-approval" type="checkbox" /> Я просмотрел
+              ><input id="site-approval" type="checkbox" /><!--i18n:ui.7f5c6bdcc6d1--> Я просмотрел
               предыдущую площадку, можно переносить этот снимок дальше</label
             >
             <button id="site-confirm" class="primary"></button>
@@ -803,29 +829,29 @@
     >
       <header>
         <div>
-          <small>Одно правило · несколько решений</small>
-          <h2 id="batch-title">Пакет решений</h2>
+          <small><!--i18n:ui.fb05dd949878-->Одно правило · несколько решений</small>
+          <h2 id="batch-title"><!--i18n:ui.d569874a11e8-->Пакет решений</h2>
         </div>
-        <button id="batch-close" class="icon-button" aria-label="Закрыть пакет">
+        <button id="batch-close" class="icon-button" aria-label="Закрыть пакет" data-i18n-aria-label="ui.9fba7f018673">
           ✕
         </button>
       </header>
-      <p class="fine-print">
+      <p class="fine-print"><!--i18n:ui.0bdff0e421d4-->
         Проверь каждый фрагмент и вариант. Сними отметку с того, что хочешь
         разобрать отдельно. Текст изменится после «Применить решения».
       </p>
       <label id="batch-reason-row" class="setting-row" hidden
-        >Причина отказа<select id="batch-reason">
-          <option value="worse">Варианты хуже</option>
-          <option value="voice">Мой голос</option>
-          <option value="ok-here">Уместно здесь</option>
-          <option value="fp">Ложное срабатывание</option>
+        ><!--i18n:ui.98b3719eb537-->Причина отказа<select id="batch-reason">
+          <option value="worse"><!--i18n:ui.1202d0cd3b3c-->Варианты хуже</option>
+          <option value="voice"><!--i18n:ui.b4489c968fb2-->Мой голос</option>
+          <option value="ok-here"><!--i18n:ui.612fb27ef064-->Уместно здесь</option>
+          <option value="fp"><!--i18n:ui.8aa0d5a1a7e1-->Ложное срабатывание</option>
         </select></label
       >
       <div id="batch-items" class="batch-items"></div>
       <p id="batch-status" class="fine-print" role="status"></p>
       <footer>
-        <button id="batch-save" class="primary">Сохранить решения</button>
+        <button id="batch-save" class="primary"><!--i18n:ui.2bcfd94a0bca-->Сохранить решения</button>
       </footer>
     </dialog>
     <dialog
@@ -835,48 +861,48 @@
     >
       <header>
         <div>
-          <small>Личные данные · вне репозитория приложения</small>
-          <h2 id="preferences-title">Мои правила и проверка редактора</h2>
+          <small><!--i18n:ui.215998a7e3d6-->Личные данные · вне репозитория приложения</small>
+          <h2 id="preferences-title"><!--i18n:ui.428470ae55b1-->Мои правила и проверка редактора</h2>
         </div>
         <button
           id="preferences-close"
           class="icon-button"
           aria-label="Закрыть правила"
-        >
+         data-i18n-aria-label="ui.adf035777163">
           ✕
         </button>
       </header>
       <p id="preferences-summary" class="fine-print"></p>
       <div id="preferences-rules"></div>
       <details class="settings-extra">
-        <summary>Отключённые и прежние правила</summary>
+        <summary><!--i18n:ui.0f3ae0b485f8-->Отключённые и прежние правила</summary>
         <div id="inactive-rules"></div>
       </details>
-      <h3>Подстройка по моим решениям</h3>
-      <p class="fine-print">
+      <h3><!--i18n:ui.07eb94e11063-->Подстройка по моим решениям</h3>
+      <p class="fine-print"><!--i18n:ui.1cf9f356f87a-->
         Предложения основаны на прошлых решениях. Проверь примеры, уточни
         формулировку и только затем включи правило.
       </p>
-      <button id="rules-propose">Предложить уточнения</button>
+      <button id="rules-propose"><!--i18n:ui.9e3e813f2702-->Предложить уточнения</button>
       <p id="rules-proposal-status" class="fine-print" role="status"></p>
       <div id="rule-proposals"></div>
-      <h3>Проверочный набор из решений</h3>
-      <p class="fine-print">
+      <h3><!--i18n:ui.99995c581e2d-->Проверочный набор из решений</h3>
+      <p class="fine-print"><!--i18n:ui.385fcf055316-->
         Копии решений между версиями учитываются один раз. Модель получает
         фрагменты без правильных ответов. Сравниваются решения сохранить или
         изменить текст; смысл замен нужно проверить вручную.
       </p>
       <p id="benchmark-summary" class="fine-print"></p>
       <div class="actions">
-        <button id="benchmark-build">Обновить набор</button
+        <button id="benchmark-build"><!--i18n:ui.72abfd33bbcc-->Обновить набор</button
         ><label
-          >Примеров
+          ><!--i18n:ui.f97d85216ed0-->Примеров
           <select id="benchmark-limit">
             <option>8</option>
             <option>12</option>
             <option>20</option>
           </select></label
-        ><button id="benchmark-run" class="primary">Проверить модель</button>
+        ><button id="benchmark-run" class="primary"><!--i18n:ui.f9ae2898cb59-->Проверить модель</button>
       </div>
       <p id="benchmark-provider" class="fine-print"></p>
       <p id="benchmark-status" class="fine-print" role="status"></p>
@@ -884,180 +910,184 @@
     </dialog>
     <div id="toast" class="toast" role="status" hidden></div>
     <dialog id="plannerdialog" class="dialog planner-dialog" aria-labelledby="planner-title">
-      <header><div><small>Статьи и Telegram</small><h2 id="planner-title">План публикаций</h2></div><button id="planner-close" class="icon-button" aria-label="Закрыть план">✕</button></header>
+      <header><div><small><!--i18n:ui.5736923af581-->Статьи и Telegram</small><h2 id="planner-title"><!--i18n:ui.d4c8e76c1c05-->План публикаций</h2></div><button id="planner-scheduled-open"><!--i18n:ui.7818588d30c4-->Отложенные публикации</button><button id="planner-close" class="icon-button" aria-label="Закрыть план" data-i18n-aria-label="ui.0ddc395fa74f">✕</button></header>
       <div class="planner-toolbar">
-        <div class="planner-month-nav"><button id="planner-prev" aria-label="Предыдущий месяц">‹</button><h3 id="planner-month"></h3><button id="planner-next" aria-label="Следующий месяц">›</button><button id="planner-today" class="quiet">Сегодня</button></div>
-        <div class="planner-actions"><button id="planner-library" class="quiet">Библиотека</button><select id="planner-channel" aria-label="Канал публикации"><option value="all">Все каналы</option><option value="article">Статьи</option><option value="telegram">Telegram</option></select><button id="planner-distribute">Распределить даты</button><button id="planner-add" class="primary">＋ Материал</button></div>
+        <div class="planner-month-nav"><button id="planner-prev" aria-label="Предыдущий месяц" data-i18n-aria-label="ui.2f28d0718c1d">‹</button><h3 id="planner-month"></h3><button id="planner-next" aria-label="Следующий месяц" data-i18n-aria-label="ui.913b7bd73faa">›</button><button id="planner-today" class="quiet"><!--i18n:ui.b688b4c0d783-->Сегодня</button></div>
+        <div class="planner-actions"><button id="planner-library" class="quiet"><!--i18n:ui.d659e27ebecd-->Библиотека</button><select id="planner-channel" aria-label="Канал публикации" data-i18n-aria-label="ui.ee58f6a3eef9"><option value="all"><!--i18n:ui.1c542514adca-->Все каналы</option><option value="article"><!--i18n:ui.279e6b2bd1dc-->Статьи</option><option value="telegram">Telegram</option></select><button id="planner-distribute"><!--i18n:ui.e50838df8532-->Распределить даты</button><button id="planner-add" class="primary"><!--i18n:ui.5c08c1407a93-->＋ Материал</button></div>
       </div>
       <p id="planner-summary" class="fine-print" role="status"></p>
-      <p class="fine-print">Черновики из рабочих папок появляются автоматически. Готовность показывает этапы подготовки; оценку можно уточнить в карточке.</p>
+      <p class="fine-print"><!--i18n:ui.e3d576faa84e-->Черновики из рабочих папок появляются автоматически. Готовность показывает этапы подготовки; оценку можно уточнить в карточке.</p>
       <section id="planner-schedule" class="planner-schedule" hidden>
-        <div class="planner-schedule-fields"><label>Начать с<input id="planner-start" type="date" /></label><label>Материалов в день<input id="planner-capacity" type="number" min="1" max="10" value="1" /></label><fieldset id="planner-weekdays"><legend>Дни выхода</legend></fieldset><label class="tg-checkbox"><input id="planner-ideas" type="checkbox" /> Включить идеи</label></div>
-        <p class="fine-print">Распределяем материалы без даты. Занятые дни учитываются; уже назначенные даты сохраняются. Это план, отправка запускается отдельно.</p>
-        <div class="planner-actions"><button id="planner-preview">Показать распределение</button><button id="planner-apply" class="primary" disabled>Применить даты</button><button id="planner-schedule-close" class="quiet">Скрыть</button></div>
+        <div class="planner-schedule-fields"><label><!--i18n:ui.6f23184a934b-->Начать с<input id="planner-start" type="date" /></label><label><!--i18n:ui.315a1e75439c-->Материалов в день<input id="planner-capacity" type="number" min="1" max="10" value="1" /></label><fieldset id="planner-weekdays"><legend><!--i18n:ui.e284ace78b00-->Дни выхода</legend></fieldset><label class="tg-checkbox"><input id="planner-ideas" type="checkbox" /><!--i18n:ui.265322da3e6f--> Включить идеи</label></div>
+        <p class="fine-print"><!--i18n:ui.7e5d7c4c1166-->Распределяем материалы без даты. Занятые дни учитываются; уже назначенные даты сохраняются. Это план, отправка запускается отдельно.</p>
+        <div class="planner-actions"><button id="planner-preview"><!--i18n:ui.06dad5a62ee8-->Показать распределение</button><button id="planner-apply" class="primary" disabled><!--i18n:ui.489524abb46f-->Применить даты</button><button id="planner-schedule-close" class="quiet"><!--i18n:ui.0a2a4b837761-->Скрыть</button></div>
         <div id="planner-proposal" class="planner-proposal" aria-live="polite"></div>
       </section>
-      <div class="planner-layout"><aside class="planner-backlog"><h3>Без даты <span id="planner-queue-count"></span></h3><p class="fine-print">Перетащи на день. Сюда же можно вернуть материал из календаря.</p><div id="planner-queue"></div><details id="planner-excluded-section"><summary>Исключены <span id="planner-excluded-count"></span></summary><div id="planner-excluded"></div></details></aside><div class="planner-calendar-scroll"><div id="planner-calendar" class="planner-calendar" aria-label="Календарь публикаций"></div></div></div>
+      <div class="planner-layout"><aside class="planner-backlog"><h3><!--i18n:ui.c3c76d85861e-->Без даты <span id="planner-queue-count"></span></h3><p class="fine-print"><!--i18n:ui.0028a85e9516-->Перетащи на день. Сюда же можно вернуть материал из календаря.</p><div id="planner-queue"></div><details id="planner-excluded-section"><summary><!--i18n:ui.ca6a3b01bd23-->Исключены <span id="planner-excluded-count"></span></summary><div id="planner-excluded"></div></details></aside><div class="planner-calendar-scroll"><div id="planner-calendar" class="planner-calendar" aria-label="Календарь публикаций" data-i18n-aria-label="ui.72ad7287449f"></div></div></div>
       <p id="planner-error" class="danger" role="alert"></p>
     </dialog>
     <dialog id="planner-entry-dialog" class="dialog planner-entry-dialog" aria-labelledby="planner-entry-heading">
-      <header><h2 id="planner-entry-heading">Материал</h2><button id="planner-entry-close" class="icon-button" aria-label="Закрыть карточку">✕</button></header>
+      <header><h2 id="planner-entry-heading"><!--i18n:ui.7e00703fc124-->Материал</h2><button id="planner-entry-close" class="icon-button" aria-label="Закрыть карточку" data-i18n-aria-label="ui.cbc349c2f39a">✕</button></header>
       <form id="planner-entry-form">
-        <label class="setting-row">Название<input id="planner-entry-title" required maxlength="300" /></label>
-        <div class="settings-grid"><label>Канал<select id="planner-entry-channel"><option value="article">Статья</option><option value="telegram">Telegram</option></select></label><label>Состояние<select id="planner-entry-status"><option value="idea">Идея</option><option value="draft">Черновик</option><option value="ready">Готово</option><option value="published">Опубликовано</option></select></label></div>
+        <label class="setting-row"><!--i18n:ui.0918b4ba9268-->Название<input id="planner-entry-title" required maxlength="300" /></label>
+        <div class="settings-grid"><label><!--i18n:ui.a9cd3794fd35-->Канал<select id="planner-entry-channel"><option value="article"><!--i18n:ui.4f0548d13284-->Статья</option><option value="telegram">Telegram</option></select></label><label><!--i18n:ui.ca285db3dd75-->Состояние<select id="planner-entry-status"><option value="idea"><!--i18n:ui.da0ae5cf7773-->Идея</option><option value="draft"><!--i18n:ui.65fd24f1cb37-->Черновик</option><option value="ready"><!--i18n:ui.ef05d57959cf-->Готово</option><option value="published"><!--i18n:ui.382ded9c6877-->Опубликовано</option></select></label></div>
         <section id="planner-entry-readiness" class="planner-readiness-detail"></section>
-        <label class="setting-row">Твоя оценка готовности, %<input id="planner-entry-progress" type="number" min="0" max="100" step="1" placeholder="Автоматически по этапам" /><small class="fine-print">Пустое поле — по этапам подготовки. «Готово» означает подтверждение автора и 100%.</small></label>
-        <div class="settings-grid"><label>Дата<input id="planner-entry-date" type="date" /></label><label class="tg-checkbox"><input id="planner-entry-pinned" type="checkbox" /> Закрепить дату</label></div>
-        <label class="setting-row">Ссылка<input id="planner-entry-url" type="url" placeholder="https://" /></label>
-        <label class="setting-row">Заметки<textarea id="planner-entry-notes" maxlength="4000"></textarea></label>
+        <label class="setting-row"><!--i18n:ui.eb71e838edd5-->Твоя оценка готовности, %<input id="planner-entry-progress" type="number" min="0" max="100" step="1" placeholder="Автоматически по этапам"  data-i18n-placeholder="ui.a8da417735c9"/><small class="fine-print"><!--i18n:ui.075941c64a19-->Пустое поле — по этапам подготовки. «Готово» означает подтверждение автора и 100%.</small></label>
+        <div class="settings-grid"><label><!--i18n:ui.232a0ead182b-->Дата<input id="planner-entry-date" type="date" /></label><label class="tg-checkbox"><input id="planner-entry-pinned" type="checkbox" /><!--i18n:ui.795df1db802d--> Закрепить дату</label></div>
+        <label class="setting-row"><!--i18n:ui.f4cb2c0e2410-->Ссылка<input id="planner-entry-url" type="url" placeholder="https://" /></label>
+        <label class="setting-row"><!--i18n:ui.04a18b51cdc2-->Заметки<textarea id="planner-entry-notes" maxlength="4000"></textarea></label>
         <p id="planner-entry-source" class="fine-print"></p>
-        <div class="planner-actions"><button id="planner-entry-link" type="button">Связать с текущей статьёй</button><button id="planner-entry-unlink" type="button" class="quiet">Убрать связь</button><button id="planner-entry-open" type="button">Открыть статью</button><a id="planner-entry-visit" target="_blank" rel="noreferrer">На сайте ↗</a></div>
+        <div class="planner-actions"><button id="planner-entry-link" type="button"><!--i18n:ui.9cf72e10da6d-->Связать с текущей статьёй</button><button id="planner-entry-unlink" type="button" class="quiet"><!--i18n:ui.ea1afef18454-->Убрать связь</button><button id="planner-entry-open" type="button"><!--i18n:ui.c8af463c7bb9-->Открыть статью</button><a id="planner-entry-visit" target="_blank" rel="noreferrer"><!--i18n:ui.0ab1ec85cc87-->На сайте ↗</a></div>
         <p id="planner-entry-error" class="danger" role="alert"></p>
-        <footer class="planner-entry-footer"><button id="planner-entry-save" class="primary" type="submit">Сохранить</button><button id="planner-entry-unschedule" type="button">Вернуть без даты</button><button id="planner-entry-exclude" type="button" class="quiet danger">Исключить из планирования</button><button id="planner-entry-delete" type="button" class="quiet danger">Удалить карточку</button></footer>
+        <footer class="planner-entry-footer"><button id="planner-entry-save" class="primary" type="submit"><!--i18n:ui.b4d30cae5289-->Сохранить</button><button id="planner-entry-unschedule" type="button"><!--i18n:ui.e9542246445e-->Вернуть без даты</button><button id="planner-entry-exclude" type="button" class="quiet danger"><!--i18n:ui.15c157781c40-->Исключить из планирования</button><button id="planner-entry-delete" type="button" class="quiet danger"><!--i18n:ui.c469940e2814-->Удалить карточку</button></footer>
       </form>
     </dialog>
-<dialog id="helpdialog" class="dialog" aria-labelledby="help-title"><header class="dialog-header"><h2 id="help-title">Справка</h2><button id="help-close" type="button">К статье</button></header><article class="help-guide">
-<p>Справка для Гранки 1.3.0 с тёмной мастерской и знаком со скобочками.
+<dialog id="helpdialog" class="dialog" aria-labelledby="help-title"><header class="dialog-header"><h2 id="help-title"><!--i18n:ui.3e202cd422f5-->Справка</h2><button id="help-close" type="button"><!--i18n:ui.fd1680c38345-->К статье</button></header><article class="help-guide">
+<section id="granka-about" aria-labelledby="granka-about-title">
+  <h3 id="granka-about-title"><!--i18n:about.title-->О программе</h3>
+  <p><span><!--i18n:about.author-->Автор</span>: <strong>androman</strong> · <a href="https://androman.pro" target="_blank" rel="noopener noreferrer">androman.pro</a> · <a href="https://t.me/andromanpro1c" target="_blank" rel="noopener noreferrer">Telegram</a></p>
+</section>
+<p><!--i18n:ui.e30b93ba5a36-->Справка для Гранки 1.3.0 с тёмной мастерской и знаком со скобочками.
 На снимках — учебная статья. Это оформление входит и в Windows-поставку.</p>
-<h3>Открыть статью</h3>
-<p>В меню <strong>Статьи</strong> выберите <strong>Открыть файл…</strong> или <strong>Добавить папку…</strong>.
+<h3><!--i18n:ui.c8af463c7bb9-->Открыть статью</h3>
+<p><!--i18n:ui.70c6a395ad9d-->В меню <strong><!--i18n:ui.279e6b2bd1dc-->Статьи</strong><!--i18n:ui.77dc070ed269--> выберите <strong><!--i18n:ui.65003f6fcc1b-->Открыть файл…</strong><!--i18n:ui.bcacbff7a563--> или <strong><!--i18n:ui.db5842421d77-->Добавить папку…</strong><!--i18n:ui.e5a751ff46b9-->.
 Гранка работает с Markdown. Рядом с исходником появляется файл
-<code>.granka.json</code>: в нём хранятся версии, замечания и решения.
+<code>.granka.json</code><!--i18n:ui.5e9a9d80843b-->: в нём хранятся версии, замечания и решения.
 Подключённые источники запоминаются локально.</p>
-<p><img alt="Библиотека статей в тёмной мастерской" src="/static/help/library.png" /></p>
-<p>Фильтры <strong>В работе</strong> и <strong>Опубликовано</strong> относятся к факту выпуска.
+<p><img alt="Библиотека статей в тёмной мастерской" src="/static/help/library.png"  data-i18n-alt="ui.64f9bde8a6bf"/></p>
+<p><!--i18n:ui.a69757b1dbe1-->Фильтры <strong><!--i18n:ui.59a28f1b11df-->В работе</strong><!--i18n:ui.eead37caf818--> и <strong><!--i18n:ui.382ded9c6877-->Опубликовано</strong><!--i18n:ui.da80bec63675--> относятся к факту выпуска.
 Подтверждение берётся из квитанции публикации, метаданных или настроенной
-связи с адресом статьи. Сходство названий и папка <code>_ready</code> этого не подтверждают.
+связи с адресом статьи. Сходство названий и папка <code>_ready</code><!--i18n:ui.2f79b6af754e--> этого не подтверждают.
 У опубликованного материала можно открыть готовую страницу.</p>
-<h3>Написать и сохранить</h3>
-<p>В меню <strong>Редактор</strong> доступны оформленный текст и <strong>Исходник</strong>.
-Пишите прямо в статье; <strong>Сохранить</strong> или <code>Ctrl+S</code> создаёт новую версию.
+<h3><!--i18n:ui.6fb36cdd016d-->Написать и сохранить</h3>
+<p><!--i18n:ui.70c6a395ad9d-->В меню <strong><!--i18n:ui.119d528f623e-->Редактор</strong><!--i18n:ui.bd55ebdab962--> доступны оформленный текст и <strong><!--i18n:ui.0b5267f774e0-->Исходник</strong><!--i18n:ui.1a34b527b323-->.
+Пишите прямо в статье; <strong><!--i18n:ui.b4d30cae5289-->Сохранить</strong><!--i18n:ui.bcacbff7a563--> или <code>Ctrl+S</code><!--i18n:ui.dac91ff1150a--> создаёт новую версию.
 Переход к другой статье с незавершённой правкой предложит сохранить её,
 отказаться от ввода или остаться. Переход в справку сохраняет черновик в редакторе.</p>
-<p><img alt="Редактор: учебная статья и инструменты" src="/static/help/editor.png" /></p>
-<p><strong>Проверить текст</strong> запускает выбранного ИИ-исполнителя. Прочитайте замечание
+<p><img alt="Редактор: учебная статья и инструменты" src="/static/help/editor.png"  data-i18n-alt="ui.e557c9e31d9a"/></p>
+<p><strong><!--i18n:ui.cbc2f7b99d50-->Проверить текст</strong><!--i18n:ui.6b14b733792e--> запускает выбранного ИИ-исполнителя. Прочитайте замечание
 к точной цитате и выберите замену, свой вариант или отказ с пояснением.
-Команда <strong>Применить решения</strong> собирает новую версию. До неё принятая карточка
+Команда <strong><!--i18n:ui.3add8fe75dc7-->Применить решения</strong><!--i18n:ui.069ac822707e--> собирает новую версию. До неё принятая карточка
 не переписывает абзац. Кодекс требует входа в свой аккаунт, OpenRouter —
 своего ключа; запросы могут расходовать подписку или средства выбранного сервиса.</p>
-<h3>Добавить приправу</h3>
-<p>Откройте <strong>Приправы</strong>. Ирония, пошлые шутки, метафоры и аллегории имеют
+<h3><!--i18n:ui.2c45081a09aa-->Добавить приправу</h3>
+<p><!--i18n:ui.f3e6631e6e1d-->Откройте <strong><!--i18n:ui.1c85fff09d68-->Приправы</strong><!--i18n:ui.f9ba489c713a-->. Ирония, пошлые шутки, метафоры и аллегории имеют
 отдельную дозировку. Можно перетащить флакон на абзац, выбрать абзац кнопкой,
-использовать выделение или всю статью. Кнопка <strong>Приправить</strong> использует
+использовать выделение или всю статью. Кнопка <strong><!--i18n:ui.80631aa21d61-->Приправить</strong><!--i18n:ui.a696737ab0fd--> использует
 всю выбранную смесь. Свободное пожелание работает без готового рецепта.</p>
-<p><img alt="Флаконы и дозировка приправ" src="/static/help/spices.png" /></p>
-<p>Сначала появляются предложения. Выберите подходящие, поправьте формулировки
-при необходимости и нажмите <strong>Применить выбранное</strong>. Исходник останется
-в истории. <strong>Сохранить свой рецепт</strong> запоминает смесь; общие авторские
+<p><img alt="Флаконы и дозировка приправ" src="/static/help/spices.png"  data-i18n-alt="ui.a411e0af6d81"/></p>
+<p><!--i18n:ui.e84920ff8ca7-->Сначала появляются предложения. Выберите подходящие, поправьте формулировки
+при необходимости и нажмите <strong><!--i18n:ui.fdbc79ca90b3-->Применить выбранное</strong><!--i18n:ui.051d1d16fdce-->. Исходник останется
+в истории. <strong><!--i18n:ui.0c8b1e1d82a0-->Сохранить свой рецепт</strong><!--i18n:ui.2bd8f58e549a--> запоминает смесь; общие авторские
 правила от этого не меняются. При несохранённом вводе сначала сохраните статью.</p>
-<h3>Сравнить и вернуть</h3>
-<p>В <strong>Изменениях</strong> выберите левую и правую версии. Можно поменять их местами.
+<h3><!--i18n:ui.c987098bcd23-->Сравнить и вернуть</h3>
+<p><!--i18n:ui.8b7b577aa31e-->В <strong><!--i18n:ui.f2ff4441e587-->Изменениях</strong><!--i18n:ui.767c19430cd3--> выберите левую и правую версии. Можно поменять их местами.
 Само сравнение ничего не записывает в статью.</p>
-<p><img alt="Сравнение двух сохранённых версий" src="/static/help/diff.png" /></p>
-<p>В <strong>Истории</strong> откройте нужное сохранение и нажмите <strong>Вернуть в работу</strong>.
+<p><img alt="Сравнение двух сохранённых версий" src="/static/help/diff.png"  data-i18n-alt="ui.c9a91e26aeef"/></p>
+<p><!--i18n:ui.8b7b577aa31e-->В <strong><!--i18n:ui.b1e52c767301-->Истории</strong><!--i18n:ui.5f4b5b79a413--> откройте нужное сохранение и нажмите <strong><!--i18n:ui.c9b93dc0d9c4-->Вернуть в работу</strong><!--i18n:ui.4af45188c5c3-->.
 Гранка создаст новую вершину истории с прежним текстом; более поздние
 сохранения тоже останутся. Здесь «в работе» означает текущую редакцию,
 а не отсутствие опубликованной статьи.</p>
-<p><img alt="История и возврат прежнего текста" src="/static/help/history.png" /></p>
-<h3>Разобраться со статусом</h3>
-<p>Верхняя строка показывает <strong>Опубликовано на сайте</strong>, <strong>Опубликовано в Telegram</strong>
+<p><img alt="История и возврат прежнего текста" src="/static/help/history.png"  data-i18n-alt="ui.820c76da5d62"/></p>
+<h3><!--i18n:ui.567f822b2404-->Разобраться со статусом</h3>
+<p><!--i18n:ui.8c21c434d00b-->Верхняя строка показывает <strong><!--i18n:ui.f3024c1f148c-->Опубликовано на сайте</strong>, <strong><!--i18n:ui.f1520cb7ce66-->Опубликовано в Telegram</strong><!--i18n:ui.1ca4e75b60a3-->
 или оба канала, когда есть подтверждение. Выпуск на предпросмотре или стейдже,
 сохранённый черновик WordPress и подготовленный Telegram-пост публикацией
 не считаются. Неоднозначная отправка тоже не становится успешной автоматически.</p>
-<p>Если после выпуска внесены изменения, появляется <strong>есть правки</strong>.
+<p><!--i18n:ui.3e4ce5ac90d7-->Если после выпуска внесены изменения, появляется <strong><!--i18n:ui.ca83f34415f8-->есть правки</strong><!--i18n:ui.f515a74f4cbd-->.
 Адрес и известная опубликованная версия доступны в подсказке строки.
 Ранее опубликованный материал остаётся опубликованным, пока вы готовите
 его следующую редакцию. Отдельные редакторские состояния не переписываются.</p>
-<h3>Разложить по датам</h3>
-<p><strong>Календарь</strong> показывает рабочие материалы и подтверждённые публикации.
+<h3><!--i18n:ui.ad6fd3ad52ba-->Разложить по датам</h3>
+<p><strong><!--i18n:ui.2ea15d96b2d0-->Календарь</strong><!--i18n:ui.92d45ac917d0--> показывает рабочие материалы и подтверждённые публикации.
 Откройте карточку, назначьте дату и сохраните. Планирование само не запускает
 ИИ и не отправляет посты. Предпросмотр распределения дат можно изучить до применения.</p>
-<p><img alt="Календарь на учебных материалах" src="/static/help/calendar.png" /></p>
-<h3>Подготовить сайт</h3>
-<p>Кнопка <strong>На сайт</strong> в редакторе открывает параметры и снимок статьи:
+<p><img alt="Календарь на учебных материалах" src="/static/help/calendar.png"  data-i18n-alt="ui.fa1b0570a2ec"/></p>
+<h3><!--i18n:ui.c5ff108132fc-->Подготовить сайт</h3>
+<p><!--i18n:ui.4091b76310b8-->Кнопка <strong><!--i18n:ui.bd2cc7e95b17-->На сайт</strong><!--i18n:ui.0df8214f1d34--> в редакторе открывает параметры и снимок статьи:
 заголовок, адрес, дату, рубрики, метки, краткое описание и статус WordPress.
-Для уже выпущенной статьи кнопка называется <strong>Обновить на сайте</strong>.</p>
-<p>Откройте <strong>Настройки → Публикация на сайт → Добавить WordPress</strong>. Укажите
+Для уже выпущенной статьи кнопка называется <strong><!--i18n:ui.1f93bbc61fbd-->Обновить на сайте</strong>.</p>
+<p><!--i18n:ui.f3e6631e6e1d-->Откройте <strong><!--i18n:ui.38c2fe4d17a8-->Настройки → Публикация на сайт → Добавить WordPress</strong><!--i18n:ui.e7b9a42ab760-->. Укажите
 название и адрес сайта, SSH-сервер и пользователя, каталог WordPress.
 Если используется отдельный SSH-ключ, укажите путь к его файлу. Пустой путь
 использует обычную настройку SSH/ssh-agent. На сервере должен быть установлен
 WP-CLI; это подключение по SSH, не пароль администратора WordPress.</p>
-<p>Для одного сайта NAS, стейдж и Git не нужны. Включите публикацию, сохраните
+<p><!--i18n:ui.0c68dac19e02-->Для одного сайта NAS, стейдж и Git не нужны. Включите публикацию, сохраните
 настройки и вернитесь к статье. Подготовка снимка сохраняет текст,
-обложку, картинки и видео локально; <strong>Подготовить переход</strong> только проверяет
+обложку, картинки и видео локально; <strong><!--i18n:ui.44cdcce6a36e-->Подготовить переход</strong><!--i18n:ui.0f285a7899aa--> только проверяет
 сайт и показывает, будет создан новый пост или обновлён существующий.
-Отправка начинается отдельной кнопкой подтверждения. Статус <strong>Черновик</strong>
-сохраняет черновик WordPress, <strong>Опубликовано</strong> делает статью доступной читателям.</p>
-<p>Если нужны промежуточные проверки, добавьте ещё площадки и расположите их
+Отправка начинается отдельной кнопкой подтверждения. Статус <strong><!--i18n:ui.65fd24f1cb37-->Черновик</strong><!--i18n:ui.108e8a4a4391-->
+сохраняет черновик WordPress, <strong><!--i18n:ui.382ded9c6877-->Опубликовано</strong><!--i18n:ui.d9501053a476--> делает статью доступной читателям.</p>
+<p><!--i18n:ui.460b342ee8d0-->Если нужны промежуточные проверки, добавьте ещё площадки и расположите их
 стрелками. Последняя включённая площадка — основной сайт, остальные —
 предварительные. Их страницы доступны на соответствующих серверах;
-после просмотра подтвердите переход к следующей. Галочка <strong>Использовать
-в маршруте</strong> позволяет пропустить площадку, сохранив её настройки.
+после просмотра подтвердите переход к следующей. Галочка <strong><!--i18n:ui.42d5f9dbcc9f-->Использовать
+в маршруте</strong><!--i18n:ui.8782ceeb3e32--> позволяет пропустить площадку, сохранив её настройки.
 На любой площадке внешняя правка WordPress останавливает перенос.
 Изменение адреса или порядка после подготовки требует нового снимка.</p>
-<p>Если внешнему серверу нужен прокси, откройте <strong>Настройки → Публикация на сайт</strong>.
-Для каждого сайта выберите <strong>Напрямую</strong>, <strong>Системный прокси</strong> или <strong>Указать прокси</strong>.
+<p><!--i18n:ui.6300fc65f926-->Если внешнему серверу нужен прокси, откройте <strong><!--i18n:ui.f060c36372ca-->Настройки → Публикация на сайт</strong><!--i18n:ui.e63ab17fdb51-->.
+Для каждого сайта выберите <strong><!--i18n:ui.a672e5372a16-->Напрямую</strong>, <strong><!--i18n:ui.5bf5fdbeef34-->Системный прокси</strong><!--i18n:ui.bcacbff7a563--> или <strong><!--i18n:ui.992eec9dc06a-->Указать прокси</strong><!--i18n:ui.8918e28f1369-->.
 Там же показан адрес, найденный в системе. Локальная площадка обычно использует
 прямое подключение. Сохранение настроек ничего не публикует; кнопка
-<strong>Подготовить переход</strong> проверяет сервер и показывает предстоящую операцию.</p>
-<p><img alt="Подключение одного WordPress без NAS, стейджа и Git" src="/static/help/connections.png" /></p>
-<p>В <strong>Хранение снимков в Git</strong> можно включить дополнительную копию в своём
+<strong><!--i18n:ui.44cdcce6a36e-->Подготовить переход</strong><!--i18n:ui.af53714a58b0--> проверяет сервер и показывает предстоящую операцию.</p>
+<p><img alt="Подключение одного WordPress без NAS, стейджа и Git" src="/static/help/connections.png"  data-i18n-alt="ui.f66904e68428"/></p>
+<p><!--i18n:ui.8b7b577aa31e-->В <strong><!--i18n:ui.123edb1ab7ce-->Хранение снимков в Git</strong><!--i18n:ui.08eefcd3639f--> можно включить дополнительную копию в своём
 репозитории. Он должен быть уже создан, с origin, нужной веткой и авторством.
 Git включается отдельно; Гранка не создаёт его автоматически и не требует
 GitHub или Gitea для обычной отправки в WordPress.</p>
-<p><img alt="Предпросмотр отправки на один подключённый сайт" src="/static/help/site-preview.png" /></p>
-<h3>Подключить Telegram</h3>
-<p>В разделе <strong>Telegram → Бот и канал</strong> сохраните токен своего бота и
-<code>@имя_канала</code>, затем нажмите <strong>Проверить подключение</strong>.
+<p><img alt="Предпросмотр отправки на один подключённый сайт" src="/static/help/site-preview.png"  data-i18n-alt="ui.74377efb1bb4"/></p>
+<h3><!--i18n:ui.0a018d332cb8-->Подключить Telegram</h3>
+<p><!--i18n:ui.5bf0b188cc8c-->В разделе <strong><!--i18n:ui.be03426cd0d3-->Telegram → Бот и канал</strong><!--i18n:ui.7dae05a03d7e--> сохраните токен своего бота и
+<code>@имя_канала</code><!--i18n:ui.5337ae6c1b5f-->, затем нажмите <strong><!--i18n:ui.d6d828dc8806-->Проверить подключение</strong><!--i18n:ui.a1127799ab00-->.
 Для закрытого канала нужен числовой идентификатор. Проверка соединения
 не отправляет сообщения. Токен хранится в личных настройках или отдельном
 файле; не вставляйте его в статью, снимки экрана или переписку.</p>
-<p>Создайте бота командой <code>/newbot</code> у официального <a href="https://t.me/BotFather">BotFather</a>,
+<p><!--i18n:ui.b4006509448d-->Создайте бота командой <code>/newbot</code><!--i18n:ui.d8dcf2d6d832--> у официального <a href="https://t.me/BotFather">BotFather</a><!--i18n:ui.05f03d8603f2-->,
 затем добавьте его администратором своего канала с правом публикации сообщений.
 Право удаления постов для нынешней отправки не нужно.
 Историю оформления старых постов можно изучить по публичной ленте или
-<a href="https://telegram.org/blog/export-and-more">экспорту Telegram Desktop</a>.
+<a href="https://telegram.org/blog/export-and-more"><!--i18n:ui.d2e8498bdf10-->экспорту Telegram Desktop</a><!--i18n:ui.8096d488177d-->.
 Bot API не предоставляет загрузку всей прежней истории канала.</p>
-<p><img alt="Черновик Telegram: текст и предпросмотр" src="/static/help/telegram.png" /></p>
-<p><strong>Анонс с вложениями</strong> — короткая подпись и фотографии/MP4. Ссылка считается
+<p><img alt="Черновик Telegram: текст и предпросмотр" src="/static/help/telegram.png"  data-i18n-alt="ui.54b4cbafec99"/></p>
+<p><strong><!--i18n:ui.c0a62975fe72-->Анонс с вложениями</strong><!--i18n:ui.c54c7c6b56ab--> — короткая подпись и фотографии/MP4. Ссылка считается
 вместе с подписью: до 1024 символов с медиа, до 4096 без него. Ролик ограничен
 50 МБ; общий размер одной отправки тоже 50 МБ, в альбоме до 10 файлов.</p>
-<p><strong>Статья с медиа</strong> — отдельный черновик с изображениями и видео между
+<p><strong><!--i18n:ui.32c01a7ac18a-->Статья с медиа</strong><!--i18n:ui.6e3b9c995156--> — отдельный черновик с изображениями и видео между
 абзацами. Добавляйте каждое медиа отдельным блоком. Отображение зависит
 от поддержки Rich Messages клиентом Telegram. Обычная подпись к ролику
 не требует этого формата.</p>
-<p>В поле <strong>Публикация в канале</strong> выберите действие. Если Гранка уже отправляла
-эту статью в выбранный канал, по умолчанию стоит <strong>Обновить опубликованный пост</strong>.
+<p><!--i18n:ui.2f4528f7f00b-->В поле <strong><!--i18n:ui.e08f96c462ba-->Публикация в канале</strong><!--i18n:ui.a0ffeffdbc69--> выберите действие. Если Гранка уже отправляла
+эту статью в выбранный канал, по умолчанию стоит <strong><!--i18n:ui.e331183a1168-->Обновить опубликованный пост</strong><!--i18n:ui.ddce9aa10914-->.
 Укажите прежнюю публикацию: её ссылка и номер сохранятся, а текст и медиа
 заменятся проверенным снимком. Для альбома сохраняется число вложений;
 изменение его состава требует отдельного нового поста.</p>
-<p><strong>Создать новый</strong> явно создаёт ещё одну публикацию. Рядом появляется
+<p><strong><!--i18n:ui.67ed21bbdff6-->Создать новый</strong><!--i18n:ui.0522b4619443--> явно создаёт ещё одну публикацию. Рядом появляется
 предупреждение, если статья уже выходила в этом канале. История доступна
 только для отправок, выполненных Гранкой в том же профиле; произвольный
 старый пост из Telegram автоматически не загружается.</p>
-<p>Кнопка <strong>К публикации…</strong> или <strong>Проверить обновление…</strong> фиксирует текст,
+<p><!--i18n:ui.4091b76310b8-->Кнопка <strong><!--i18n:ui.93591e5b57af-->К публикации…</strong><!--i18n:ui.bcacbff7a563--> или <strong><!--i18n:ui.5678adbfcfa9-->Проверить обновление…</strong><!--i18n:ui.6738ec7c0864--> фиксирует текст,
 файлы, канал и выбранное действие. Сначала проверьте снимок, затем нажмите
 кнопку отправки или обновления. При неизвестном исходе повтор блокируется:
 сначала посмотрите канал. Ошибка обновления не создаёт новый пост.</p>
-<p>Два окна одного профиля не могут одновременно отправить снимки этой статьи:
+<p><!--i18n:ui.e50e3a4a1215-->Два окна одного профиля не могут одновременно отправить снимки этой статьи:
 работает межпроцессная блокировка и проверка актуальности истории.
 После отправки из другого окна устаревший снимок потребуется подготовить заново.
-Кнопки <strong>← К статье</strong> в шапке и внизу формы возвращают в редактор;
+Кнопки <strong><!--i18n:ui.9debf4d5d412-->← К статье</strong><!--i18n:ui.196a1025c2d0--> в шапке и внизу формы возвращают в редактор;
 незавершённый текст анонса остаётся в этом браузере.</p>
-<p>Сайт и Telegram — отдельные внешние операции. Подготовьте обе версии заранее,
+<p><!--i18n:ui.83b8bbf9d0fd-->Сайт и Telegram — отдельные внешние операции. Подготовьте обе версии заранее,
 проверьте итоговую ссылку сайта и наличие бота. Успешный выпуск в один канал
 не означает успех второго.</p>
-<h3>Настроить рабочее место</h3>
-<p>В <strong>Настройках → Оформление</strong> выбираются шрифт и размер чтения, можно
+<h3><!--i18n:ui.bd9f77a64265-->Настроить рабочее место</h3>
+<p><!--i18n:ui.8b7b577aa31e-->В <strong><!--i18n:ui.bf52cfb222b8-->Настройках → Оформление</strong><!--i18n:ui.412e1bd3f767--> выбираются шрифт и размер чтения, можно
 отключить движение. Оформление сохраняется в текущем браузере.
 Здесь же настраиваются ИИ-исполнители и маршруты подключения к сайту.
 Маршруты и параметры ИИ сохраняются вместе с проверкой ревизии: чужие изменения
 из второго окна не перезаписываются. Для расширенного подключения путей,
-WordPress и голоса есть <a href="https://github.com/andromanpro/granka/blob/main/docs/CONFIGURATION.md">описание конфигурации</a>.</p>
-<p><img alt="Настройки рабочей мастерской" src="/static/help/settings.png" /></p>
-<p>Установка, переносимая версия, обновление и удаление описаны в
-<a href="https://github.com/andromanpro/granka/blob/main/docs/WINDOWS.md">руководстве Windows</a>. Разбор статьи целиком — в
-<a href="https://github.com/andromanpro/granka/blob/main/docs/DEEP-REVIEW.md">описании глубокого разбора</a>.</p></article></dialog>
+WordPress и голоса есть <a href="https://github.com/andromanpro/granka/blob/main/docs/CONFIGURATION.md"><!--i18n:ui.1358da24d8dd-->описание конфигурации</a>.</p>
+<p><img alt="Настройки рабочей мастерской" src="/static/help/settings.png"  data-i18n-alt="ui.aeb96d9a3953"/></p>
+<p><!--i18n:ui.fbdc1047c043-->Установка, переносимая версия, обновление и удаление описаны в
+<a href="https://github.com/andromanpro/granka/blob/main/docs/WINDOWS.md"><!--i18n:ui.8920df10a25e-->руководстве Windows</a><!--i18n:ui.82a58dc2bdb3-->. Разбор статьи целиком — в
+<a href="https://github.com/andromanpro/granka/blob/main/docs/DEEP-REVIEW.md"><!--i18n:ui.46b7866897c6-->описании глубокого разбора</a>.</p></article></dialog>
     <script type="module" src="/static/ui/main.js"></script>
   </body>
 </html>

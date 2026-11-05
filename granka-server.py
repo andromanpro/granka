@@ -42,6 +42,8 @@ from tools.article_creation import ArticleCreator, CreationConflict
 from tools.voice_corpus import VoiceCorpus
 from tools import article_draft
 from tools.article_trash import ArticleTrash, TrashConflict
+from tools.publication_scheduler import PublicationScheduler
+from tools import languages
 
 
 class ThreadingHTTPServer(_ThreadingHTTPServer):
@@ -81,6 +83,7 @@ class ThreadingHTTPServer(_ThreadingHTTPServer):
 
 
 TELEGRAM = telegram.Telegram(lambda: ai_provider.STATE)
+SCHEDULER = PublicationScheduler(TELEGRAM)
 SITE = SitePublisher(lambda: ai_provider.STATE)
 CALENDAR = PublicationPlan(lambda: ai_provider.STATE, lambda: library_sources(), hidden=lambda item: TRASH.hidden_entry(item))
 
@@ -145,6 +148,10 @@ def job_service():
 
 def trash_jobs_busy(paths):
     paths = {p.resolve() for p in paths}
+    for record in SCHEDULER.read()['entries']:
+        if record['schedule']['state'] in {'scheduled','sending'} and record['root'] in ROOTS:
+            if safe_resolve(record['root'],record['rel']).resolve() in paths:
+                return True
     for file in job_service().directory.glob('*/job.json'):
         job = json.loads(file.read_text(encoding='utf-8'))
         if job.get('status') in {'queued', 'running'} and job.get('root') in ROOTS:
@@ -174,6 +181,7 @@ def enqueue_job(root_id, rel, body):
         md=source_document(path,root_id,data)
         source_hash=hashlib.sha256(md.read_bytes()).hexdigest() if md.exists() else None
     config=ai_provider.settings()
+    config.update(languages.selected(config,version['text']))
     provider='local' if kind=='apply' else config['image_provider' if kind=='image' else 'analysis_provider']
     prompt=body.get('prompt','')
     if kind=='announcement' and (not isinstance(prompt,str) or len(prompt)>2000):
@@ -283,6 +291,7 @@ def enqueue_job(root_id, rel, body):
         return out
     job=job_service().submit(kind,root_id,rel,op_id,
         {'version':version['id'],'provider':provider, **({'purpose':purpose} if kind=='image' else {}),
+         'languages':languages.selected(config,version['text']),
          **({'target':spice_request['target']} if kind=='spice' else {})},work)
     return 202,{'ok':True,'job':job}
 
@@ -442,7 +451,7 @@ def transcribe_webm(raw: bytes) -> dict:
         webm = Path(td) / "note.webm"
         webm.write_bytes(raw)
         # faster-whisper decodes WebM through PyAV; an external ffmpeg.exe is unnecessary.
-        pr = subprocess.run([str(SPEECH_PYTHON), str(TRANSCRIBE), str(webm)],
+        pr = subprocess.run([str(SPEECH_PYTHON), str(TRANSCRIBE), str(webm),ai_provider.settings()['material_language']],
                             capture_output=True, timeout=180,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         if pr.returncode != 0:
             raise RuntimeError("whisper: " + pr.stderr.decode("utf-8", "replace")[-200:])
@@ -504,6 +513,8 @@ class H(BaseHTTPRequestHandler):
         print(f"[granka] {fmt % args}")
 
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
+        if code>=400 and isinstance(body,dict)and 'error'in body:
+            body={**body,'code':body.get('code')or{400:'invalid_request',403:'permission_denied',404:'not_found',409:'conflict',413:'too_large',502:'upstream_error'}.get(code,'internal_error')}
         raw = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode("utf-8")
         try:
             self.send_response(code)
@@ -570,6 +581,8 @@ class H(BaseHTTPRequestHandler):
                 self._send(200,{**SITE.info(data,root,rel),'plans':SITE.plans(root,rel),'source_hash':source_hash(data)})
             elif url.path == '/api/telegram/settings':
                 self._send(200, TELEGRAM.settings())
+            elif url.path == '/api/telegram/queue':
+                self._send(200, SCHEDULER.read())
             elif url.path == '/api/telegram/assets':
                 q=urllib.parse.parse_qs(url.query);doc=self._doc_path(q)
                 if not doc.is_file():raise LookupError('Статья не найдена')
@@ -596,7 +609,10 @@ class H(BaseHTTPRequestHandler):
             elif url.path.startswith('/static/'):
                 asset = (STATIC / url.path.removeprefix('/static/')).resolve()
                 mime = {'.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8',
-                        '.svg':'image/svg+xml', '.png':'image/png', '.ico':'image/x-icon'}
+                        '.svg':'image/svg+xml', '.png':'image/png', '.ico':'image/x-icon',
+                        '.json':'application/json; charset=utf-8'}
+                if asset.suffix=='.json'and(asset.parent!=STATIC/'locales'or asset.name not in {'ru.json','en.json'}):
+                    self._send(404,{'error':'asset not found'});return
                 if not asset.is_relative_to(STATIC.resolve()) or asset.suffix not in mime or not asset.is_file():
                     self._send(404, {'error':'asset not found'});return
                 self._send(200, asset.read_bytes(), mime[asset.suffix])
@@ -934,6 +950,16 @@ class H(BaseHTTPRequestHandler):
                 if record['root']!=q.get('root',[''])[0] or record['rel']!=q.get('f',[''])[0]:
                     raise LookupError('Публикация не найдена для этой статьи')
                 self._send(200,TELEGRAM.publish(record['id']))
+            elif url.path in {'/api/telegram/schedule','/api/telegram/cancel-schedule'}:
+                record=TELEGRAM.read(b.get('id',''))
+                if record['root']not in ROOTS:raise LookupError('Публикация не найдена')
+                if url.path.endswith('/schedule'):
+                    self._doc_path(q)
+                    if record['root']!=q.get('root',[''])[0]or record['rel']!=q.get('f',[''])[0]:
+                        raise LookupError('Публикация не найдена для этой статьи')
+                    self._send(200,SCHEDULER.schedule(record['id'],b))
+                else:
+                    self._send(200,SCHEDULER.cancel(record['id'],b.get('expected_schedule_revision')))
             elif url.path == '/api/jobs':
                 with LOCK:
                     code,out=enqueue_job(q.get('root',[''])[0],q.get('f',[''])[0],b)
@@ -1299,10 +1325,12 @@ def main():
     from tools.desktop_runtime import server_mutex
     try:
         with server_mutex():
+            SCHEDULER.start(activity=srv)
             srv.serve_forever()
     except KeyboardInterrupt:
         print("Гранка остановлена.")
     finally:
+        SCHEDULER.stop()
         srv.server_close()
 
 

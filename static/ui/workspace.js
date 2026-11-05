@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import { $, S, events, allowNavigation, toast } from './core.js';
 
 const pages = {
@@ -69,11 +70,11 @@ export async function navigateWorkspace(section, { push = true } = {}) {
   if (!sections.includes(section) || !handlers) return;
   if (routing) {
     if (!push) { ++sequence; pendingRoute = { section, push }; }
-    else toast('Дождись завершения текущего действия');
+    else toast(t("ui.f36a1e8df156"));
     return;
   }
   if (S.workspaceLocked || S.recording || S.busy) {
-    toast('Дождись завершения текущего действия');
+    toast(t("ui.f36a1e8df156"));
     return;
   }
   const own = ++sequence;
@@ -81,7 +82,7 @@ export async function navigateWorkspace(section, { push = true } = {}) {
   // Reopening the same page must not discard fields, attachments or a prepared post.
   if (pages[section] && $('#' + pages[section]).open) return;
   if (!S.document && ['spices', 'diff', 'history', 'telegram'].includes(section)) {
-    toast('Сначала открой статью в библиотеке');
+    toast(t("ui.6f377b6503e6"));
     return;
   }
   routing = true;

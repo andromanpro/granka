@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import {
   $,
   S,
@@ -39,7 +40,7 @@ export async function startJob(kind, extra = {}) {
     return result.job;
   } catch (error) {
     toast(
-      error.conflict ? "Версия изменилась. Перечитай статью." : error.message,
+      error.conflict ? t("ui.23b626fd607a") : error.message,
       true,
     );
     return null;
@@ -50,7 +51,7 @@ export async function startJob(kind, extra = {}) {
 }
 export async function applyDecisions() {
   if (S.editor) {
-    toast("Сначала сохрани правку текста");
+    toast(t("ui.f7056d9c8f89"));
     return;
   }
   const pending = annotations().filter(
@@ -58,7 +59,7 @@ export async function applyDecisions() {
   ).length;
   if (
     pending &&
-    !confirm("Ещё " + pending + " пометок без решения. Применить уже принятые?")
+    !confirm(t("ui.d9740bb6789c") + pending + t("ui.deccb4660c0e"))
   )
     return;
   await startJob("apply");
@@ -98,7 +99,7 @@ export async function pollJobs() {
           }
         }
       } else
-        toast("Результат готов. Открой его после завершения текущей правки.");
+        toast(t("ui.1b4b89230191"));
     }
   } catch (_) {}
 }
@@ -112,14 +113,14 @@ export function renderJobStatus() {
     banner = $("#job-banner");
   const state = S.document?.status || "draft";
   const titles = {
-    draft: "Правка и замечания",
-    ready: "Решения приняты · можно применить",
-    applied: "Новая версия готова · проверь изменения",
+    draft: t("ui.06553f21aedb"),
+    ready: t("ui.0103b62f6c2e"),
+    applied: t("ui.0e21e606620f"),
   };
   const publication = S.publication;
   const changed = publication?.changed || !!S.editor;
-  $("#stage-label").textContent = publication ? publication.label + (S.editor && !publication.changed ? ' · есть правки' : '') : titles[state] || state;
-  $("#stage-label").title = publication ? publication.title + (S.editor ? '\nЕсть несохранённые изменения' : '') + '\n' + (titles[state] || state) : '';
+  localize($("#stage-label"),"textContent",()=>publication ? publication.label + (S.editor && !publication.changed ? t("ui.c072be35e6bc") : '') : titles[state] || state);
+  localize($("#stage-label"),"title",()=>publication ? publication.title + (S.editor ? t("ui.f38e62f3a96e") : '') + '\n' + (titles[state] || state) : '');
   $("#stage-dot").className = "stage-dot " + (publication ? changed ? 'published changed' : 'published' : state);
   banner.hidden =
     !current ||
@@ -131,27 +132,25 @@ export function renderJobStatus() {
     const running = ["queued", "running"].includes(current.status);
     banner.classList.toggle("running", running);
     banner.classList.toggle("error", !running);
-    $("#job-title").textContent = current.result?.warning
-      ? "Нужно проверить исходный файл"
-      : current.message;
-    $("#job-description").textContent =
-      current.result?.warning ||
+    localize($("#job-title"),"textContent",()=>current.result?.warning
+      ? t("ui.fb6299e294d2")
+      : current.message);
+    localize($("#job-description"),"textContent",()=>current.result?.warning ||
       (running
         ? providerName(current.provider) +
           " · " +
           Math.floor(Date.now() / 1000 - current.created) +
-          " с. Результат появится здесь."
-        : "Подробности сохранены в журнале задания. Автоматического повторного запроса нет.");
+          t("ui.b5461c51f095")
+        : t("ui.8d3e38d93c2e")));
   }
   const report = $("#review-result");
   report.replaceChildren();
   const changes = version()?.applied_decisions || [];
   if (changes.length) {
     const summary = document.createElement("p");
-    summary.textContent =
-      "В этой версии применено " +
+    localize(summary,"textContent",()=>t("ui.c2ce5cc3b32e") +
       changes.length +
-      " решений. Их можно проверить во вкладке «Изменения».";
+      t("ui.53f82a57bbde"));
     report.appendChild(summary);
   }
   const analysis = S.document?.analyses

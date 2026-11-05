@@ -10,6 +10,7 @@ import uuid
 from .ai_provider import atomic_json
 from .document_store import validate
 from .file_lock import file_lock
+from . import languages, ai_provider
 
 
 class CreationConflict(ValueError):
@@ -67,7 +68,8 @@ class ArticleCreator:
             raise ValueError('Название нельзя использовать как имя файла')
         text = '# ' + title + '\n\n'
         if mode == 'outline':
-            text += '## С чего всё началось\n\n\n## Что получилось\n\n\n## Что дальше\n\n'
+            choices=languages.selected({**ai_provider.settings(),**{k:body[k]for k in ('material_language','comments_language')if k in body}},title)
+            text += ('## Where it started\n\n\n## What happened\n\n\n## What comes next\n\n'if choices['resolved_material_language']=='en'else '## С чего всё началось\n\n\n## Что получилось\n\n\n## Что дальше\n\n')
         elif mode == 'notes':
             text += notes.strip() + '\n'
         elif mode == 'ai':

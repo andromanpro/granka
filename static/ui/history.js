@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import { $, S, el, button, events, emit, allowNavigation, operation, toast } from './core.js';
 import { setView } from './editor.js';
 import { compareVersions } from './diff.js';
@@ -27,7 +28,7 @@ async function restore(id) {
   $('#versel').value = S.version;
   emit('version'); setView('article'); emit('controls');
   if (out.warning) toast(out.warning, true);
-  else toast(out.unchanged ? 'Эта версия уже в работе' : 'В работу возвращена ' + id + ' · создана ' + S.version);
+  else toast(out.unchanged ? t("ui.e5c3e5d411de") : t("ui.96a865517e68") + id + t("ui.84df9208ef79") + S.version);
 }
 function render() {
   const box = $('#version-history'); box.replaceChildren();
@@ -36,14 +37,14 @@ function render() {
   for (const version of [...S.document.versions].reverse()) {
     const row = el('article', 'version-history-item'); row.dataset.version = version.id;
     row.classList.toggle('current', version.id === S.version);
-    row.append(el('strong', '', version.id + (version.id === head ? ' · в работе' : '') + (version.id === S.version ? ' · открыта' : '')));
+    row.append(el('strong', '', ()=>version.id + (version.id === head ? t("ui.8a232a97dac3") : '') + (version.id === S.version ? t("ui.6f9cf7b91358") : '')));
     if (version.label) row.append(el('p', '', version.label));
     if (version.ts) row.append(el('time', '', version.ts.replace('T', ' ')));
-    if (version.restored_from) row.append(el('p', 'fine-print', 'Возврат из ' + version.restored_from));
+    if (version.restored_from) row.append(el('p', 'fine-print', ()=>t("ui.7546022529bc") + version.restored_from));
     const actions = el('div', 'version-history-actions');
-    const open = button('Открыть', () => openVersion(version.id));
-    const compare = button('Сравнить с открытой', () => compareVersions(version.id));
-    const take = button('Вернуть в работу', () => restore(version.id), 'quiet');
+    const open = button(()=>t("ui.ea1f40824607"), () => openVersion(version.id));
+    const compare = button(()=>t("ui.198b8fd1306b"), () => compareVersions(version.id));
+    const take = button(()=>t("ui.c9b93dc0d9c4"), () => restore(version.id), 'quiet');
     open.dataset.historyAction = 'open'; compare.dataset.historyAction = 'compare'; take.dataset.historyAction = 'restore';
     actions.append(open, compare, take); row.append(actions); box.append(row);
   }

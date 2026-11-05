@@ -18,8 +18,10 @@ PROMPT = "Русская речь. Заметка редактора о текс
 
 
 def main():
-    if len(sys.argv) != 2:
-        sys.exit("usage: transcribe.py file.wav")
+    if len(sys.argv) not in {2,3}:
+        sys.exit("usage: transcribe.py file.wav [ru|en|auto]")
+    language=sys.argv[2]if len(sys.argv)==3 else SETTINGS['language']
+    if language not in {'ru','en','auto'}:sys.exit('Unsupported language')
     wav = sys.argv[1]
     from faster_whisper import WhisperModel
     last_err = None
@@ -28,7 +30,8 @@ def main():
             model = WhisperModel(name, device="cpu", compute_type="int8",
                                  download_root=str(MODEL_ROOT))
             segments, _info = model.transcribe(
-                wav, language=SETTINGS['language'], initial_prompt=PROMPT, vad_filter=True)
+                wav, language=None if language=='auto'else language,
+                initial_prompt=PROMPT if language=='ru'else 'An editorial note about an article.'if language=='en'else None, vad_filter=True)
             segs = [{"start": round(s.start, 2), "end": round(s.end, 2),
                      "text": s.text.strip()} for s in segments if s.text.strip()]
             print(json.dumps({

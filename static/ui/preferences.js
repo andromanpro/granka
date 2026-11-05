@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import { $, S, api, el, button, events, toast } from "./core.js";
 import { startJob, workingJob } from "./jobs.js";
 let summary = null,
@@ -32,11 +33,10 @@ async function changeRule(route, body) {
 }
 async function refresh() {
   summary = await api("/api/preferences");
-  $("#preferences-summary").textContent =
-    `Личных правил: ${summary.rules.length}. Уникальных решений: ${summary.decisions} (${summary.changed} правок, ${summary.kept} сохранённых фрагментов). До 16 подходящих примеров подбираются к каждому анализу.` +
+  localize($("#preferences-summary"),"textContent",()=>t("ui.82a0a8f22e32",summary.rules.length,summary.decisions,summary.changed,summary.kept) +
     (summary.errors.length
-      ? " Не удалось прочитать документов: " + summary.errors.length + "."
-      : "");
+      ? t("ui.c2e1ff8f6660") + summary.errors.length + "."
+      : ""));
   const rules = $("#preferences-rules");
   rules.replaceChildren();
   for (const rule of summary.rules) {
@@ -46,7 +46,7 @@ async function refresh() {
       el("p", null, rule.instruction),
     );
     details.appendChild(
-      ruleButton("Отключить правило", () =>
+      ruleButton(t("ui.5653cca0e4da"), () =>
         changeRule("/api/preferences/rule-toggle", {
           id: rule.id,
           enabled: false,
@@ -60,7 +60,7 @@ async function refresh() {
       el(
         "p",
         "fine-print",
-        "Личные правила появятся здесь после добавления аллергенов или записи в corrections_file.",
+        ()=>t("ui.f87a3a02b0e6"),
       ),
     );
   const inactive = $("#inactive-rules");
@@ -72,16 +72,16 @@ async function refresh() {
       el(
         "p",
         "fine-print",
-        rule.state === "superseded"
-          ? "Заменено уточнением"
+        ()=>rule.state === "superseded"
+          ? t("ui.67543771e2eb")
           : rule.state === "stale"
-            ? "Исходное правило изменилось вне Гранки"
-            : "Отключено",
+            ? t("ui.56b5ba0d397c")
+            : t("ui.3e95800065e0"),
       ),
     );
     if (rule.state === "disabled")
       row.appendChild(
-        ruleButton("Включить правило", () =>
+        ruleButton(t("ui.86c0405f7faf"), () =>
           changeRule("/api/preferences/rule-toggle", {
             id: rule.id,
             enabled: true,
@@ -91,12 +91,12 @@ async function refresh() {
     inactive.appendChild(row);
   }
   renderProposals();
-  $("#benchmark-summary").textContent = summary.benchmark.cases
-    ? "В наборе " +
+  localize($("#benchmark-summary"),"textContent",()=>summary.benchmark.cases
+    ? t("ui.eeb39a38f570") +
       summary.benchmark.cases +
-      " примеров · " +
+      t("ui.b99001fa2e07") +
       summary.benchmark.created
-    : "Набор ещё не собран.";
+    : t("ui.0017edfcb64f"));
   renderReport(summary.last_report);
   controls();
 }
@@ -105,7 +105,7 @@ function renderReport(report) {
   box.replaceChildren();
   if (!report) return;
   box.appendChild(
-    el("h3", null, `Совпало решений: ${report.passed} из ${report.tested}`),
+    el("h3", null, ()=>t("ui.a9d2b33bcfc7",report.passed,report.tested)),
   );
   box.appendChild(el("p", "fine-print", report.note));
   if (
@@ -116,7 +116,7 @@ function renderReport(report) {
       el(
         "p",
         "inline-notice",
-        "Прогон не подтверждает текущую редакцию правил. После изменений запусти проверку модели заново.",
+        ()=>t("ui.63ea5e52869e"),
       ),
     );
   for (const item of report.results) {
@@ -128,31 +128,31 @@ function renderReport(report) {
       el(
         "summary",
         null,
-        (item.passed ? "Совпало · " : "Разошлось · ") +
+        ()=>(item.passed ? t("ui.06a13d5b029d") : t("ui.1d1eb7f551a0")) +
           item.before.slice(0, 100),
       ),
       el("blockquote", null, item.before),
       el(
         "p",
         null,
-        "Решение автора: " +
+        ()=>t("ui.73b198b3e856") +
           {
-            keep: "сохранить",
-            edit: "изменить",
-            avoid_variants: "не использовать отвергнутые варианты",
+            keep: t("ui.eb41f2845e11"),
+            edit: t("ui.706564218657"),
+            avoid_variants: t("ui.2338ae7fd05b"),
           }[item.expected],
       ),
       el(
         "p",
         null,
-        "Модель: " +
-          (item.action === "keep" ? "сохранить" : item.text || "удалить"),
+        ()=>t("ui.40952bc27279") +
+          (item.action === "keep" ? t("ui.eb41f2845e11") : item.text || t("ui.2977dad18584")),
       ),
       el("p", "fine-print", item.reason),
     );
     if (item.author_text)
       details.appendChild(
-        el("p", "fine-print", "Вариант автора: " + item.author_text),
+        el("p", "fine-print", ()=>t("ui.37d33951ebef") + item.author_text),
       );
     box.appendChild(details);
   }
@@ -166,10 +166,9 @@ function controls() {
   document
     .querySelectorAll("[data-rule-action]")
     .forEach((b) => (b.disabled = loading || !!workingJob()));
-  $("#benchmark-provider").textContent =
-    S.settings.analysis_provider === "openrouter"
-      ? "OpenRouter · проверка выполнит отдельный платный запрос."
-      : "Codex · текущая модель анализа.";
+  localize($("#benchmark-provider"),"textContent",()=>S.settings.analysis_provider === "openrouter"
+      ? t("ui.a70225c38551")
+      : t("ui.cfd2bbf04750"));
 }
 function renderProposals() {
   const box = $("#rule-proposals");
@@ -183,10 +182,10 @@ function renderProposals() {
     const draft = ruleDrafts.get(proposal.id) || proposal;
     const title = el("input");
     title.value = draft.title;
-    title.setAttribute("aria-label", "Название правила");
+    title.setAttribute("aria-label", t("ui.9e25d0859e87"));
     const instruction = el("textarea");
     instruction.value = draft.instruction;
-    instruction.setAttribute("aria-label", "Формулировка правила");
+    instruction.setAttribute("aria-label", t("ui.5799937961cd"));
     const remember = () =>
       ruleDrafts.set(proposal.id, {
         title: title.value,
@@ -198,9 +197,9 @@ function renderProposals() {
       el(
         "p",
         "fine-print",
-        proposal.previous_rule
-          ? "Уточнение: " + proposal.previous_rule.title
-          : "Новое правило",
+        ()=>proposal.previous_rule
+          ? t("ui.e6eb00c569cd") + proposal.previous_rule.title
+          : t("ui.86885217ae72"),
       ),
       title,
       instruction,
@@ -208,7 +207,7 @@ function renderProposals() {
     );
     const evidence = el("details");
     evidence.appendChild(
-      el("summary", null, "Решения автора · " + proposal.evidence.length),
+      el("summary", null, ()=>t("ui.8d587d83558a") + proposal.evidence.length),
     );
     for (const example of proposal.evidence) {
       const row = el("div", "rule-evidence");
@@ -217,11 +216,11 @@ function renderProposals() {
         el(
           "p",
           null,
-          example.expected === "keep"
-            ? "Автор оставил текст"
+          ()=>example.expected === "keep"
+            ? t("ui.f758cda19335")
             : example.after
-              ? "Автор: " + example.after
-              : "Автор изменил или убрал фрагмент",
+              ? t("ui.745b218447d3") + example.after
+              : t("ui.39b2f6fbc34d"),
         ),
       );
       evidence.appendChild(row);
@@ -230,14 +229,14 @@ function renderProposals() {
     if (proposal.previous_rule) {
       const old = el("details");
       old.append(
-        el("summary", null, "Действующая формулировка"),
+        el("summary", null, ()=>t("ui.71371bcea61c")),
         el("p", null, proposal.previous_rule.instruction),
       );
       card.appendChild(old);
     }
     const actions = el("div", "actions");
     actions.append(
-      ruleButton("Принять правило", () =>
+      ruleButton(t("ui.ea00da281a92"), () =>
         changeRule("/api/preferences/rule-review", {
           id: proposal.id,
           action: "accepted",
@@ -245,7 +244,7 @@ function renderProposals() {
           instruction: instruction.value,
         }),
       ),
-      ruleButton("Отклонить", () =>
+      ruleButton(t("ui.899c5d6de891"), () =>
         changeRule("/api/preferences/rule-review", {
           id: proposal.id,
           action: "rejected",
@@ -256,7 +255,7 @@ function renderProposals() {
     box.appendChild(card);
   }
   if (!pending.length)
-    box.appendChild(el("p", "fine-print", "Предложений на проверку пока нет."));
+    box.appendChild(el("p", "fine-print", ()=>t("ui.7ac21faae3da")));
 }
 export function initPreferences() {
   $("#preferences-btn").addEventListener("click", async () => {
@@ -276,7 +275,7 @@ export function initPreferences() {
     try {
       await api("/api/preferences/benchmark", { method: "POST", body: {} });
       await refresh();
-      toast("Проверочный набор обновлён");
+      toast(t("ui.252028aca11e"));
     } catch (error) {
       toast(error.message, true);
     } finally {
@@ -304,10 +303,9 @@ export function initPreferences() {
     controls();
     const ruleJob = S.jobs.find((j) => j.kind === "rules");
     if (ruleJob) {
-      $("#rules-proposal-status").textContent =
-        ruleJob.status === "succeeded"
-          ? "Предложений: " + ruleJob.result.proposed
-          : ruleJob.message;
+      localize($("#rules-proposal-status"),"textContent",()=>ruleJob.status === "succeeded"
+          ? t("ui.051d9e477c13") + ruleJob.result.proposed
+          : ruleJob.message);
       if (ruleJob.status === "succeeded" && ruleJob.id !== lastRuleJob) {
         lastRuleJob = ruleJob.id;
         if ($("#preferencesdialog").open)
@@ -316,11 +314,10 @@ export function initPreferences() {
     }
     const job = S.jobs.find((j) => j.kind === "benchmark");
     if (!job) return;
-    $("#benchmark-status").textContent =
-      job.message +
+    localize($("#benchmark-status"),"textContent",()=>job.message +
       (["queued", "running"].includes(job.status)
-        ? " · " + Math.floor(Date.now() / 1000 - job.created) + " с"
-        : "");
+        ? " · " + Math.floor(Date.now() / 1000 - job.created) + t("ui.ddae8eb8bf21")
+        : ""));
     if (job.status === "succeeded" && job.id !== lastJob) {
       lastJob = job.id;
       renderReport(job.result);

@@ -4,6 +4,7 @@ import json
 import stat
 from pathlib import Path
 from . import iimeter
+from . import languages
 from .ai_provider import atomic_json
 from .file_lock import file_lock
 from .site_connections import SettingsConflict
@@ -79,6 +80,10 @@ class VoiceCorpus:
         return result, inputs
 
     def measure(self, text, profile_id):
+        if profile_id not in iimeter.PROFILES:raise ValueError('Неизвестный профиль голоса')
+        if languages.detect(iimeter.strip_markup(text)) in {'en','mixed'}:
+            return {**iimeter.measure(text,profile_id,profile={}),
+                    'corpus_state':{'status':'unsupported_language','reason':'Языковой профиль ИИМетра не откалиброван.'}}
         corpus, inputs = self.inspect(profile_id)
         profile = {}
         if corpus['status'] == 'ok':

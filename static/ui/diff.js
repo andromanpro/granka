@@ -1,3 +1,4 @@
+import { t, localizedOption, locale, localize } from './i18n.js';
 import { $, S, el, events, query, allowNavigation } from "./core.js";
 import { setView } from "./editor.js";
 const key = () => S.root + '|' + S.file;
@@ -85,17 +86,17 @@ export function renderDiff() {
   right.replaceChildren();
   const before = S.document.versions.find(v => v.id === pair.from),
     after = S.document.versions.find(v => v.id === pair.to);
-  $('#diff-status').textContent = pair.from === pair.to ? 'Выбрана одна и та же версия' :
-    before.text === after.text && JSON.stringify(before.cover) === JSON.stringify(after.cover) ? 'Текст и обложка совпадают' : '';
-  left.appendChild(el("h3", null, "Слева · " + before.id));
-  right.appendChild(el("h3", null, "Справа · " + after.id));
+  localize($('#diff-status'),"textContent",()=>pair.from === pair.to ? t("ui.15d7f4cee7e8") :
+    before.text === after.text && JSON.stringify(before.cover) === JSON.stringify(after.cover) ? t("ui.069685f55e18") : '');
+  left.appendChild(el("h3", null, ()=>t("ui.6fd68db02638") + before.id));
+  right.appendChild(el("h3", null, ()=>t("ui.bfec21efb11a") + after.id));
   if (JSON.stringify(before.cover) !== JSON.stringify(after.cover)) {
     for (const [parent, cover] of [
       [left, before.cover],
       [right, after.cover],
     ]) {
       parent.appendChild(
-        el("p", "diff-cover-label", cover ? "Обложка статьи" : "Без обложки"),
+        el("p", "diff-cover-label", ()=>cover ? t("ui.3b855468a0eb") : t("ui.ca3c5026d04e")),
       );
       if (cover) {
         const image = el("img", "diff-cover");
@@ -114,7 +115,7 @@ export function renderDiff() {
     ops = pairs(A, B, 12e6);
   if (!ops) {
     left.appendChild(
-      el("p", null, "Текст слишком большой для построчного сравнения."),
+      el("p", null, ()=>t("ui.25feb49a0f8b")),
     );
     return;
   }
