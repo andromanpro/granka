@@ -2,6 +2,8 @@
 
 [Русский](FIRST_EDIT.md) · [English overview](../README.en.md)
 
+[Worked example](CASE-EDITORIAL-REVIEW.en.md): two sample suggestions, version comparison and restoration without connecting to an AI.
+
 1. Go to **Articles → Open file** and choose a Markdown draft. Or choose
    **New article** to start with a blank page.
 2. Open **Settings → Languages**. The interface, the material and AI explanations

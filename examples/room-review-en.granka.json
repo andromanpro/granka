@@ -1,0 +1,40 @@
+{
+  "doc": "room-review-en.md",
+  "versions": [
+    {
+      "id": "v1",
+      "label": "Original draft",
+      "text": "# How we set up a room for recording\n\nA preliminary assessment of the room was conducted.\n\nThe rug made more difference than another noise reduction setting.\n"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "specific-action",
+      "version": "v1",
+      "type": "candidate",
+      "start": 38,
+      "end": 89,
+      "quote": "A preliminary assessment of the room was conducted.",
+      "why": "Name the actions so readers can repeat them.",
+      "variants": [
+        "Before recording, we closed the window and turned off the fan."
+      ],
+      "severity": "P2",
+      "class": "Clarity"
+    },
+    {
+      "id": "keep-voice",
+      "version": "v1",
+      "type": "candidate",
+      "start": 91,
+      "end": 157,
+      "quote": "The rug made more difference than another noise reduction setting.",
+      "why": "This removes the author's personal comparison.",
+      "variants": [
+        "The rug reduced the echo."
+      ],
+      "severity": "P2",
+      "class": "Author's voice"
+    }
+  ]
+}
